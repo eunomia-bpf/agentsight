@@ -18,6 +18,7 @@ import {
 import {
   HttpError,
   linkOAuthAccount,
+  readJson as readCoreJson,
   upsertUser,
   type OAuthProfile,
 } from './core.ts';
@@ -247,6 +248,25 @@ test('JSON body reader cancels an oversized stream before buffering the request'
   } as RequestInit & { duplex: 'half' });
   await assert.rejects(readJson(request), (error: unknown) => (
     error instanceof AccessError && error.status === 413 && error.code === 'request_too_large'
+  ));
+  assert.equal(cancelled, true);
+});
+
+test('OAuth body reader also cancels an oversized stream before buffering it', async () => {
+  let cancelled = false;
+  const request = new Request('https://control.agentsight.us/v1/auth/link/google', {
+    method: 'POST',
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(12 * 1024));
+        controller.enqueue(new Uint8Array(12 * 1024));
+      },
+      cancel() { cancelled = true; },
+    }),
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  await assert.rejects(readCoreJson(request), (error: unknown) => (
+    error instanceof HttpError && error.status === 413 && error.code === 'request_too_large'
   ));
   assert.equal(cancelled, true);
 });

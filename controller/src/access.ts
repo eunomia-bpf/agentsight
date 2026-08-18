@@ -6,6 +6,7 @@ export type Plan = 'free' | 'pro' | 'team' | 'enterprise';
 export type EffectivePlan = Plan | 'unlimited';
 export type OrganizationKind = 'personal' | 'team';
 export type BillingStatus = 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+export type BillingInterval = 'monthly' | 'annual' | null;
 
 // Billing is modeled now, but is intentionally not enforced during the hosted
 // preview. Keep persisted billing plans truthful while granting all registered
@@ -643,7 +644,7 @@ export async function setStripeBilling(
   organizationId: string,
   input: {
     plan: 'pro';
-    interval: 'monthly' | 'annual';
+    interval: BillingInterval;
     status: BillingStatus;
     externalCustomerId: string;
     externalSubscriptionId: string;
@@ -652,7 +653,7 @@ export async function setStripeBilling(
 ): Promise<'updated' | 'ignored'> {
   const result = await db.prepare(
     `UPDATE organizations SET
-       plan = ?1, billing_interval = ?2, billing_status = ?3,
+       plan = ?1, billing_interval = COALESCE(?2, billing_interval), billing_status = ?3,
        external_customer_id = ?4, external_subscription_id = ?5,
        current_period_end = ?6, updated_at = ?7
      WHERE id = ?8 AND kind = 'personal'
@@ -692,20 +693,23 @@ export async function getStripeBillingRecord(
 ): Promise<{
   kind: OrganizationKind;
   billingStatus: BillingStatus;
+  billingInterval: BillingInterval;
   externalSubscriptionId: string | null;
 }> {
   const row = await db.prepare(
-    `SELECT kind, billing_status, external_subscription_id
+    `SELECT kind, billing_status, billing_interval, external_subscription_id
      FROM organizations WHERE id = ?1`,
   ).bind(organizationId).first<{
     kind: OrganizationKind;
     billing_status: BillingStatus;
+    billing_interval: BillingInterval;
     external_subscription_id: string | null;
   }>();
   if (!row) throw new AccessError(404, 'organization_not_found');
   return {
     kind: row.kind,
     billingStatus: row.billing_status,
+    billingInterval: row.billing_interval,
     externalSubscriptionId: row.external_subscription_id,
   };
 }

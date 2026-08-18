@@ -183,6 +183,7 @@ export async function mockController(page: Page, options: {
   billingStatus?: 'inactive' | 'active';
   contributorPro?: boolean;
   checkoutAvailable?: boolean;
+  checkoutUrl?: string;
 } = {}) {
   const state: MockState = {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
@@ -278,7 +279,9 @@ export async function mockController(page: Page, options: {
     }
     if (path === '/v1/organizations/org-personal/billing/checkout' && request.method() === 'POST') {
       state.billingCheckouts.push(request.postDataJSON());
-      return json(route, { url: 'https://checkout.stripe.com/c/pay/browser-test' });
+      return json(route, {
+        url: options.checkoutUrl || 'https://checkout.stripe.com/c/pay/browser-test',
+      });
     }
     if (path === '/v1/organizations/org-personal/billing/portal' && request.method() === 'POST') {
       state.billingPortalRequests += 1;

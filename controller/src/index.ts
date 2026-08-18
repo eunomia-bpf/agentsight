@@ -46,6 +46,7 @@ import {
 import {
   createStripePortal,
   handleStripeWebhook,
+  isTrustedStripeUrl,
   stripeCheckoutAvailability,
   type StripeEnv,
 } from './billing.ts';
@@ -284,8 +285,7 @@ export default {
           url?: unknown; error?: string;
         } | null;
         if (!result.ok) throw new AccessError(result.status, checkout?.error || 'billing_provider_failed');
-        if (typeof checkout?.url !== 'string'
-            || !checkout.url.startsWith('https://checkout.stripe.com/')) {
+        if (!isTrustedStripeUrl(checkout?.url, 'checkout.stripe.com')) {
           throw new AccessError(502, 'billing_provider_invalid_response');
         }
         return respond(json({ url: checkout.url }));

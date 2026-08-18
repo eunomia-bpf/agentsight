@@ -6,9 +6,9 @@ import { resolveControllerUrl } from '@/lib/controllerOrigin.mjs';
 
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
-// The Controller gives Stripe calls up to 10 seconds. The browser must wait
-// longer so a successful Checkout creation is never reported as a failure.
-const REQUEST_TIMEOUT_MS = 15_000;
+// Checkout recovery may inspect an expired Session and then make one bounded
+// Stripe create attempt. Keep the browser outside both Controller windows.
+const REQUEST_TIMEOUT_MS = 30_000;
 let cloudCodeExchange: Promise<string> | null = null;
 
 export const controllerUrl = resolveControllerUrl(
@@ -225,7 +225,7 @@ export async function createBillingCheckout(
   );
   if (!response.ok) await responseError(response, 'Could not start billing checkout');
   const body = await response.json() as { url?: unknown };
-  if (typeof body.url !== 'string' || !body.url.startsWith('https://checkout.stripe.com/')) {
+  if (!trustedStripeUrl(body.url, 'checkout.stripe.com')) {
     throw new Error('The Controller returned an invalid checkout URL.');
   }
   return body.url;
@@ -259,10 +259,20 @@ export async function createBillingPortal(token: string, organizationId: string)
   );
   if (!response.ok) await responseError(response, 'Could not open billing portal');
   const body = await response.json() as { url?: unknown };
-  if (typeof body.url !== 'string' || !body.url.startsWith('https://billing.stripe.com/')) {
+  if (!trustedStripeUrl(body.url, 'billing.stripe.com')) {
     throw new Error('The Controller returned an invalid billing portal URL.');
   }
   return body.url;
+}
+
+function trustedStripeUrl(value: unknown, hostname: string): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === hostname && url.port === '';
+  } catch {
+    return false;
+  }
 }
 
 export async function acceptOrganizationInvite(token: string, inviteToken: string): Promise<string> {

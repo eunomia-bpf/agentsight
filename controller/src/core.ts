@@ -579,11 +579,35 @@ function publicUser(user: UserRow) {
   };
 }
 
-async function readJson<T>(request: Request): Promise<T> {
+export async function readJson<T>(request: Request): Promise<T> {
+  const maxBytes = 16_384;
   const length = Number(request.headers.get('Content-Length') || '0');
-  if (length > 16_384) throw new HttpError(413, 'request_too_large');
-  const text = await request.text();
-  if (encoder.encode(text).byteLength > 16_384) throw new HttpError(413, 'request_too_large');
+  if (length > maxBytes) throw new HttpError(413, 'request_too_large');
+  if (!request.body) throw new HttpError(400, 'invalid_json');
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel('request too large');
+        throw new HttpError(413, 'request_too_large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const joined = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const text = new TextDecoder().decode(joined);
   try {
     return JSON.parse(text) as T;
   } catch {

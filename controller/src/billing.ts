@@ -21,6 +21,7 @@ const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
 const EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
 const CHECKOUT_SESSION_ID_PATTERN = /^cs_(?:test|live)_[A-Za-z0-9_]{1,250}$/;
 const CUSTOMER_ID_PATTERN = /^cus_[A-Za-z0-9_]{1,250}$/;
+const PRICE_ID_PATTERN = /^price_[A-Za-z0-9_]{1,250}$/;
 const CHECKOUT_GENERATION_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 const INACTIVE_BILLING = new Set<BillingStatus>(['inactive', 'canceled']);
 
@@ -52,6 +53,8 @@ export interface CheckoutInput extends BillingProviderState {
 export interface StripeCheckoutAttempt {
   generation: string;
   expiresAtSeconds: number;
+  priceId?: string;
+  appOrigin?: string;
 }
 
 export interface StripeCheckoutSession {
@@ -61,6 +64,11 @@ export interface StripeCheckoutSession {
 }
 
 export type StripeCheckoutStatus = 'open' | 'complete' | 'expired';
+
+export interface StripeReconciliationResult {
+  outcome: 'updated' | 'ignored';
+  checkoutGeneration: string | null;
+}
 
 interface StripeSubscription {
   id?: string;
@@ -125,7 +133,7 @@ export function validateStripeCheckoutInput(
   env: StripeEnv,
   input: CheckoutInput,
   attempt?: StripeCheckoutAttempt,
-): { secret: string; price: string } {
+): { secret: string; price: string; origin: string } {
   const secret = requiredStripeSecret(env);
   if (!ORGANIZATION_ID_PATTERN.test(input.organizationId)
       || (input.organizationKind !== 'personal' && input.organizationKind !== 'team')
@@ -139,7 +147,8 @@ export function validateStripeCheckoutInput(
     throw new AccessError(400, 'invalid_billing_checkout');
   }
   if (attempt && (!CHECKOUT_GENERATION_PATTERN.test(attempt.generation)
-      || !Number.isSafeInteger(attempt.expiresAtSeconds))) {
+      || !Number.isSafeInteger(attempt.expiresAtSeconds)
+      || (attempt.priceId !== undefined && !PRICE_ID_PATTERN.test(attempt.priceId)))) {
     throw new AccessError(400, 'invalid_billing_checkout');
   }
   if ((input.organizationKind === 'personal' && input.plan !== 'pro')
@@ -153,9 +162,11 @@ export function validateStripeCheckoutInput(
       && input.billingStatus !== 'inactive' && input.billingStatus !== 'canceled') {
     throw new AccessError(409, 'billing_subscription_already_exists');
   }
-  const price = stripePrice(env, input.plan, input.interval);
+  const price = attempt?.priceId || stripePrice(env, input.plan, input.interval);
   if (!price) throw new AccessError(503, 'billing_price_unavailable');
-  return { secret, price };
+  const origin = attempt?.appOrigin || new URL(env.APP_ORIGIN).origin;
+  if (!isHttpsOrigin(origin)) throw new AccessError(400, 'invalid_billing_checkout');
+  return { secret, price, origin };
 }
 
 export async function createStripeCheckout(
@@ -167,7 +178,7 @@ export async function createStripeCheckout(
     expiresAtSeconds: Math.floor(Date.now() / 1000) + STRIPE_CHECKOUT_LIFETIME_SECONDS,
   },
 ): Promise<StripeCheckoutSession> {
-  const { secret, price } = validateStripeCheckoutInput(env, input, attempt);
+  const { secret, price, origin } = validateStripeCheckoutInput(env, input, attempt);
 
   // Stripe only guarantees idempotency-key retention for at least 24 hours,
   // while a lost webhook can be retried for days. Reconcile that gap against
@@ -178,7 +189,6 @@ export async function createStripeCheckout(
     env, input.organizationId, secret, stripeFetch, signal,
   );
 
-  const origin = new URL(env.APP_ORIGIN).origin;
   const body = new URLSearchParams({
     mode: 'subscription',
     success_url: `${origin}/?billing=success`,
@@ -189,9 +199,11 @@ export async function createStripeCheckout(
     'metadata[organization_id]': input.organizationId,
     'metadata[plan]': input.plan,
     'metadata[interval]': input.interval,
+    'metadata[checkout_generation]': attempt.generation,
     'subscription_data[metadata][organization_id]': input.organizationId,
     'subscription_data[metadata][plan]': input.plan,
     'subscription_data[metadata][interval]': input.interval,
+    'subscription_data[metadata][checkout_generation]': attempt.generation,
     expires_at: String(attempt.expiresAtSeconds),
     allow_promotion_codes: 'true',
     billing_address_collection: 'auto',
@@ -204,7 +216,7 @@ export async function createStripeCheckout(
     await checkoutIdempotencyKey(input, attempt.generation), signal,
   );
   if (!session.id || !CHECKOUT_SESSION_ID_PATTERN.test(session.id)
-      || !session.url || !session.url.startsWith('https://checkout.stripe.com/')
+      || !isTrustedStripeUrl(session.url, 'checkout.stripe.com')
       || session.expires_at !== attempt.expiresAtSeconds) {
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
@@ -224,7 +236,7 @@ export async function createStripePortal(
     new URLSearchParams({ customer: customerId, return_url: `${origin}/` }),
     stripeFetch,
   );
-  if (!session.url || !session.url.startsWith('https://billing.stripe.com/')) {
+  if (!isTrustedStripeUrl(session.url, 'billing.stripe.com')) {
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
   return session.url;
@@ -307,7 +319,7 @@ export async function reconcileStripeSubscription(
   subscriptionId: string,
   stripeFetch: StripeFetch = fetch,
   assertWriteCurrent: () => Promise<void> = async () => {},
-): Promise<'updated' | 'ignored'> {
+): Promise<StripeReconciliationResult> {
   if (!ORGANIZATION_ID_PATTERN.test(organizationId)
       || !SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
     throw new AccessError(400, 'stripe_event_invalid');
@@ -318,17 +330,37 @@ export async function reconcileStripeSubscription(
   if (subscription.id !== subscriptionId) {
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
+  const current = await getStripeBillingRecord(env.DB, organizationId);
+  if (current.kind !== 'personal') throw new AccessError(400, 'billing_plan_mismatch');
+  const terminal = terminalSubscriptionState(subscription);
+  if (terminal) {
+    if (terminal.organizationId !== organizationId) {
+      throw new AccessError(400, 'stripe_organization_mismatch');
+    }
+    if (current.externalSubscriptionId !== subscriptionId) {
+      return reconciliationResult('ignored', null);
+    }
+    await assertWriteCurrent();
+    const outcome = await setStripeBilling(env.DB, organizationId, {
+      plan: 'pro',
+      interval: current.billingInterval,
+      status: 'canceled',
+      externalCustomerId: terminal.customerId,
+      externalSubscriptionId: subscriptionId,
+      currentPeriodEnd: terminal.currentPeriodEnd,
+    });
+    return reconciliationResult(outcome, terminal.checkoutGeneration);
+  }
+
   const mapped = subscriptionBillingState(subscription, env);
   if (mapped.organizationId !== organizationId) {
     throw new AccessError(400, 'stripe_organization_mismatch');
   }
-  const current = await getStripeBillingRecord(env.DB, organizationId);
-  if (current.kind !== 'personal') throw new AccessError(400, 'billing_plan_mismatch');
   if (current.externalSubscriptionId
       && current.externalSubscriptionId !== subscriptionId) {
     // A terminal event for an older subscription must never replace the
     // organization's current subscription pointer, even if both are canceled.
-    if (INACTIVE_BILLING.has(mapped.status)) return 'ignored';
+    if (INACTIVE_BILLING.has(mapped.status)) return reconciliationResult('ignored', null);
     if (!INACTIVE_BILLING.has(current.billingStatus)) {
       // The active event may legitimately be for a replacement subscription
       // whose predecessor was canceled before its webhook arrived. Re-read the
@@ -339,24 +371,28 @@ export async function reconcileStripeSubscription(
       if (predecessor.id !== current.externalSubscriptionId) {
         throw new AccessError(502, 'billing_provider_invalid_response');
       }
-      const predecessorState = subscriptionBillingState(predecessor, env);
+      const predecessorTerminal = terminalSubscriptionState(predecessor);
+      const predecessorState = predecessorTerminal || subscriptionBillingState(predecessor, env);
       if (predecessorState.organizationId !== organizationId) {
         throw new AccessError(400, 'stripe_organization_mismatch');
       }
-      if (!INACTIVE_BILLING.has(predecessorState.status)) return 'ignored';
+      if (!INACTIVE_BILLING.has(predecessorState.status)) {
+        return reconciliationResult('ignored', null);
+      }
       await assertWriteCurrent();
-      await setStripeBilling(env.DB, organizationId, {
+      const predecessorOutcome = await setStripeBilling(env.DB, organizationId, {
         plan: 'pro',
-        interval: predecessorState.interval,
+        interval: current.billingInterval,
         status: predecessorState.status,
         externalCustomerId: predecessorState.customerId,
         externalSubscriptionId: predecessor.id,
         currentPeriodEnd: predecessorState.currentPeriodEnd,
       });
+      if (predecessorOutcome === 'ignored') return reconciliationResult('ignored', null);
     }
   }
   await assertWriteCurrent();
-  return setStripeBilling(env.DB, organizationId, {
+  const outcome = await setStripeBilling(env.DB, organizationId, {
     plan: 'pro',
     interval: mapped.interval,
     status: mapped.status,
@@ -364,6 +400,7 @@ export async function reconcileStripeSubscription(
     externalSubscriptionId: subscription.id || subscriptionId,
     currentPeriodEnd: mapped.currentPeriodEnd,
   });
+  return reconciliationResult(outcome, checkoutGeneration(subscription));
 }
 
 export async function verifyStripeSignature(
@@ -401,7 +438,9 @@ export function subscriptionBillingState(subscription: StripeSubscription, env: 
   }
   const customer = typeof subscription.customer === 'string'
     ? subscription.customer : subscription.customer?.id;
-  if (!customer) throw new AccessError(400, 'stripe_customer_invalid');
+  if (!customer || !CUSTOMER_ID_PATTERN.test(customer)) {
+    throw new AccessError(400, 'stripe_customer_invalid');
+  }
   return {
     organizationId,
     plan: 'pro' as Exclude<Plan, 'free' | 'enterprise'>,
@@ -410,6 +449,44 @@ export function subscriptionBillingState(subscription: StripeSubscription, env: 
     customerId: customer,
     currentPeriodEnd: subscription.current_period_end
       || subscription.items?.data?.[0]?.current_period_end || null,
+  };
+}
+
+function terminalSubscriptionState(subscription: StripeSubscription) {
+  if (subscription.status !== 'canceled' && subscription.status !== 'incomplete_expired') {
+    return null;
+  }
+  const organizationId = subscription.metadata?.organization_id || '';
+  if (!ORGANIZATION_ID_PATTERN.test(organizationId)) {
+    throw new AccessError(400, 'stripe_organization_invalid');
+  }
+  const customer = typeof subscription.customer === 'string'
+    ? subscription.customer : subscription.customer?.id;
+  if (!customer || !CUSTOMER_ID_PATTERN.test(customer)) {
+    throw new AccessError(400, 'stripe_customer_invalid');
+  }
+  return {
+    organizationId,
+    status: 'canceled' as const,
+    customerId: customer,
+    currentPeriodEnd: subscription.current_period_end
+      || subscription.items?.data?.[0]?.current_period_end || null,
+    checkoutGeneration: checkoutGeneration(subscription),
+  };
+}
+
+function checkoutGeneration(subscription: StripeSubscription): string | null {
+  const generation = subscription.metadata?.checkout_generation || '';
+  return CHECKOUT_GENERATION_PATTERN.test(generation) ? generation : null;
+}
+
+function reconciliationResult(
+  outcome: 'updated' | 'ignored',
+  checkoutGenerationValue: string | null,
+): StripeReconciliationResult {
+  return {
+    outcome,
+    checkoutGeneration: outcome === 'updated' ? checkoutGenerationValue : null,
   };
 }
 
@@ -574,6 +651,25 @@ async function readBoundedBody(request: Request, maxBytes: number): Promise<stri
     offset += chunk.byteLength;
   }
   return new TextDecoder().decode(joined);
+}
+
+function isHttpsOrigin(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.origin === value;
+  } catch {
+    return false;
+  }
+}
+
+export function isTrustedStripeUrl(value: unknown, hostname: string): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === hostname && url.port === '';
+  } catch {
+    return false;
+  }
 }
 
 function constantTimeEqual(left: string, right: string): boolean {

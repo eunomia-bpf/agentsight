@@ -114,6 +114,18 @@ test('billing controls fail closed when Stripe is unavailable', async ({ page })
   await expect(page).toHaveURL('/');
 });
 
+test('billing controls reject lookalike Stripe hosts', async ({ page }) => {
+  await mockController(page, {
+    signedIn: true,
+    billingStatus: 'inactive',
+    checkoutUrl: 'https://checkout.stripe.com.evil.example/pay',
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: '$5 monthly' }).click();
+  await expect(page.getByText('The Controller returned an invalid checkout URL.')).toBeVisible();
+  await expect(page).toHaveURL('/');
+});
+
 test('conversation, message send, process tree, timeline filters, and event detail work together', async ({ page }) => {
   const state = await mockController(page, { signedIn: true, responseDelayMs: 10_500 });
   await page.goto('/');

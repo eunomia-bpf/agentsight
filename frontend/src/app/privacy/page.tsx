@@ -33,6 +33,7 @@ export default function PrivacyPage() {
             <li>Organizations, memberships, roles, invitations, and registered Node metadata.</li>
             <li>Login sessions, short-lived OAuth state, and hashed Node or session credentials.</li>
             <li>Plan, entitlement, Stripe customer/subscription identifiers, and billing status.</li>
+            <li>Short-lived Stripe Checkout reservation metadata used to prevent duplicate subscriptions.</li>
             <li>An optional Direct endpoint and bootstrap key only when you choose account sync; it is encrypted before storage.</li>
           </ul>
           <p className="mt-3">

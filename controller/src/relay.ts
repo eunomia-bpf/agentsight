@@ -22,13 +22,16 @@ export const MAX_PENDING_RELAY_REQUESTS = 64;
 // control bytes to six source bytes, so relay the full public Node contract.
 const MAX_BROWSER_BODY_BYTES = 512 * 1024;
 const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
-const BILLING_EVENT_PREFIX = 'billing:event:';
-const BILLING_CHECKOUT_KEY = 'billing:checkout:v1';
+const BILLING_EVENT_PREFIX = 'billing:subscription:';
+const BILLING_CHECKOUT_KEY = 'billing:checkout:v2';
 const BILLING_EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
 const BILLING_ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
 const BILLING_SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
-const MAX_BILLING_EVENTS_PER_ALARM = 100;
-const MAX_BILLING_EVENTS_SCANNED = 1_000;
+export const MAX_PENDING_BILLING_RECONCILIATIONS = 128;
+const MAX_BILLING_EVENTS_PER_ALARM = 20;
+const BILLING_ALARM_TIME_BUDGET_MS = 60_000;
+const MAX_BILLING_RECONCILIATION_ATTEMPTS = 48;
+const BILLING_CHECKOUT_EXPIRY_GRACE_MS = 60_000;
 
 export interface RelayEnv {
   DB: D1Database;
@@ -79,10 +82,12 @@ interface PendingBillingReconciliation {
 }
 
 interface PendingBillingCheckout {
-  version: 1;
+  version: 2;
   generation: string;
   input: CheckoutInput;
   expiresAt: number;
+  priceId: string;
+  appOrigin: string;
   session?: StripeCheckoutSession;
 }
 
@@ -257,51 +262,88 @@ export class NodeRelay {
   }
 
   async alarm(): Promise<void> {
-    const now = Date.now();
+    const startedAt = Date.now();
     const entries = await this.ctx.storage.list<PendingBillingReconciliation>({
       prefix: BILLING_EVENT_PREFIX,
-      limit: MAX_BILLING_EVENTS_SCANNED,
+      limit: MAX_PENDING_BILLING_RECONCILIATIONS,
     });
-    const lastScannedKey = Array.from(entries.keys()).at(-1);
-    const beyondScan = entries.size === MAX_BILLING_EVENTS_SCANNED && lastScannedKey
-      ? await this.ctx.storage.list({
-        prefix: BILLING_EVENT_PREFIX, startAfter: lastScannedKey, limit: 1,
-      })
-      : new Map();
-    const hasMore = beyondScan.size > 0;
     let nextAlarm: number | null = null;
     let processed = 0;
-    for (const [key, pending] of entries) {
-      if (pending.nextAttemptAt > now) {
-        nextAlarm = nextAlarm === null ? pending.nextAttemptAt : Math.min(nextAlarm, pending.nextAttemptAt);
-        continue;
+    try {
+      for (const [key, pending] of entries) {
+        const now = Date.now();
+        if (pending.nextAttemptAt > now) {
+          nextAlarm = nextAlarm === null
+            ? pending.nextAttemptAt : Math.min(nextAlarm, pending.nextAttemptAt);
+          continue;
+        }
+        if (processed >= MAX_BILLING_EVENTS_PER_ALARM
+            || now - startedAt >= BILLING_ALARM_TIME_BUDGET_MS) {
+          nextAlarm = now;
+          break;
+        }
+        processed += 1;
+        try {
+          const result = await reconcileStripeSubscription(
+            this.env as RelayEnv & StripeEnv, pending.organizationId, pending.subscriptionId,
+            fetch,
+            async () => { await this.ctx.storage.get('__agentsight_billing_fence'); },
+          );
+          await this.deleteBillingEventIfCurrent(key, pending.eventId);
+          if (result.outcome === 'updated' && result.checkoutGeneration) {
+            await this.deleteCheckoutGeneration(result.checkoutGeneration);
+          }
+        } catch (error) {
+          const attempts = pending.attempts + 1;
+          if (attempts >= MAX_BILLING_RECONCILIATION_ATTEMPTS) {
+            await this.deleteBillingEventIfCurrent(key, pending.eventId);
+            console.error(JSON.stringify({
+              event: 'billing_reconciliation_dead_letter', eventId: pending.eventId, attempts,
+              reason: error instanceof AccessError ? error.code : 'internal_error',
+            }));
+            continue;
+          }
+          const retryAt = now + Math.min(60 * 60_000, (2 ** Math.min(attempts, 10)) * 5_000);
+          let retryStored = false;
+          await this.ctx.storage.transaction(async (transaction) => {
+            const stored = await transaction.get<PendingBillingReconciliation>(key);
+            if (stored?.eventId !== pending.eventId) return;
+            retryStored = true;
+            await transaction.put(key, { ...pending, attempts, nextAttemptAt: retryAt });
+          });
+          if (retryStored) {
+            nextAlarm = nextAlarm === null ? retryAt : Math.min(nextAlarm, retryAt);
+          }
+          console.error(JSON.stringify({
+            event: 'billing_reconciliation_retry', eventId: pending.eventId, attempts,
+            reason: error instanceof AccessError ? error.code : 'internal_error',
+          }));
+        }
       }
-      if (processed >= MAX_BILLING_EVENTS_PER_ALARM) {
-        nextAlarm = now;
-        continue;
-      }
-      processed += 1;
-      try {
-        const outcome = await reconcileStripeSubscription(
-          this.env as RelayEnv & StripeEnv, pending.organizationId, pending.subscriptionId,
-          fetch,
-          async () => { await this.ctx.storage.get('__agentsight_billing_fence'); },
-        );
-        await this.ctx.storage.delete(key);
-        if (outcome === 'updated') await this.ctx.storage.delete(BILLING_CHECKOUT_KEY);
-      } catch (error) {
-        const attempts = pending.attempts + 1;
-        const retryAt = now + Math.min(60 * 60_000, (2 ** Math.min(attempts, 10)) * 5_000);
-        await this.ctx.storage.put(key, { ...pending, attempts, nextAttemptAt: retryAt });
-        nextAlarm = nextAlarm === null ? retryAt : Math.min(nextAlarm, retryAt);
-        console.error(JSON.stringify({
-          event: 'billing_reconciliation_retry', eventId: pending.eventId, attempts,
-          reason: error instanceof AccessError ? error.code : 'internal_error',
-        }));
+    } finally {
+      const remaining = await this.ctx.storage.list<PendingBillingReconciliation>({
+        prefix: BILLING_EVENT_PREFIX,
+        limit: MAX_PENDING_BILLING_RECONCILIATIONS,
+      });
+      if (remaining.size) {
+        const earliest = Math.min(...Array.from(remaining.values(), (entry) => entry.nextAttemptAt));
+        await this.ctx.storage.setAlarm(nextAlarm === null ? earliest : Math.min(nextAlarm, earliest));
       }
     }
-    const remaining = await this.ctx.storage.list({ prefix: BILLING_EVENT_PREFIX, limit: 1 });
-    if (remaining.size) await this.ctx.storage.setAlarm(hasMore ? Date.now() : nextAlarm ?? Date.now());
+  }
+
+  private async deleteBillingEventIfCurrent(key: string, eventId: string): Promise<void> {
+    await this.ctx.storage.transaction(async (transaction) => {
+      const stored = await transaction.get<PendingBillingReconciliation>(key);
+      if (stored?.eventId === eventId) await transaction.delete(key);
+    });
+  }
+
+  private async deleteCheckoutGeneration(generation: string): Promise<void> {
+    await this.ctx.storage.transaction(async (transaction) => {
+      const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+      if (stored?.generation === generation) await transaction.delete(BILLING_CHECKOUT_KEY);
+    });
   }
 
   private acceptNodeSocket(): Response {
@@ -385,13 +427,27 @@ export class NodeRelay {
       attempts: 0,
       nextAttemptAt: Date.now(),
     };
+    const key = `${BILLING_EVENT_PREFIX}${input.subscriptionId}`;
+    let queueFull = false;
     await this.ctx.storage.transaction(async (transaction) => {
-      await transaction.put(`${BILLING_EVENT_PREFIX}${input.eventId}`, pending);
+      const existing = await transaction.get<PendingBillingReconciliation>(key);
+      if (!existing) {
+        const queued = await transaction.list({
+          prefix: BILLING_EVENT_PREFIX,
+          limit: MAX_PENDING_BILLING_RECONCILIATIONS,
+        });
+        if (queued.size >= MAX_PENDING_BILLING_RECONCILIATIONS) {
+          queueFull = true;
+          return;
+        }
+      }
+      await transaction.put(key, pending);
       const scheduled = await transaction.getAlarm();
       if (scheduled === null || scheduled > pending.nextAttemptAt) {
         await transaction.setAlarm(pending.nextAttemptAt);
       }
     });
+    if (queueFull) return json({ error: 'billing_reconciliation_queue_full' }, 503);
     return json({ queued: true }, 202);
   }
 
@@ -399,7 +455,17 @@ export class NodeRelay {
     let input: CheckoutInput;
     try {
       input = await request.json() as CheckoutInput;
-      validateStripeCheckoutInput(this.env as StripeEnv, input);
+      const persisted = await this.ctx.storage.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+      const persistedAttempt = persisted?.version === 2
+          && persisted.input.plan === input.plan && persisted.input.interval === input.interval
+        ? {
+          generation: persisted.generation,
+          expiresAtSeconds: Math.floor(persisted.expiresAt / 1_000),
+          priceId: persisted.priceId,
+          appOrigin: persisted.appOrigin,
+        }
+        : undefined;
+      validateStripeCheckoutInput(this.env as StripeEnv, input, persistedAttempt);
     } catch (error) {
       if (error instanceof AccessError) return json({ error: error.code }, error.status);
       return json({ error: 'invalid_billing_checkout' }, 400);
@@ -408,39 +474,46 @@ export class NodeRelay {
     const reserve = () => this.ctx.storage.transaction(async (transaction) => {
       const existing = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
       if (existing) return existing;
+      const parameters = validateStripeCheckoutInput(this.env as StripeEnv, input);
       const now = Date.now();
       const reserved: PendingBillingCheckout = {
-        version: 1,
+        version: 2,
         generation: crypto.randomUUID(),
         input,
         expiresAt: now + STRIPE_CHECKOUT_LIFETIME_SECONDS * 1_000,
+        priceId: parameters.price,
+        appOrigin: parameters.origin,
       };
       await transaction.put(BILLING_CHECKOUT_KEY, reserved);
       return reserved;
     });
-    let checkout = await reserve();
-    if (checkout.version !== 1 || !Number.isSafeInteger(checkout.expiresAt)
-        || typeof checkout.generation !== 'string') {
+    let checkout: PendingBillingCheckout;
+    try {
+      checkout = await reserve();
+    } catch (error) {
+      if (error instanceof AccessError) return json({ error: error.code }, error.status);
       return json({ error: 'billing_checkout_unavailable' }, 503);
     }
-    if (checkout.session && checkout.expiresAt <= Date.now()) {
+    if (checkout.version !== 2 || !Number.isSafeInteger(checkout.expiresAt)
+        || typeof checkout.generation !== 'string'
+        || typeof checkout.priceId !== 'string' || typeof checkout.appOrigin !== 'string') {
+      return json({ error: 'billing_checkout_unavailable' }, 503);
+    }
+    if (checkout.expiresAt + BILLING_CHECKOUT_EXPIRY_GRACE_MS <= Date.now()) {
       try {
-        const status = await inspectStripeCheckoutSession(
-          this.env as StripeEnv,
-          checkout.input.organizationId,
-          checkout.session.id,
-          fetch,
-        );
-        if (status === 'complete') {
-          return json({ error: 'billing_subscription_already_exists' }, 409);
-        }
-        if (status === 'open') return json({ url: checkout.session.url });
-        await this.ctx.storage.transaction(async (transaction) => {
-          const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
-          if (stored?.generation === checkout.generation) {
-            await transaction.delete(BILLING_CHECKOUT_KEY);
+        if (checkout.session) {
+          const status = await inspectStripeCheckoutSession(
+            this.env as StripeEnv,
+            checkout.input.organizationId,
+            checkout.session.id,
+            fetch,
+          );
+          if (status === 'complete') {
+            return json({ error: 'billing_subscription_already_exists' }, 409);
           }
-        });
+          if (status === 'open') return json({ url: checkout.session.url });
+        }
+        await this.deleteCheckoutGeneration(checkout.generation);
         checkout = await reserve();
       } catch (error) {
         if (error instanceof AccessError) return json({ error: error.code }, error.status);
@@ -460,6 +533,8 @@ export class NodeRelay {
         {
           generation: checkout.generation,
           expiresAtSeconds: Math.floor(checkout.expiresAt / 1_000),
+          priceId: checkout.priceId,
+          appOrigin: checkout.appOrigin,
         },
       );
       let current = true;

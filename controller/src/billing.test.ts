@@ -65,6 +65,7 @@ test('Checkout binds the organization and subscription metadata to a configured 
   assert.equal(body.get('line_items[0][price]'), 'price_pro_annual');
   assert.equal(body.get('customer_email'), 'owner@example.com');
   assert.equal(body.get('subscription_data[metadata][organization_id]'), 'org_personal_user1');
+  assert.equal(body.get('subscription_data[metadata][checkout_generation]'), attempt.generation);
   assert.equal(body.get('success_url'), 'https://app.agentsight.us/?billing=success');
   assert.equal(body.get('expires_at'), String(attempt.expiresAtSeconds));
   assert.match(idempotencyKey, /^agentsight-[a-f0-9]{64}$/);
@@ -134,6 +135,24 @@ test('Portal sessions require an existing Stripe customer', async () => {
     return Response.json({ url: 'https://billing.stripe.com/p/session/test' });
   });
   assert.equal(url, 'https://billing.stripe.com/p/session/test');
+  await assert.rejects(createStripePortal(stripeEnv, 'cus_existing', async () => (
+    Response.json({ url: 'https://billing.stripe.com.evil.example/session' })
+  )), (error: unknown) => error instanceof AccessError
+    && error.message === 'billing_provider_invalid_response');
+});
+
+test('Checkout rejects lookalike Stripe hosts', async () => {
+  const attempt = { generation: 'checkout_generation_url', expiresAtSeconds: 1_900_001_800 };
+  await assert.rejects(createStripeCheckout(stripeEnv, {
+    organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
+    plan: 'pro', interval: 'monthly', externalCustomerId: null, externalSubscriptionId: null,
+  }, async (input) => String(input).includes('/subscriptions/search?')
+    ? Response.json({ data: [], has_more: false })
+    : Response.json({
+      id: 'cs_test_lookalike', url: 'https://checkout.stripe.com.evil.example/pay',
+      expires_at: attempt.expiresAtSeconds,
+    }), attempt), (error: unknown) => error instanceof AccessError
+      && error.message === 'billing_provider_invalid_response');
 });
 
 test('Checkout cannot create a second active subscription', async () => {
@@ -330,7 +349,8 @@ test('Reconciliation fetches current Stripe state and updates existing columns w
       return {
         bind: (...values: unknown[]) => ({
           first: async () => ({
-            kind: 'personal', billing_status: 'inactive', external_subscription_id: null,
+            kind: 'personal', billing_status: 'inactive', billing_interval: null,
+            external_subscription_id: null,
           }),
           run: async () => {
             bound = values;
@@ -346,12 +366,52 @@ test('Reconciliation fetches current Stripe state and updates existing columns w
     metadata: { organization_id: 'org_personal_user1' },
     items: { data: [{ price: { id: 'price_pro_annual' } }] },
   }));
-  assert.equal(result, 'updated');
+  assert.deepEqual(result, { outcome: 'updated', checkoutGeneration: null });
   assert.match(query, /external_subscription_id = \?5/);
   assert.deepEqual(bound.slice(0, 6), [
     'pro', 'annual', 'trialing', 'cus_test', 'sub_test', 1_900_000_000,
   ]);
   assert.equal(bound.at(-1), 'org_personal_user1');
+});
+
+test('Terminal webhook preserves a stored or legacy-null interval after its Price is retired', async () => {
+  for (const billingInterval of ['annual', null] as const) {
+    let query = '';
+    let bound: unknown[] = [];
+    const db = {
+      prepare: (statement: string) => {
+        query = statement;
+        return {
+          bind: (...values: unknown[]) => ({
+            first: async () => ({
+              kind: 'personal', billing_status: 'active', billing_interval: billingInterval,
+              external_subscription_id: 'sub_retired',
+            }),
+            run: async () => {
+              bound = values;
+              return { success: true, meta: { changes: 1 } };
+            },
+          }),
+        };
+      },
+    } as unknown as D1Database;
+    const result = await reconcileStripeSubscription({ ...stripeEnv, DB: db },
+      'org_personal_user1', 'sub_retired', async () => Response.json({
+        id: 'sub_retired', customer: 'cus_test', status: 'canceled',
+        metadata: {
+          organization_id: 'org_personal_user1',
+          checkout_generation: 'checkout_generation_retired',
+        },
+        items: { data: [{ price: { id: 'price_no_longer_configured' } }] },
+      }));
+    assert.deepEqual(result, {
+      outcome: 'updated', checkoutGeneration: 'checkout_generation_retired',
+    });
+    assert.match(query, /billing_interval = COALESCE\(\?2, billing_interval\)/);
+    assert.equal(bound[1], billingInterval);
+    assert.equal(bound[2], 'canceled');
+    assert.equal(bound[4], 'sub_retired');
+  }
 });
 
 test('A stale or duplicate subscription cannot replace a different active subscription', async () => {
@@ -363,7 +423,8 @@ test('A stale or duplicate subscription cannot replace a different active subscr
         bind: () => ({
           run: async () => ({ success: true, meta: { changes: 0 } }),
           first: async () => ({
-            kind: 'personal', billing_status: 'active', external_subscription_id: 'sub_current',
+            kind: 'personal', billing_status: 'active', billing_interval: 'monthly',
+            external_subscription_id: 'sub_current',
           }),
         }),
       };
@@ -375,9 +436,9 @@ test('A stale or duplicate subscription cannot replace a different active subscr
       metadata: { organization_id: 'org_personal_user1' },
       items: { data: [{ price: { id: 'price_pro_monthly' } }] },
     }));
-  assert.equal(result, 'ignored');
+  assert.deepEqual(result, { outcome: 'ignored', checkoutGeneration: null });
   assert.equal(queries.length, 1);
-  assert.match(queries[0], /SELECT kind, billing_status, external_subscription_id/);
+  assert.match(queries[0], /SELECT kind, billing_status, billing_interval, external_subscription_id/);
 });
 
 test('A replacement subscription can activate when Stripe shows its predecessor is canceled', async () => {
@@ -393,6 +454,7 @@ test('A replacement subscription can activate when Stripe shows its predecessor 
         first: async () => ({
           kind: state.kind,
           billing_status: state.billingStatus,
+          billing_interval: 'monthly',
           external_subscription_id: state.externalSubscriptionId,
         }),
         run: async () => {
@@ -426,7 +488,7 @@ test('A replacement subscription can activate when Stripe shows its predecessor 
         items: { data: [{ price: { id: 'price_pro_monthly' } }] },
       });
     });
-  assert.equal(result, 'updated');
+  assert.deepEqual(result, { outcome: 'updated', checkoutGeneration: null });
   assert.deepEqual(fetched, ['sub_new', 'sub_old']);
   assert.deepEqual(updates, [
     { status: 'canceled', subscriptionId: 'sub_old' },
@@ -442,7 +504,8 @@ test('A stale Durable Object instance is fenced after Stripe reads and before D1
     prepare: (query: string) => ({
       bind: () => ({
         first: async () => ({
-          kind: 'personal', billing_status: 'active', external_subscription_id: 'sub_test',
+          kind: 'personal', billing_status: 'active', billing_interval: 'monthly',
+          external_subscription_id: 'sub_test',
         }),
         run: async () => {
           if (query.startsWith('UPDATE organizations')) writes += 1;
