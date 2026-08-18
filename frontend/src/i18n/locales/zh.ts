@@ -168,6 +168,8 @@ export const zh: Record<TranslationKey, string> = {
   'billing.success': '支付已完成，订阅状态可能需要片刻刷新。',
   'billing.canceled': '已取消支付，订阅没有变化。',
   'billing.ownerOnly': '只有组织所有者可以管理账单。',
+  'billing.checkoutInProgress': '已有一个安全支付页面处于打开状态；请继续使用该页面，或等它过期后再选择其他价格。',
+  'billing.subscriptionExists': '此组织已经存在生效中或可恢复的订阅。',
   'sessionDetail.back': '机器概览',
   'sessionDetail.plan': 'Agent Plan',
   'sessionDetail.cpuNow': '当前 CPU',

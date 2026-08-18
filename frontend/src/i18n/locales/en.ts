@@ -164,6 +164,8 @@ export const en = {
   'billing.success': 'Checkout completed. Subscription status may take a moment to refresh.',
   'billing.canceled': 'Checkout was canceled. No subscription change was made.',
   'billing.ownerOnly': 'Only the organization owner can manage billing.',
+  'billing.checkoutInProgress': 'A secure checkout is already open. Use that checkout or try another price after it expires.',
+  'billing.subscriptionExists': 'This organization already has an active or recoverable subscription.',
   'sessionDetail.back': 'Machine overview',
   'sessionDetail.plan': 'Agent Plan',
   'sessionDetail.cpuNow': 'CPU now',

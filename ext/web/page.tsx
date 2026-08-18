@@ -638,10 +638,15 @@ export default function Home() {
       if (cause instanceof CloudSessionExpiredError) {
         handleCloudError(cause, 'Your AgentSight sign-in has expired.');
       }
-      setBillingError(cause instanceof Error ? cause.message : 'Could not start billing checkout.');
+      const code = cause instanceof Error ? cause.message : '';
+      setBillingError(code === 'billing_checkout_in_progress'
+        ? t('billing.checkoutInProgress')
+        : code === 'billing_subscription_already_exists'
+          ? t('billing.subscriptionExists')
+          : code || 'Could not start billing checkout.');
       setBillingBusy(false);
     }
-  }, [activeOrganization, handleCloudError]);
+  }, [activeOrganization, handleCloudError, t]);
 
   const openBillingPortal = useCallback(async () => {
     const token = loadCloudSession();

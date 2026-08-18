@@ -2,7 +2,13 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import {
+  createStripeCheckout,
+  inspectStripeCheckoutSession,
   reconcileStripeSubscription,
+  STRIPE_CHECKOUT_LIFETIME_SECONDS,
+  validateStripeCheckoutInput,
+  type CheckoutInput,
+  type StripeCheckoutSession,
   type StripeEnv,
 } from './billing.ts';
 import { AccessError } from './access.ts';
@@ -17,6 +23,7 @@ export const MAX_PENDING_RELAY_REQUESTS = 64;
 const MAX_BROWSER_BODY_BYTES = 512 * 1024;
 const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
 const BILLING_EVENT_PREFIX = 'billing:event:';
+const BILLING_CHECKOUT_KEY = 'billing:checkout:v1';
 const BILLING_EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
 const BILLING_ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
 const BILLING_SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
@@ -69,6 +76,14 @@ interface PendingBillingReconciliation {
   subscriptionId: string;
   attempts: number;
   nextAttemptAt: number;
+}
+
+interface PendingBillingCheckout {
+  version: 1;
+  generation: string;
+  input: CheckoutInput;
+  expiresAt: number;
+  session?: StripeCheckoutSession;
 }
 
 export function relayNodeSocketId(pathname: string): string | null {
@@ -201,6 +216,9 @@ export class NodeRelay {
     if (url.pathname === '/billing/enqueue' && request.method === 'POST') {
       return this.enqueueBilling(request);
     }
+    if (url.pathname === '/billing/checkout' && request.method === 'POST') {
+      return this.checkoutBilling(request);
+    }
     return json({ error: 'not_found' }, 404);
   }
 
@@ -264,12 +282,13 @@ export class NodeRelay {
       }
       processed += 1;
       try {
-        await reconcileStripeSubscription(
+        const outcome = await reconcileStripeSubscription(
           this.env as RelayEnv & StripeEnv, pending.organizationId, pending.subscriptionId,
           fetch,
           async () => { await this.ctx.storage.get('__agentsight_billing_fence'); },
         );
         await this.ctx.storage.delete(key);
+        if (outcome === 'updated') await this.ctx.storage.delete(BILLING_CHECKOUT_KEY);
       } catch (error) {
         const attempts = pending.attempts + 1;
         const retryAt = now + Math.min(60 * 60_000, (2 ** Math.min(attempts, 10)) * 5_000);
@@ -374,6 +393,91 @@ export class NodeRelay {
       }
     });
     return json({ queued: true }, 202);
+  }
+
+  private async checkoutBilling(request: Request): Promise<Response> {
+    let input: CheckoutInput;
+    try {
+      input = await request.json() as CheckoutInput;
+      validateStripeCheckoutInput(this.env as StripeEnv, input);
+    } catch (error) {
+      if (error instanceof AccessError) return json({ error: error.code }, error.status);
+      return json({ error: 'invalid_billing_checkout' }, 400);
+    }
+
+    const reserve = () => this.ctx.storage.transaction(async (transaction) => {
+      const existing = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+      if (existing) return existing;
+      const now = Date.now();
+      const reserved: PendingBillingCheckout = {
+        version: 1,
+        generation: crypto.randomUUID(),
+        input,
+        expiresAt: now + STRIPE_CHECKOUT_LIFETIME_SECONDS * 1_000,
+      };
+      await transaction.put(BILLING_CHECKOUT_KEY, reserved);
+      return reserved;
+    });
+    let checkout = await reserve();
+    if (checkout.version !== 1 || !Number.isSafeInteger(checkout.expiresAt)
+        || typeof checkout.generation !== 'string') {
+      return json({ error: 'billing_checkout_unavailable' }, 503);
+    }
+    if (checkout.session && checkout.expiresAt <= Date.now()) {
+      try {
+        const status = await inspectStripeCheckoutSession(
+          this.env as StripeEnv,
+          checkout.input.organizationId,
+          checkout.session.id,
+          fetch,
+        );
+        if (status === 'complete') {
+          return json({ error: 'billing_subscription_already_exists' }, 409);
+        }
+        if (status === 'open') return json({ url: checkout.session.url });
+        await this.ctx.storage.transaction(async (transaction) => {
+          const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+          if (stored?.generation === checkout.generation) {
+            await transaction.delete(BILLING_CHECKOUT_KEY);
+          }
+        });
+        checkout = await reserve();
+      } catch (error) {
+        if (error instanceof AccessError) return json({ error: error.code }, error.status);
+        return json({ error: 'billing_provider_failed' }, 502);
+      }
+    }
+    if (checkout.input.plan !== input.plan || checkout.input.interval !== input.interval) {
+      return json({ error: 'billing_checkout_in_progress' }, 409);
+    }
+    if (checkout.session) return json({ url: checkout.session.url });
+
+    try {
+      const session = await createStripeCheckout(
+        this.env as StripeEnv,
+        checkout.input,
+        fetch,
+        {
+          generation: checkout.generation,
+          expiresAtSeconds: Math.floor(checkout.expiresAt / 1_000),
+        },
+      );
+      let current = true;
+      await this.ctx.storage.transaction(async (transaction) => {
+        const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+        if (!stored || stored.generation !== checkout?.generation) {
+          current = false;
+          return;
+        }
+        await transaction.put(BILLING_CHECKOUT_KEY, { ...stored, session });
+      });
+      if (!current) return json({ error: 'billing_checkout_in_progress' }, 409);
+      return json({ url: session.url });
+    } catch (error) {
+      if (error instanceof AccessError) return json({ error: error.code }, error.status);
+      console.error(JSON.stringify({ event: 'billing_checkout_failed', reason: 'internal_error' }));
+      return json({ error: 'billing_provider_failed' }, 502);
+    }
   }
 }
 

@@ -162,6 +162,108 @@ test('billing webhook is durably queued before acknowledgement and reconciled by
   }
 });
 
+test('billing Checkout reserves one durable generation before calling Stripe', async () => {
+  const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
+    configurable: true,
+    value: class WebSocketRequestResponsePairStub {},
+  });
+  const stored = new Map<string, unknown>();
+  const transaction = {
+    get: async (key: string) => stored.get(key),
+    put: async (key: string, value: unknown) => { stored.set(key, value); },
+    delete: async (key: string) => stored.delete(key),
+  };
+  let transactionQueue: Promise<unknown> = Promise.resolve();
+  let checkoutPosts = 0;
+  globalThis.fetch = async (input, init) => {
+    if (String(input).includes('/subscriptions/search?')) {
+      return Response.json({ data: [], has_more: false });
+    }
+    if (String(input).includes('/checkout/sessions/cs_test_durable')) {
+      return Response.json({
+        id: 'cs_test_durable1',
+        client_reference_id: 'org_personal_user1',
+        status: 'expired',
+      });
+    }
+    checkoutPosts += 1;
+    const body = init?.body as URLSearchParams;
+    return Response.json({
+      id: `cs_test_durable${checkoutPosts}`,
+      url: `https://checkout.stripe.com/c/pay/durable${checkoutPosts}`,
+      expires_at: Number(body.get('expires_at')),
+    });
+  };
+  const ctx = {
+    setWebSocketAutoResponse() {},
+    getWebSockets: () => [],
+    storage: {
+      transaction: (callback: (value: typeof transaction) => Promise<unknown>) => {
+        const result = transactionQueue.then(() => callback(transaction));
+        transactionQueue = result.catch(() => undefined);
+        return result;
+      },
+      get: async (key: string) => stored.get(key),
+      put: async (key: string, value: unknown) => { stored.set(key, value); },
+      delete: async (key: string) => stored.delete(key),
+    },
+  } as unknown as DurableObjectState;
+  const relay = new NodeRelay(ctx, {
+    DB: {} as D1Database,
+    NODE_RELAY: {} as DurableObjectNamespace,
+    APP_ORIGIN: 'https://app.agentsight.us',
+    STRIPE_SECRET_KEY: 'sk_test_example',
+    STRIPE_WEBHOOK_SECRET: 'whsec_example',
+    STRIPE_PRO_MONTHLY_PRICE_ID: 'price_pro_monthly',
+    STRIPE_PRO_ANNUAL_PRICE_ID: 'price_pro_annual',
+  });
+  const checkout = (interval: 'monthly' | 'annual') => relay.fetch(new Request(
+    'https://relay.internal/billing/checkout',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        organizationId: 'org_personal_user1', organizationKind: 'personal',
+        email: 'owner@example.com', plan: 'pro', interval,
+        externalCustomerId: null, externalSubscriptionId: null, billingStatus: 'inactive',
+      }),
+    },
+  ));
+
+  try {
+    const responses = await Promise.all([checkout('monthly'), checkout('annual')]);
+    assert.deepEqual(responses.map((response) => response.status).sort(), [200, 409]);
+    assert.equal(checkoutPosts, 1);
+    assert.deepEqual(await responses.find((response) => response.status === 409)?.json(), {
+      error: 'billing_checkout_in_progress',
+    });
+
+    const retry = await checkout('monthly');
+    assert.equal(retry.status, 200);
+    assert.deepEqual(await retry.json(), {
+      url: 'https://checkout.stripe.com/c/pay/durable1',
+    });
+    assert.equal(checkoutPosts, 1);
+    assert.equal(stored.size, 1);
+
+    const [checkoutKey, checkoutState] = Array.from(stored.entries())[0] as [
+      string, { expiresAt: number },
+    ];
+    stored.set(checkoutKey, { ...checkoutState, expiresAt: Date.now() - 1 });
+    const replacement = await checkout('annual');
+    assert.equal(replacement.status, 200);
+    assert.deepEqual(await replacement.json(), {
+      url: 'https://checkout.stripe.com/c/pay/durable2',
+    });
+    assert.equal(checkoutPosts, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
+    else Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
+  }
+});
+
 test('Node relay socket path accepts only stable Node IDs', () => {
   assert.equal(relayNodeSocketId('/v1/relay/nodes/node_0123abcdef'), 'node_0123abcdef');
   assert.equal(relayNodeSocketId('/v1/relay/nodes/not-a-node'), null);

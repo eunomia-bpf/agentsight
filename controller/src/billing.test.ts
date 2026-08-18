@@ -38,7 +38,8 @@ test('Stripe checkout availability is fail-closed and price-specific', () => {
 test('Checkout binds the organization and subscription metadata to a configured price', async () => {
   let requestBody: URLSearchParams | null = null;
   let idempotencyKey = '';
-  const url = await createStripeCheckout(stripeEnv, {
+  const attempt = { generation: 'checkout_generation_1', expiresAtSeconds: 1_900_001_800 };
+  const session = await createStripeCheckout(stripeEnv, {
     organizationId: 'org_personal_user1',
     organizationKind: 'personal',
     email: 'owner@example.com',
@@ -52,15 +53,20 @@ test('Checkout binds the organization and subscription metadata to a configured 
     }
     requestBody = init?.body as URLSearchParams;
     idempotencyKey = new Headers(init?.headers).get('Idempotency-Key') || '';
-    return Response.json({ url: 'https://checkout.stripe.com/c/pay/test' });
-  });
-  assert.equal(url, 'https://checkout.stripe.com/c/pay/test');
+    return Response.json({
+      id: 'cs_test_checkout1', url: 'https://checkout.stripe.com/c/pay/test',
+      expires_at: Number(requestBody.get('expires_at')),
+    });
+  }, attempt);
+  assert.equal(session.url, 'https://checkout.stripe.com/c/pay/test');
+  assert.equal(session.expiresAt, attempt.expiresAtSeconds * 1_000);
   assert.ok(requestBody);
   const body = requestBody as URLSearchParams;
   assert.equal(body.get('line_items[0][price]'), 'price_pro_annual');
   assert.equal(body.get('customer_email'), 'owner@example.com');
   assert.equal(body.get('subscription_data[metadata][organization_id]'), 'org_personal_user1');
   assert.equal(body.get('success_url'), 'https://app.agentsight.us/?billing=success');
+  assert.equal(body.get('expires_at'), String(attempt.expiresAtSeconds));
   assert.match(idempotencyKey, /^agentsight-[a-f0-9]{64}$/);
 
   await assert.rejects(
@@ -73,13 +79,14 @@ test('Checkout binds the organization and subscription metadata to a configured 
   );
 });
 
-test('Concurrent Checkout choices share one Stripe idempotency generation', async () => {
+test('Retries for one reserved Checkout reuse its Stripe idempotency generation', async () => {
   const keys: string[] = [];
   const requests = new Map<string, string>();
   let sessionsCreated = 0;
-  const checkout = (interval: 'monthly' | 'annual') => createStripeCheckout(stripeEnv, {
+  const attempt = { generation: 'checkout_generation_2', expiresAtSeconds: 1_900_001_800 };
+  const checkout = () => createStripeCheckout(stripeEnv, {
     organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
-    plan: 'pro', interval, externalCustomerId: null, externalSubscriptionId: null,
+    plan: 'pro', interval: 'monthly', externalCustomerId: null, externalSubscriptionId: null,
     billingStatus: 'inactive',
   }, async (_input, init) => {
     if (String(_input).includes('/subscriptions/search?')) {
@@ -92,15 +99,19 @@ test('Concurrent Checkout choices share one Stripe idempotency generation', asyn
     if (existing && existing !== params) {
       return Response.json({ error: { type: 'idempotency_error' } }, { status: 400 });
     }
-    requests.set(key, params);
-    sessionsCreated += 1;
-    return Response.json({ url: 'https://checkout.stripe.com/c/pay/test' });
-  });
-  const results = await Promise.allSettled([checkout('monthly'), checkout('annual')]);
+    if (!existing) {
+      requests.set(key, params);
+      sessionsCreated += 1;
+    }
+    return Response.json({
+      id: 'cs_test_checkout2', url: 'https://checkout.stripe.com/c/pay/test',
+      expires_at: attempt.expiresAtSeconds,
+    });
+  }, attempt);
+  const results = await Promise.allSettled([checkout(), checkout()]);
   assert.equal(keys.length, 2);
   assert.equal(keys[0], keys[1]);
-  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
-  assert.equal(results.filter((result) => result.status === 'rejected').length, 1);
+  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 2);
   assert.equal(sessionsCreated, 1);
 });
 
@@ -159,6 +170,45 @@ test('Checkout finds a live Stripe subscription after local webhook state was lo
   }), (error: unknown) => error instanceof AccessError
     && error.message === 'billing_subscription_already_exists');
   assert.equal(checkoutPosts, 0);
+});
+
+test('A terminal subscription stops blocking after its archived Price leaves the allowlist', async () => {
+  const attempt = { generation: 'checkout_generation_3', expiresAtSeconds: 1_900_001_800 };
+  const session = await createStripeCheckout(stripeEnv, {
+    organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
+    plan: 'pro', interval: 'monthly', externalCustomerId: 'cus_existing',
+    externalSubscriptionId: null, billingStatus: 'canceled',
+  }, async (input) => {
+    if (String(input).includes('/subscriptions/search?')) {
+      return Response.json({
+        data: [{
+          id: 'sub_retired', customer: 'cus_existing', status: 'canceled',
+          metadata: { organization_id: 'org_personal_user1' },
+          items: { data: [{ price: { id: 'price_retired' } }] },
+        }],
+        has_more: false,
+      });
+    }
+    return Response.json({
+      id: 'cs_test_replacement', url: 'https://checkout.stripe.com/c/pay/replacement',
+      expires_at: attempt.expiresAtSeconds,
+    });
+  }, attempt);
+  assert.equal(session.url, 'https://checkout.stripe.com/c/pay/replacement');
+
+  await assert.rejects(createStripeCheckout(stripeEnv, {
+    organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
+    plan: 'pro', interval: 'monthly', externalCustomerId: 'cus_existing',
+    externalSubscriptionId: null, billingStatus: 'inactive',
+  }, async () => Response.json({
+    data: [{
+      id: 'sub_unknown_live', customer: 'cus_existing', status: 'active',
+      metadata: { organization_id: 'org_personal_user1' },
+      items: { data: [{ price: { id: 'price_unknown' } }] },
+    }],
+    has_more: false,
+  }), attempt), (error: unknown) => error instanceof AccessError
+    && error.message === 'stripe_price_unrecognized');
 });
 
 test('Stripe signatures require the exact payload and a recent timestamp', async () => {

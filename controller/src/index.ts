@@ -44,7 +44,6 @@ import {
   validNodeId,
 } from './access.ts';
 import {
-  createStripeCheckout,
   createStripePortal,
   handleStripeWebhook,
   stripeCheckoutAvailability,
@@ -264,8 +263,13 @@ export default {
             || (body.interval !== 'monthly' && body.interval !== 'annual')) {
           throw new AccessError(400, 'invalid_billing_checkout');
         }
-        return respond(json({
-          url: await createStripeCheckout(env, {
+        const coordinator = env.NODE_RELAY.get(
+          env.NODE_RELAY.idFromName(`billing:${provider.access.id}`),
+        );
+        const result = await coordinator.fetch(new Request('https://relay.internal/billing/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             organizationId: provider.access.id,
             organizationKind: provider.access.kind,
             email: user.email,
@@ -276,6 +280,15 @@ export default {
             billingStatus: provider.access.billingStatus,
           }),
         }));
+        const checkout = await result.json().catch(() => null) as {
+          url?: unknown; error?: string;
+        } | null;
+        if (!result.ok) throw new AccessError(result.status, checkout?.error || 'billing_provider_failed');
+        if (typeof checkout?.url !== 'string'
+            || !checkout.url.startsWith('https://checkout.stripe.com/')) {
+          throw new AccessError(502, 'billing_provider_invalid_response');
+        }
+        return respond(json({ url: checkout.url }));
       }
 
       if (url.pathname === '/v1/nodes' && request.method === 'GET') {

@@ -120,9 +120,12 @@ serialized per organization through the existing Durable Object binding before
 it is stored in the existing organization billing columns. A verified webhook
 is acknowledged only after its event is committed to Durable Object storage;
 an alarm reconciles it asynchronously with bounded exponential retries.
-Checkout creation
-uses a Stripe idempotency generation so concurrent retries cannot create two
-subscriptions. This integration adds no D1 migration. During hosted preview,
+Checkout creation first reserves a 35-minute generation in the organization's
+existing Durable Object, before any Stripe request. Same-price retries reuse
+that generation and a different price fails closed until Stripe confirms the
+previous Checkout has expired, so eventually consistent subscription search is
+only a recovery check rather than the uniqueness boundary. This integration
+adds no D1 migration. During hosted preview,
 billing records remain truthful while the existing unlimited-preview switch
 continues to grant access independently. Self-service Checkout and webhook
 mapping are enabled only for personal Pro monthly/annual. Team remains listed

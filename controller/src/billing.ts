@@ -13,9 +13,15 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 const WEBHOOK_TOLERANCE_SECONDS = 5 * 60;
 const MAX_WEBHOOK_BYTES = 512 * 1024;
 const STRIPE_TIMEOUT_MS = 10_000;
+// Stripe accepts explicit Checkout expiry only when it is at least 30 minutes
+// away. Five minutes cover the subscription search and provider/network skew.
+export const STRIPE_CHECKOUT_LIFETIME_SECONDS = 35 * 60;
 const ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
 const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
 const EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
+const CHECKOUT_SESSION_ID_PATTERN = /^cs_(?:test|live)_[A-Za-z0-9_]{1,250}$/;
+const CUSTOMER_ID_PATTERN = /^cus_[A-Za-z0-9_]{1,250}$/;
+const CHECKOUT_GENERATION_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 const INACTIVE_BILLING = new Set<BillingStatus>(['inactive', 'canceled']);
 
 export interface StripeEnv {
@@ -42,6 +48,19 @@ export interface CheckoutInput extends BillingProviderState {
   interval: 'monthly' | 'annual';
   billingStatus?: BillingStatus;
 }
+
+export interface StripeCheckoutAttempt {
+  generation: string;
+  expiresAtSeconds: number;
+}
+
+export interface StripeCheckoutSession {
+  id: string;
+  url: string;
+  expiresAt: number;
+}
+
+export type StripeCheckoutStatus = 'open' | 'complete' | 'expired';
 
 interface StripeSubscription {
   id?: string;
@@ -102,12 +121,27 @@ export function stripePrice(
   return null;
 }
 
-export async function createStripeCheckout(
+export function validateStripeCheckoutInput(
   env: StripeEnv,
   input: CheckoutInput,
-  stripeFetch: StripeFetch = fetch,
-): Promise<string> {
+  attempt?: StripeCheckoutAttempt,
+): { secret: string; price: string } {
   const secret = requiredStripeSecret(env);
+  if (!ORGANIZATION_ID_PATTERN.test(input.organizationId)
+      || (input.organizationKind !== 'personal' && input.organizationKind !== 'team')
+      || typeof input.email !== 'string' || !input.email || input.email.length > 320
+      || (input.plan !== 'pro' && input.plan !== 'team')
+      || (input.interval !== 'monthly' && input.interval !== 'annual')
+      || (input.externalCustomerId !== null
+        && !CUSTOMER_ID_PATTERN.test(input.externalCustomerId))
+      || (input.externalSubscriptionId !== null
+        && !SUBSCRIPTION_ID_PATTERN.test(input.externalSubscriptionId))) {
+    throw new AccessError(400, 'invalid_billing_checkout');
+  }
+  if (attempt && (!CHECKOUT_GENERATION_PATTERN.test(attempt.generation)
+      || !Number.isSafeInteger(attempt.expiresAtSeconds))) {
+    throw new AccessError(400, 'invalid_billing_checkout');
+  }
   if ((input.organizationKind === 'personal' && input.plan !== 'pro')
       || (input.organizationKind === 'team' && input.plan !== 'team')) {
     throw new AccessError(400, 'billing_plan_mismatch');
@@ -121,6 +155,19 @@ export async function createStripeCheckout(
   }
   const price = stripePrice(env, input.plan, input.interval);
   if (!price) throw new AccessError(503, 'billing_price_unavailable');
+  return { secret, price };
+}
+
+export async function createStripeCheckout(
+  env: StripeEnv,
+  input: CheckoutInput,
+  stripeFetch: StripeFetch = fetch,
+  attempt: StripeCheckoutAttempt = {
+    generation: crypto.randomUUID(),
+    expiresAtSeconds: Math.floor(Date.now() / 1000) + STRIPE_CHECKOUT_LIFETIME_SECONDS,
+  },
+): Promise<StripeCheckoutSession> {
+  const { secret, price } = validateStripeCheckoutInput(env, input, attempt);
 
   // Stripe only guarantees idempotency-key retention for at least 24 hours,
   // while a lost webhook can be retried for days. Reconcile that gap against
@@ -145,20 +192,23 @@ export async function createStripeCheckout(
     'subscription_data[metadata][organization_id]': input.organizationId,
     'subscription_data[metadata][plan]': input.plan,
     'subscription_data[metadata][interval]': input.interval,
+    expires_at: String(attempt.expiresAtSeconds),
     allow_promotion_codes: 'true',
     billing_address_collection: 'auto',
   });
   if (input.externalCustomerId) body.set('customer', input.externalCustomerId);
   else body.set('customer_email', input.email);
 
-  const session = await stripeRequest<{ url?: string }>(
+  const session = await stripeRequest<{ id?: string; url?: string; expires_at?: number }>(
     '/checkout/sessions', secret, body, stripeFetch,
-    await checkoutIdempotencyKey(input), signal,
+    await checkoutIdempotencyKey(input, attempt.generation), signal,
   );
-  if (!session.url || !session.url.startsWith('https://checkout.stripe.com/')) {
+  if (!session.id || !CHECKOUT_SESSION_ID_PATTERN.test(session.id)
+      || !session.url || !session.url.startsWith('https://checkout.stripe.com/')
+      || session.expires_at !== attempt.expiresAtSeconds) {
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
-  return session.url;
+  return { id: session.id, url: session.url, expiresAt: session.expires_at * 1000 };
 }
 
 export async function createStripePortal(
@@ -178,6 +228,34 @@ export async function createStripePortal(
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
   return session.url;
+}
+
+export async function inspectStripeCheckoutSession(
+  env: StripeEnv,
+  organizationId: string,
+  sessionId: string,
+  stripeFetch: StripeFetch = fetch,
+): Promise<StripeCheckoutStatus> {
+  if (!ORGANIZATION_ID_PATTERN.test(organizationId)
+      || !CHECKOUT_SESSION_ID_PATTERN.test(sessionId)) {
+    throw new AccessError(400, 'invalid_billing_checkout');
+  }
+  const response = await stripeFetch(
+    `${STRIPE_API}/checkout/sessions/${encodeURIComponent(sessionId)}`,
+    {
+      headers: { Authorization: `Bearer ${requiredStripeSecret(env)}` },
+      signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
+    },
+  );
+  const session = await stripeResponse<{
+    id?: string; client_reference_id?: string; status?: string;
+  }>(response);
+  if (session.id !== sessionId || session.client_reference_id !== organizationId
+      || (session.status !== 'open' && session.status !== 'complete'
+        && session.status !== 'expired')) {
+    throw new AccessError(502, 'billing_provider_invalid_response');
+  }
+  return session.status;
 }
 
 export async function handleStripeWebhook(
@@ -388,6 +466,16 @@ async function assertNoBlockingStripeSubscription(
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
   for (const subscription of search.data) {
+    const organization = subscription.metadata?.organization_id || '';
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscription.id || '')
+        || organization !== organizationId) {
+      throw new AccessError(502, 'billing_provider_invalid_response');
+    }
+    // A terminal subscription can safely stop blocking Checkout even after its
+    // archived Price ID has left the compatibility allowlist. Non-terminal
+    // subscriptions must still map to an explicitly trusted current/legacy
+    // price before they are allowed to influence billing state.
+    if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') continue;
     const mapped = subscriptionBillingState(subscription, env);
     if (mapped.organizationId !== organizationId) {
       throw new AccessError(502, 'billing_provider_invalid_response');
@@ -419,18 +507,22 @@ async function stripeRequest<T>(
   return stripeResponse<T>(response);
 }
 
-async function checkoutIdempotencyKey(input: CheckoutInput): Promise<string> {
-  // Stripe retains idempotency results for at least 24 hours, matching the
-  // default Checkout Session lifetime. One organization billing generation
-  // therefore cannot create multiple subscriptions through concurrent tabs or
-  // retries; a different price request safely conflicts instead of charging.
-  const generation = [
-    'agentsight-checkout-v1',
+async function checkoutIdempotencyKey(
+  input: CheckoutInput,
+  generation: string,
+): Promise<string> {
+  // The per-organization Durable Object persists generation before this key is
+  // used. All retries for one reserved Checkout therefore replay the exact
+  // Stripe request, while a replacement generation is created only after the
+  // explicitly short-lived Checkout Session has expired.
+  const keyMaterial = [
+    'agentsight-checkout-v2',
     input.organizationId,
-    input.externalSubscriptionId || 'none',
-    input.billingStatus || 'inactive',
+    input.plan,
+    input.interval,
+    generation,
   ].join(':');
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(generation));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(keyMaterial));
   return `agentsight-${Array.from(new Uint8Array(digest), (byte) => (
     byte.toString(16).padStart(2, '0')
   )).join('')}`;
