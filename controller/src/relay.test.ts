@@ -106,6 +106,9 @@ test('billing reconciliation is serialized per organization Durable Object', asy
   const db = {
     prepare: () => ({
       bind: () => ({
+        first: async () => ({
+          kind: 'personal', billing_status: 'inactive', external_subscription_id: null,
+        }),
         run: async () => ({ success: true, meta: { changes: 1 } }),
       }),
     }),

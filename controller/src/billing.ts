@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { AccessError, setStripeBilling, type BillingStatus, type Plan } from './access.ts';
+import {
+  AccessError,
+  getStripeBillingRecord,
+  setStripeBilling,
+  type BillingStatus,
+  type Plan,
+} from './access.ts';
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 const WEBHOOK_TOLERANCE_SECONDS = 5 * 60;
@@ -9,6 +15,7 @@ const MAX_WEBHOOK_BYTES = 512 * 1024;
 const STRIPE_TIMEOUT_MS = 10_000;
 const ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
 const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
+const INACTIVE_BILLING = new Set<BillingStatus>(['inactive', 'canceled']);
 
 export interface StripeEnv {
   APP_ORIGIN: string;
@@ -217,6 +224,38 @@ export async function reconcileStripeSubscription(
   const mapped = subscriptionBillingState(subscription, env);
   if (mapped.organizationId !== organizationId) {
     throw new AccessError(400, 'stripe_organization_mismatch');
+  }
+  const current = await getStripeBillingRecord(env.DB, organizationId);
+  if (current.kind !== 'personal') throw new AccessError(400, 'billing_plan_mismatch');
+  if (current.externalSubscriptionId
+      && current.externalSubscriptionId !== subscriptionId) {
+    // A terminal event for an older subscription must never replace the
+    // organization's current subscription pointer, even if both are canceled.
+    if (INACTIVE_BILLING.has(mapped.status)) return 'ignored';
+    if (!INACTIVE_BILLING.has(current.billingStatus)) {
+      // The active event may legitimately be for a replacement subscription
+      // whose predecessor was canceled before its webhook arrived. Re-read the
+      // predecessor from Stripe while still inside the per-organization queue.
+      const predecessor = await stripeGetSubscription(
+        current.externalSubscriptionId, requiredStripeSecret(env), stripeFetch,
+      );
+      if (predecessor.id !== current.externalSubscriptionId) {
+        throw new AccessError(502, 'billing_provider_invalid_response');
+      }
+      const predecessorState = subscriptionBillingState(predecessor, env);
+      if (predecessorState.organizationId !== organizationId) {
+        throw new AccessError(400, 'stripe_organization_mismatch');
+      }
+      if (!INACTIVE_BILLING.has(predecessorState.status)) return 'ignored';
+      await setStripeBilling(env.DB, organizationId, {
+        plan: 'pro',
+        interval: predecessorState.interval,
+        status: predecessorState.status,
+        externalCustomerId: predecessorState.customerId,
+        externalSubscriptionId: predecessor.id,
+        currentPeriodEnd: predecessorState.currentPeriodEnd,
+      });
+    }
   }
   return setStripeBilling(env.DB, organizationId, {
     plan: 'pro',

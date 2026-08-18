@@ -686,6 +686,30 @@ export async function setStripeBilling(
   return 'ignored';
 }
 
+export async function getStripeBillingRecord(
+  db: D1Database,
+  organizationId: string,
+): Promise<{
+  kind: OrganizationKind;
+  billingStatus: BillingStatus;
+  externalSubscriptionId: string | null;
+}> {
+  const row = await db.prepare(
+    `SELECT kind, billing_status, external_subscription_id
+     FROM organizations WHERE id = ?1`,
+  ).bind(organizationId).first<{
+    kind: OrganizationKind;
+    billing_status: BillingStatus;
+    external_subscription_id: string | null;
+  }>();
+  if (!row) throw new AccessError(404, 'organization_not_found');
+  return {
+    kind: row.kind,
+    billingStatus: row.billing_status,
+    externalSubscriptionId: row.external_subscription_id,
+  };
+}
+
 export async function getBillingProviderState(
   db: D1Database,
   userId: string,

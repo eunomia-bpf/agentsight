@@ -208,6 +208,9 @@ test('Reconciliation fetches current Stripe state and updates existing columns w
       query = sql;
       return {
         bind: (...values: unknown[]) => ({
+          first: async () => ({
+            kind: 'personal', billing_status: 'inactive', external_subscription_id: null,
+          }),
           run: async () => {
             bound = values;
             return { success: true, meta: { changes: 1 } };
@@ -252,9 +255,64 @@ test('A stale or duplicate subscription cannot replace a different active subscr
       items: { data: [{ price: { id: 'price_pro_monthly' } }] },
     }));
   assert.equal(result, 'ignored');
-  assert.equal(queries.length, 2);
-  assert.match(queries[0], /external_subscription_id = \?5/);
-  assert.match(queries[1], /SELECT kind, billing_status, external_subscription_id/);
+  assert.equal(queries.length, 1);
+  assert.match(queries[0], /SELECT kind, billing_status, external_subscription_id/);
+});
+
+test('A replacement subscription can activate when Stripe shows its predecessor is canceled', async () => {
+  const state = {
+    kind: 'personal',
+    billingStatus: 'active',
+    externalSubscriptionId: 'sub_old' as string | null,
+  };
+  const updates: Array<{ status: unknown; subscriptionId: unknown }> = [];
+  const db = {
+    prepare: (query: string) => ({
+      bind: (...values: unknown[]) => ({
+        first: async () => ({
+          kind: state.kind,
+          billing_status: state.billingStatus,
+          external_subscription_id: state.externalSubscriptionId,
+        }),
+        run: async () => {
+          if (!query.startsWith('UPDATE organizations')) throw new Error('unexpected write');
+          const status = values[2] as 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+          const subscriptionId = values[4] as string;
+          const allowed = state.externalSubscriptionId === null
+            || state.externalSubscriptionId === subscriptionId
+            || state.billingStatus === 'inactive'
+            || state.billingStatus === 'canceled';
+          if (allowed) {
+            state.billingStatus = status;
+            state.externalSubscriptionId = subscriptionId;
+            updates.push({ status, subscriptionId });
+          }
+          return { success: true, meta: { changes: allowed ? 1 : 0 } };
+        },
+      }),
+    }),
+  } as unknown as D1Database;
+  const fetched: string[] = [];
+  const result = await reconcileStripeSubscription({ ...stripeEnv, DB: db },
+    'org_personal_user1', 'sub_new', async (input) => {
+      const id = new URL(String(input)).pathname.split('/').pop()!;
+      fetched.push(id);
+      return Response.json({
+        id,
+        customer: 'cus_test',
+        status: id === 'sub_old' ? 'canceled' : 'active',
+        metadata: { organization_id: 'org_personal_user1' },
+        items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+      });
+    });
+  assert.equal(result, 'updated');
+  assert.deepEqual(fetched, ['sub_new', 'sub_old']);
+  assert.deepEqual(updates, [
+    { status: 'canceled', subscriptionId: 'sub_old' },
+    { status: 'active', subscriptionId: 'sub_new' },
+  ]);
+  assert.equal(state.externalSubscriptionId, 'sub_new');
+  assert.equal(state.billingStatus, 'active');
 });
 
 test('Webhook rejects an oversized body before parsing or touching D1', async () => {
