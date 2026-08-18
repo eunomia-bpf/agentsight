@@ -477,6 +477,33 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
     });
     assert.equal(checkoutPosts, 4);
     assert.equal(checkoutSessions, 3);
+
+    stored.set(checkoutKey, {
+      version: 2,
+      generation: 'checkout_generation_legacy_v2',
+      input: {
+        organizationId: 'org_personal_user1', organizationKind: 'personal',
+        email: 'owner@example.com', plan: 'pro', interval: 'monthly',
+        externalCustomerId: null, externalSubscriptionId: null, billingStatus: 'inactive',
+      },
+      expiresAt: Date.now() + 60_000,
+      priceId: 'price_pro_monthly',
+      appOrigin: 'https://app.agentsight.us',
+    });
+    const legacyPending = await checkout('monthly');
+    assert.equal(legacyPending.status, 409);
+    assert.equal(checkoutPosts, 4);
+
+    stored.set(checkoutKey, {
+      ...(stored.get(checkoutKey) as object), expiresAt: Date.now() - 120_000,
+    });
+    const legacyRecovered = await checkout('monthly');
+    assert.equal(legacyRecovered.status, 200);
+    assert.deepEqual(await legacyRecovered.json(), {
+      url: 'https://checkout.stripe.com/c/pay/durable4',
+    });
+    assert.equal((stored.get(checkoutKey) as { version: number }).version, 3);
+    assert.equal(checkoutSessions, 4);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);

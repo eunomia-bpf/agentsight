@@ -82,7 +82,7 @@ interface PendingBillingReconciliation {
 }
 
 interface PendingBillingCheckout {
-  version: 2;
+  version: 2 | 3;
   generation: string;
   input: CheckoutInput;
   expiresAt: number;
@@ -367,7 +367,7 @@ export class NodeRelay {
     let active: PendingBillingCheckout | null = null;
     await this.ctx.storage.transaction(async (transaction) => {
       const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
-      if (stored?.generation !== generation) return;
+      if (stored?.generation !== generation || stored.version !== 3) return;
       active = stored;
       if (stored.session) return;
       active = {
@@ -492,7 +492,7 @@ export class NodeRelay {
     try {
       input = await request.json() as CheckoutInput;
       const persisted = await this.ctx.storage.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
-      const persistedAttempt = persisted?.version === 2
+      const persistedAttempt = (persisted?.version === 2 || persisted?.version === 3)
           && persisted.input.plan === input.plan && persisted.input.interval === input.interval
         ? {
           generation: persisted.generation,
@@ -513,7 +513,7 @@ export class NodeRelay {
       const parameters = validateStripeCheckoutInput(this.env as StripeEnv, input);
       const now = Date.now();
       const reserved: PendingBillingCheckout = {
-        version: 2,
+        version: 3,
         generation: crypto.randomUUID(),
         input,
         expiresAt: now + STRIPE_CHECKOUT_LIFETIME_SECONDS * 1_000,
@@ -530,7 +530,8 @@ export class NodeRelay {
       if (error instanceof AccessError) return json({ error: error.code }, error.status);
       return json({ error: 'billing_checkout_unavailable' }, 503);
     }
-    if (checkout.version !== 2 || !Number.isSafeInteger(checkout.expiresAt)
+    if ((checkout.version !== 2 && checkout.version !== 3)
+        || !Number.isSafeInteger(checkout.expiresAt)
         || typeof checkout.generation !== 'string'
         || typeof checkout.priceId !== 'string' || typeof checkout.appOrigin !== 'string') {
       return json({ error: 'billing_checkout_unavailable' }, 503);
@@ -565,6 +566,13 @@ export class NodeRelay {
       return json({ error: 'billing_checkout_in_progress' }, 409);
     }
     if (checkout.session) return json({ url: checkout.session.url });
+    // Version 2 sent an absolute 35-minute `expires_at`. Replaying that
+    // generation with the new default-expiry body would violate Stripe's
+    // idempotency contract. Wait until any v2 Session must be expired, then
+    // the expiry branch above can safely rotate it to version 3.
+    if (checkout.version === 2) {
+      return json({ error: 'billing_checkout_in_progress' }, 409);
+    }
 
     const activeCheckout = await this.beginCheckoutGeneration(checkout.generation);
     if (!activeCheckout) return json({ error: 'billing_checkout_in_progress' }, 409);
