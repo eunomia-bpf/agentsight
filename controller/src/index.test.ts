@@ -15,6 +15,12 @@ import {
   registerNode,
   relayAction,
 } from './access.ts';
+import {
+  HttpError,
+  linkOAuthAccount,
+  upsertUser,
+  type OAuthProfile,
+} from './core.ts';
 
 test('PKCE challenge matches RFC 7636 example', async () => {
   const verifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
@@ -183,6 +189,47 @@ test('rejected client requests do not consume the location OAuth bucket', async 
   const accepted = { limit: async () => ({ success: true }) };
   assert.equal(await oauthStartAllowed(accepted, location, '192.0.2.2'), true);
   assert.equal(locationCalls, 1);
+});
+
+test('a new OAuth subject cannot silently claim an existing email account', async () => {
+  let batches = 0;
+  const db = {
+    prepare: (sql: string) => ({
+      bind: () => ({
+        first: async () => (sql.includes('JOIN users') ? null : { id: 'user_existing' }),
+        run: async () => ({ success: true, meta: { changes: 1 } }),
+      }),
+    }),
+    batch: async () => { batches += 1; return []; },
+  } as unknown as D1Database;
+  const profile: OAuthProfile = {
+    provider: 'google', providerUserId: 'google-stable-subject',
+    email: 'Owner@Example.com', name: 'New Google identity',
+  };
+  await assert.rejects(upsertUser(db, profile), (error: unknown) => (
+    error instanceof HttpError && error.code === 'oauth_account_link_required'
+  ));
+  assert.equal(batches, 0);
+});
+
+test('explicit OAuth linking never moves a provider identity between users', async () => {
+  let writes = 0;
+  const profile: OAuthProfile = {
+    provider: 'google', providerUserId: 'google-stable-subject',
+    email: 'owner@example.com', name: 'Owner',
+  };
+  const db = {
+    prepare: (sql: string) => ({
+      bind: () => ({
+        first: async () => (sql.startsWith('SELECT user_id') ? { user_id: 'user_other' } : null),
+        run: async () => { writes += 1; return { success: true, meta: { changes: 1 } }; },
+      }),
+    }),
+  } as unknown as D1Database;
+  await assert.rejects(linkOAuthAccount(db, 'user_owner', profile), (error: unknown) => (
+    error instanceof HttpError && error.code === 'oauth_account_already_linked'
+  ));
+  assert.equal(writes, 0);
 });
 
 test('JSON body reader cancels an oversized stream before buffering the request', async () => {

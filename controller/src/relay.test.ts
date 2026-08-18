@@ -79,25 +79,17 @@ test('relay pending cap holds across concurrently parsed request bodies', async 
   }
 });
 
-test('billing reconciliation is serialized per organization Durable Object', async () => {
+test('billing webhook is durably queued before acknowledgement and reconciled by alarm', async () => {
   const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
   const originalFetch = globalThis.fetch;
   Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
     configurable: true,
     value: class WebSocketRequestResponsePairStub {},
   });
-  let releaseFirst!: () => void;
-  const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
   let fetchCalls = 0;
-  let inFlight = 0;
-  let peakInFlight = 0;
   let fenceChecks = 0;
   globalThis.fetch = async () => {
     fetchCalls += 1;
-    inFlight += 1;
-    peakInFlight = Math.max(peakInFlight, inFlight);
-    if (fetchCalls === 1) await firstGate;
-    inFlight -= 1;
     return Response.json({
       id: 'sub_test', customer: 'cus_test', status: 'active',
       metadata: { organization_id: 'org_personal_user1' },
@@ -114,14 +106,28 @@ test('billing reconciliation is serialized per organization Durable Object', asy
       }),
     }),
   } as unknown as D1Database;
+  const stored = new Map<string, unknown>();
+  let alarm: number | null = null;
+  const transaction = {
+    put: async (key: string, value: unknown) => { stored.set(key, value); },
+    getAlarm: async () => alarm,
+    setAlarm: async (value: number) => { alarm = value; },
+  };
   const ctx = {
     setWebSocketAutoResponse() {},
     getWebSockets: () => [],
     storage: {
+      transaction: async (callback: (value: typeof transaction) => Promise<void>) => callback(transaction),
       get: async () => {
         fenceChecks += 1;
         return undefined;
       },
+      put: async (key: string, value: unknown) => { stored.set(key, value); },
+      delete: async (key: string) => stored.delete(key),
+      list: async ({ prefix, limit }: { prefix: string; limit: number }) => new Map(
+        Array.from(stored.entries()).filter(([key]) => key.startsWith(prefix)).slice(0, limit),
+      ),
+      setAlarm: async (value: number) => { alarm = value; },
     },
   } as unknown as DurableObjectState;
   const relay = new NodeRelay(ctx, {
@@ -132,26 +138,23 @@ test('billing reconciliation is serialized per organization Durable Object', asy
     STRIPE_WEBHOOK_SECRET: 'whsec_example',
     STRIPE_PRO_MONTHLY_PRICE_ID: 'price_pro_monthly',
   });
-  const reconcile = () => relay.fetch(new Request('https://relay.internal/billing/reconcile', {
+  const enqueue = () => relay.fetch(new Request('https://relay.internal/billing/enqueue', {
     method: 'POST',
     body: JSON.stringify({
-      organizationId: 'org_personal_user1', subscriptionId: 'sub_test',
+      eventId: 'evt_test', organizationId: 'org_personal_user1', subscriptionId: 'sub_test',
     }),
   }));
 
   try {
-    const first = reconcile();
-    const second = reconcile();
-    for (let attempt = 0; attempt < 10 && fetchCalls === 0; attempt += 1) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
+    const responses = await Promise.all([enqueue(), enqueue()]);
+    assert.deepEqual(responses.map((response) => response.status), [202, 202]);
+    assert.equal(fetchCalls, 0);
+    assert.equal(stored.size, 1);
+    assert.ok(alarm !== null);
+    await relay.alarm();
     assert.equal(fetchCalls, 1);
-    releaseFirst();
-    const responses = await Promise.all([first, second]);
-    assert.deepEqual(responses.map((response) => response.status), [200, 200]);
-    assert.equal(fetchCalls, 2);
-    assert.equal(peakInFlight, 1);
-    assert.equal(fenceChecks, 2);
+    assert.equal(fenceChecks, 1);
+    assert.equal(stored.size, 0);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);

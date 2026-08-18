@@ -9,6 +9,8 @@ export const zh: Record<TranslationKey, string> = {
   // App
   'app.recordedDemo': '录制演示',
   'app.signOut': '退出登录',
+  'account.linkGoogle': '绑定 Google',
+  'account.linkGitHub': '绑定 GitHub',
   'app.signIn': '登录',
   'app.nodes': '机器',
   'app.opening': '正在打开 AgentSight…',

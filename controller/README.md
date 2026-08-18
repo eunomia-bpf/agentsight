@@ -90,6 +90,10 @@ Google login uses the same pattern with `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET`. Its production OAuth client must authorize
 `https://app.agentsight.us` as a JavaScript origin and
 `https://control.agentsight.us/v1/auth/callback/google` as a redirect URI.
+OAuth identities are keyed only by their provider's stable account ID. A new
+provider is never silently attached by matching its mutable email address; an
+already signed-in user can link another configured provider explicitly from
+the Nodes dialog.
 
 Stripe Billing is optional and fail-closed. The Worker exposes hosted Checkout,
 subscription webhooks, and the Stripe customer portal only when all required
@@ -98,6 +102,14 @@ runtime bindings are present:
 - secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`;
 - variables: `STRIPE_PRO_MONTHLY_PRICE_ID` and `STRIPE_PRO_ANNUAL_PRICE_ID`.
 
+When a price changes, keep the new purchasable Price ID in the singular
+variable and retain archived IDs in the optional comma-separated
+`STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS` or
+`STRIPE_PRO_ANNUAL_LEGACY_PRICE_IDS` allowlist. Stripe subscriptions remain on
+their original Price IDs after a price is archived, so removing an old ID from
+this allowlist before every corresponding subscription is terminal would stop
+its later webhook state from being reconciled.
+
 Configure the Stripe endpoint as
 `https://control.agentsight.us/v1/billing/webhook` and subscribe it to
 `customer.subscription.created`, `customer.subscription.updated`, and
@@ -105,7 +117,10 @@ Configure the Stripe endpoint as
 unmodified request body with Stripe's five-minute replay window. Subscription
 state is derived from the configured Price IDs, not request metadata, and is
 serialized per organization through the existing Durable Object binding before
-it is stored in the existing organization billing columns. Checkout creation
+it is stored in the existing organization billing columns. A verified webhook
+is acknowledged only after its event is committed to Durable Object storage;
+an alarm reconciles it asynchronously with bounded exponential retries.
+Checkout creation
 uses a Stripe idempotency generation so concurrent retries cannot create two
 subscriptions. This integration adds no D1 migration. During hosted preview,
 billing records remain truthful while the existing unlimited-preview switch

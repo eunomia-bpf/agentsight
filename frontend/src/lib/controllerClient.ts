@@ -23,6 +23,7 @@ export interface CloudIdentity {
   name: string;
   avatarUrl?: string;
   provider?: 'github' | 'google';
+  providers?: LoginProvider[];
 }
 
 export type OrganizationRole = 'viewer' | 'operator' | 'admin' | 'owner';
@@ -115,13 +116,38 @@ function authHeaders(token: string, json = false): HeadersInit {
 }
 
 export async function startLogin(provider: 'github' | 'google'): Promise<void> {
+  const { challenge } = await beginPkce();
+  const url = new URL(`${controllerUrl}/v1/auth/start/${provider}`);
+  url.searchParams.set('return_to', `${window.location.origin}/`);
+  url.searchParams.set('code_challenge', challenge);
+  window.location.assign(url.toString());
+}
+
+export async function startAccountLink(token: string, provider: LoginProvider): Promise<void> {
+  const { challenge } = await beginPkce();
+  try {
+    const response = await request(`${controllerUrl}/v1/auth/link/${provider}`, {
+      method: 'POST', headers: authHeaders(token, true),
+      body: JSON.stringify({ code_challenge: challenge }),
+    });
+    if (!response.ok) await responseError(response, `Could not link ${provider}`);
+    const body = await response.json().catch(() => null) as { url?: unknown } | null;
+    if (!body || typeof body.url !== 'string') throw new Error('The Controller returned an invalid link URL.');
+    const authorization = new URL(body.url);
+    const expectedOrigin = provider === 'google' ? 'https://accounts.google.com' : 'https://github.com';
+    if (authorization.origin !== expectedOrigin) throw new Error('The Controller returned an unsafe link URL.');
+    window.location.assign(authorization.toString());
+  } catch (error) {
+    window.sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
+    throw error;
+  }
+}
+
+async function beginPkce(): Promise<{ challenge: string }> {
   const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
   window.sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier);
-  const url = new URL(`${controllerUrl}/v1/auth/start/${provider}`);
-  url.searchParams.set('return_to', `${window.location.origin}/`);
-  url.searchParams.set('code_challenge', base64Url(new Uint8Array(digest)));
-  window.location.assign(url.toString());
+  return { challenge: base64Url(new Uint8Array(digest)) };
 }
 
 export function exchangeCloudCode(code: string): Promise<string> {

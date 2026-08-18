@@ -465,6 +465,7 @@ function isCoreIdentityRoute(pathname: string): boolean {
     || pathname === '/v1/me'
     || pathname === '/v1/auth/exchange'
     || pathname === '/v1/auth/logout'
+    || pathname.startsWith('/v1/auth/link/')
     || pathname.startsWith('/v1/auth/start/')
     || pathname.startsWith('/v1/auth/callback/');
 }

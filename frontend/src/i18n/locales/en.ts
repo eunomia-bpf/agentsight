@@ -5,6 +5,8 @@ export const en = {
   // App (page.tsx)
   'app.recordedDemo': 'Recorded demo',
   'app.signOut': 'Sign out',
+  'account.linkGoogle': 'Link Google',
+  'account.linkGitHub': 'Link GitHub',
   'app.signIn': 'Sign in',
   'app.nodes': 'Nodes',
   'app.opening': 'Opening AgentSight…',

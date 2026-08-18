@@ -16,6 +16,12 @@ export const MAX_PENDING_RELAY_REQUESTS = 64;
 // control bytes to six source bytes, so relay the full public Node contract.
 const MAX_BROWSER_BODY_BYTES = 512 * 1024;
 const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
+const BILLING_EVENT_PREFIX = 'billing:event:';
+const BILLING_EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
+const BILLING_ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
+const BILLING_SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
+const MAX_BILLING_EVENTS_PER_ALARM = 100;
+const MAX_BILLING_EVENTS_SCANNED = 1_000;
 
 export interface RelayEnv {
   DB: D1Database;
@@ -25,6 +31,8 @@ export interface RelayEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   STRIPE_PRO_MONTHLY_PRICE_ID?: string;
   STRIPE_PRO_ANNUAL_PRICE_ID?: string;
+  STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS?: string;
+  STRIPE_PRO_ANNUAL_LEGACY_PRICE_IDS?: string;
   STRIPE_TEAM_MONTHLY_PRICE_ID?: string;
 }
 
@@ -53,6 +61,14 @@ interface RelayResponseEnvelope {
 interface PendingRequest {
   resolve: (response: Response) => void;
   timer: ReturnType<typeof setTimeout>;
+}
+
+interface PendingBillingReconciliation {
+  eventId: string;
+  organizationId: string;
+  subscriptionId: string;
+  attempts: number;
+  nextAttemptAt: number;
 }
 
 export function relayNodeSocketId(pathname: string): string | null {
@@ -164,7 +180,6 @@ export class NodeRelay {
   private readonly ctx: DurableObjectState;
   private readonly env: RelayEnv;
   private pending = new Map<string, PendingRequest>();
-  private billingQueue: Promise<void> = Promise.resolve();
 
   constructor(ctx: DurableObjectState, env: RelayEnv) {
     this.ctx = ctx;
@@ -183,8 +198,8 @@ export class NodeRelay {
     if (url.pathname === '/request' && request.method === 'POST') {
       return this.forwardRequest(request);
     }
-    if (url.pathname === '/billing/reconcile' && request.method === 'POST') {
-      return this.reconcileBilling(request);
+    if (url.pathname === '/billing/enqueue' && request.method === 'POST') {
+      return this.enqueueBilling(request);
     }
     return json({ error: 'not_found' }, 404);
   }
@@ -221,6 +236,53 @@ export class NodeRelay {
 
   async webSocketError(_ws: WebSocket, error: unknown): Promise<void> {
     console.error(JSON.stringify({ event: 'node_relay_websocket_error', error: String(error) }));
+  }
+
+  async alarm(): Promise<void> {
+    const now = Date.now();
+    const entries = await this.ctx.storage.list<PendingBillingReconciliation>({
+      prefix: BILLING_EVENT_PREFIX,
+      limit: MAX_BILLING_EVENTS_SCANNED,
+    });
+    const lastScannedKey = Array.from(entries.keys()).at(-1);
+    const beyondScan = entries.size === MAX_BILLING_EVENTS_SCANNED && lastScannedKey
+      ? await this.ctx.storage.list({
+        prefix: BILLING_EVENT_PREFIX, startAfter: lastScannedKey, limit: 1,
+      })
+      : new Map();
+    const hasMore = beyondScan.size > 0;
+    let nextAlarm: number | null = null;
+    let processed = 0;
+    for (const [key, pending] of entries) {
+      if (pending.nextAttemptAt > now) {
+        nextAlarm = nextAlarm === null ? pending.nextAttemptAt : Math.min(nextAlarm, pending.nextAttemptAt);
+        continue;
+      }
+      if (processed >= MAX_BILLING_EVENTS_PER_ALARM) {
+        nextAlarm = now;
+        continue;
+      }
+      processed += 1;
+      try {
+        await reconcileStripeSubscription(
+          this.env as RelayEnv & StripeEnv, pending.organizationId, pending.subscriptionId,
+          fetch,
+          async () => { await this.ctx.storage.get('__agentsight_billing_fence'); },
+        );
+        await this.ctx.storage.delete(key);
+      } catch (error) {
+        const attempts = pending.attempts + 1;
+        const retryAt = now + Math.min(60 * 60_000, (2 ** Math.min(attempts, 10)) * 5_000);
+        await this.ctx.storage.put(key, { ...pending, attempts, nextAttemptAt: retryAt });
+        nextAlarm = nextAlarm === null ? retryAt : Math.min(nextAlarm, retryAt);
+        console.error(JSON.stringify({
+          event: 'billing_reconciliation_retry', eventId: pending.eventId, attempts,
+          reason: error instanceof AccessError ? error.code : 'internal_error',
+        }));
+      }
+    }
+    const remaining = await this.ctx.storage.list({ prefix: BILLING_EVENT_PREFIX, limit: 1 });
+    if (remaining.size) await this.ctx.storage.setAlarm(hasMore ? Date.now() : nextAlarm ?? Date.now());
   }
 
   private acceptNodeSocket(): Response {
@@ -283,40 +345,35 @@ export class NodeRelay {
     });
   }
 
-  private async reconcileBilling(request: Request): Promise<Response> {
-    let input: { organizationId?: unknown; subscriptionId?: unknown };
+  private async enqueueBilling(request: Request): Promise<Response> {
+    let input: { eventId?: unknown; organizationId?: unknown; subscriptionId?: unknown };
     try {
       input = await request.json() as typeof input;
     } catch {
       return json({ error: 'stripe_event_invalid' }, 400);
     }
-    if (typeof input.organizationId !== 'string' || typeof input.subscriptionId !== 'string') {
+    if (typeof input.eventId !== 'string' || !BILLING_EVENT_ID_PATTERN.test(input.eventId)
+        || typeof input.organizationId !== 'string'
+        || !BILLING_ORGANIZATION_ID_PATTERN.test(input.organizationId)
+        || typeof input.subscriptionId !== 'string'
+        || !BILLING_SUBSCRIPTION_ID_PATTERN.test(input.subscriptionId)) {
       return json({ error: 'stripe_event_invalid' }, 400);
     }
-
-    const previous = this.billingQueue;
-    let release!: () => void;
-    this.billingQueue = new Promise<void>((resolve) => { release = resolve; });
-    await previous;
-    try {
-      const status = await reconcileStripeSubscription(
-        this.env as RelayEnv & StripeEnv, input.organizationId, input.subscriptionId,
-        fetch,
-        async () => {
-          // A Stripe read can outlive this Durable Object instance during a
-          // network partition or code update. A storage access immediately
-          // before every D1 write makes Cloudflare reject a stale instance,
-          // leaving Stripe to retry the webhook on the current coordinator.
-          await this.ctx.storage.get('__agentsight_billing_fence');
-        },
-      );
-      return json({ received: true, status });
-    } catch (error) {
-      if (error instanceof AccessError) return json({ error: error.code }, error.status);
-      throw error;
-    } finally {
-      release();
-    }
+    const pending: PendingBillingReconciliation = {
+      eventId: input.eventId,
+      organizationId: input.organizationId,
+      subscriptionId: input.subscriptionId,
+      attempts: 0,
+      nextAttemptAt: Date.now(),
+    };
+    await this.ctx.storage.transaction(async (transaction) => {
+      await transaction.put(`${BILLING_EVENT_PREFIX}${input.eventId}`, pending);
+      const scheduled = await transaction.getAlarm();
+      if (scheduled === null || scheduled > pending.nextAttemptAt) {
+        await transaction.setAlarm(pending.nextAttemptAt);
+      }
+    });
+    return json({ queued: true }, 202);
   }
 }
 

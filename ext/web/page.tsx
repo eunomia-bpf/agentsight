@@ -20,12 +20,14 @@ import {
   type CloudIdentity,
   type CloudNode,
   type CloudOrganization,
+  type LoginProvider,
   acceptOrganizationInvite,
   createBillingCheckout,
   createBillingPortal,
   createOrganization,
   exchangeCloudCode,
   fetchCloudIdentity,
+  fetchLoginProviders,
   fetchCloudNodes,
   fetchBillingCheckoutAvailability,
   fetchControllerDirectConfig,
@@ -36,6 +38,7 @@ import {
   registerControllerNode,
   relayOnline,
   signOutCloud,
+  startAccountLink,
 } from '@/lib/controllerClient';
 import {
   type LocalConnection,
@@ -110,6 +113,7 @@ export default function Home() {
   const [billingError, setBillingError] = useState('');
   const [billingCheckout, setBillingCheckout] = useState<BillingCheckoutAvailability | null>(null);
   const [billingResult, setBillingResult] = useState<'success' | 'canceled' | null>(null);
+  const [configuredLoginProviders, setConfiguredLoginProviders] = useState<LoginProvider[]>([]);
   const activationGeneration = useRef(0);
   const fleetGeneration = useRef(0);
   const directoryGeneration = useRef(0);
@@ -136,6 +140,7 @@ export default function Home() {
     setBillingBusy(false);
     setBillingError('');
     setBillingCheckout(null);
+    setConfiguredLoginProviders([]);
   }, []);
 
   const handleCloudError = useCallback((cause: unknown, fallback: string) => {
@@ -225,7 +230,10 @@ export default function Home() {
   }, [handleCloudError]);
 
   const loadCloudDirectory = useCallback(async (token: string): Promise<CloudOrganization | null> => {
-    const me = await fetchCloudIdentity(token);
+    const [me, configuredProviders] = await Promise.all([
+      fetchCloudIdentity(token),
+      fetchLoginProviders(),
+    ]);
     let nextOrganizations = await fetchOrganizations(token);
     let selected = preferredOrganization(nextOrganizations);
     const pendingInvite = window.localStorage.getItem(PENDING_INVITE_KEY);
@@ -236,6 +244,7 @@ export default function Home() {
       selected = preferredOrganization(nextOrganizations, joined);
     }
     setIdentity(me);
+    setConfiguredLoginProviders(configuredProviders);
     setOrganizations(nextOrganizations);
     setActiveOrganizationId(selected?.id || null);
     if (selected) window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, selected.id);
@@ -533,6 +542,19 @@ export default function Home() {
     void signOutCloud(token);
   }, [activeClient, clearCloudState, mode]);
 
+  const linkLoginProvider = useCallback(async (provider: LoginProvider) => {
+    const token = loadCloudSession();
+    if (!token) return;
+    setNodesLoading(true);
+    setNodeError('');
+    try {
+      await startAccountLink(token, provider);
+    } catch (cause) {
+      handleCloudError(cause, `Could not link ${provider}.`);
+      setNodesLoading(false);
+    }
+  }, [handleCloudError]);
+
   const forgetNode = useCallback(async (nodeId: string) => {
     const token = loadCloudSession();
     if (!token) return;
@@ -684,7 +706,11 @@ export default function Home() {
           const reason = launch.get('error') || 'sign_in_failed';
           setError(reason.endsWith('_login_not_configured')
             ? 'This sign-in provider is not configured yet.'
-            : 'AgentSight sign-in failed. Please try again.');
+            : reason === 'oauth_account_link_required'
+              ? 'An AgentSight account already uses this email. Sign in with its existing method, then link this provider from Nodes.'
+              : reason === 'oauth_account_already_linked'
+                ? 'This sign-in identity is already linked to another AgentSight account.'
+                : 'AgentSight sign-in failed. Please try again.');
         }
 
         let cloudToken = loadCloudSession();
@@ -878,7 +904,9 @@ export default function Home() {
       onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
       onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
       onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
-      onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
+      onDemo={() => { void enterDemo(); }} onSignOut={signOut}
+      configuredLoginProviders={configuredLoginProviders}
+      linkedLoginProviders={identity.providers || []} onLinkProvider={linkLoginProvider} />
   ) : null;
 
   return (
@@ -898,7 +926,9 @@ export default function Home() {
           onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
           onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
-          onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
+          onDemo={() => { void enterDemo(); }} onSignOut={signOut}
+          configuredLoginProviders={configuredLoginProviders}
+          linkedLoginProviders={identity.providers || []} onLinkProvider={linkLoginProvider} />
       )}
 
       {identity && organizationDialogOpen && (

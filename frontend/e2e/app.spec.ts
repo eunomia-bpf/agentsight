@@ -60,6 +60,18 @@ test('signed-in user opens a relay Node and sees machine value before session de
   await expect(page.getByRole('heading', { name: 'Machine resources' })).toBeVisible();
 });
 
+test('signed-in user explicitly links Google without email-based account merging', async ({ page }) => {
+  const state = await mockController(page, { signedIn: true });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Nodes' }).click();
+  await expect(page.getByRole('button', { name: 'Link Google' })).toBeVisible();
+  await page.getByRole('button', { name: 'Link Google' }).click();
+  await expect.poll(() => state.accountLinks.length).toBe(1);
+  expect(state.accountLinks[0].provider).toBe('google');
+  expect(state.accountLinks[0].code_challenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  await expect(page).toHaveURL(/accounts\.google\.com\/o\/oauth2\/v2\/auth/);
+});
+
 test('public privacy and terms pages describe the hosted data boundary', async ({ page }) => {
   await page.goto('/privacy/');
   await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible();

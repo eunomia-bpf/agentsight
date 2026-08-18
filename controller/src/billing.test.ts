@@ -47,6 +47,9 @@ test('Checkout binds the organization and subscription metadata to a configured 
     externalCustomerId: null,
     externalSubscriptionId: null,
   }, async (_input, init) => {
+    if (String(_input).includes('/subscriptions/search?')) {
+      return Response.json({ data: [], has_more: false });
+    }
     requestBody = init?.body as URLSearchParams;
     idempotencyKey = new Headers(init?.headers).get('Idempotency-Key') || '';
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/test' });
@@ -79,6 +82,9 @@ test('Concurrent Checkout choices share one Stripe idempotency generation', asyn
     plan: 'pro', interval, externalCustomerId: null, externalSubscriptionId: null,
     billingStatus: 'inactive',
   }, async (_input, init) => {
+    if (String(_input).includes('/subscriptions/search?')) {
+      return Response.json({ data: [], has_more: false });
+    }
     const key = new Headers(init?.headers).get('Idempotency-Key') || '';
     const params = String(init?.body);
     keys.push(key);
@@ -128,6 +134,33 @@ test('Checkout cannot create a second active subscription', async () => {
     && error.message === 'billing_subscription_already_exists');
 });
 
+test('Checkout finds a live Stripe subscription after local webhook state was lost', async () => {
+  let checkoutPosts = 0;
+  await assert.rejects(createStripeCheckout(stripeEnv, {
+    organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
+    plan: 'pro', interval: 'monthly', externalCustomerId: null,
+    externalSubscriptionId: null, billingStatus: 'inactive',
+  }, async (input, init) => {
+    const url = new URL(String(input));
+    if (url.pathname === '/v1/subscriptions/search') {
+      assert.equal(url.searchParams.get('query'), "metadata['organization_id']:'org_personal_user1'");
+      assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer sk_test_example');
+      return Response.json({
+        data: [{
+          id: 'sub_webhook_lost', customer: 'cus_test', status: 'active',
+          metadata: { organization_id: 'org_personal_user1' },
+          items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+        }],
+        has_more: false,
+      });
+    }
+    checkoutPosts += 1;
+    return Response.json({ url: 'https://checkout.stripe.com/c/pay/duplicate' });
+  }), (error: unknown) => error instanceof AccessError
+    && error.message === 'billing_subscription_already_exists');
+  assert.equal(checkoutPosts, 0);
+});
+
 test('Stripe signatures require the exact payload and a recent timestamp', async () => {
   const payload = JSON.stringify({ id: 'evt_test' });
   const timestamp = 1_800_000_000;
@@ -152,6 +185,12 @@ test('Subscription state is derived from configured prices rather than untrusted
   assert.equal(mapped.plan, 'pro');
   assert.equal(mapped.interval, 'monthly');
   assert.equal(mapped.status, 'active');
+  const legacy = subscriptionBillingState({
+    id: 'sub_legacy', customer: 'cus_test', status: 'active',
+    metadata: { organization_id: 'org_personal_user1' },
+    items: { data: [{ price: { id: 'price_pro_monthly_legacy' } }] },
+  }, { ...stripeEnv, STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS: 'price_older, price_pro_monthly_legacy' });
+  assert.equal(legacy.interval, 'monthly');
   assert.equal(stripeBillingStatus('unpaid'), 'past_due');
   assert.equal(stripeBillingStatus('incomplete'), 'past_due');
   assert.throws(
@@ -159,6 +198,17 @@ test('Subscription state is derived from configured prices rather than untrusted
       customer: 'cus_test', status: 'active', metadata: { organization_id: 'org_personal_user1' },
       items: { data: [{ price: { id: 'price_attacker' } }] },
     }, stripeEnv),
+    (error: unknown) => error instanceof AccessError && error.message === 'stripe_price_unrecognized',
+  );
+  assert.throws(
+    () => subscriptionBillingState({
+      customer: 'cus_test', status: 'active', metadata: { organization_id: 'org_personal_user1' },
+      items: { data: [{ price: { id: 'price_ambiguous' } }] },
+    }, {
+      ...stripeEnv,
+      STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS: 'price_ambiguous',
+      STRIPE_PRO_ANNUAL_LEGACY_PRICE_IDS: 'price_ambiguous',
+    }),
     (error: unknown) => error instanceof AccessError && error.message === 'stripe_price_unrecognized',
   );
   assert.throws(
@@ -207,7 +257,7 @@ test('Verified subscription webhook routes reconciliation through the organizati
     get: () => ({
       fetch: async (request: Request) => {
         coordinatorBody = await request.json();
-        return Response.json({ received: true, status: 'updated' });
+        return Response.json({ queued: true }, { status: 202 });
       },
     }) as unknown as DurableObjectStub,
   } as unknown as DurableObjectNamespace;
@@ -217,7 +267,7 @@ test('Verified subscription webhook routes reconciliation through the organizati
   assert.equal(response.status, 200);
   assert.equal(coordinatorName, 'billing:org_personal_user1');
   assert.deepEqual(coordinatorBody, {
-    organizationId: 'org_personal_user1', subscriptionId: 'sub_test',
+    eventId: 'evt_test', organizationId: 'org_personal_user1', subscriptionId: 'sub_test',
   });
 });
 

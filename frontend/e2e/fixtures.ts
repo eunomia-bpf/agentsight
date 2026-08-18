@@ -156,6 +156,7 @@ export interface MockState {
   directRequests: string[];
   billingCheckouts: unknown[];
   billingPortalRequests: number;
+  accountLinks: Array<{ provider: string; code_challenge?: string }>;
   billingStatus: 'inactive' | 'active';
   contributorPro: boolean;
   checkoutAvailable: boolean;
@@ -187,7 +188,8 @@ export async function mockController(page: Page, options: {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
     messageAcceptedAt: null,
     blockMessages: options.blockMessages ?? false, organizations: [], registrations: [], directRequests: [],
-    billingCheckouts: [], billingPortalRequests: 0, billingStatus: options.billingStatus ?? 'active',
+    billingCheckouts: [], billingPortalRequests: 0, accountLinks: [],
+    billingStatus: options.billingStatus ?? 'active',
     contributorPro: options.contributorPro ?? false,
     checkoutAvailable: options.checkoutAvailable ?? true,
   };
@@ -219,6 +221,9 @@ export async function mockController(page: Page, options: {
   await page.route('https://billing.stripe.com/**', (route) => route.fulfill({
     status: 200, contentType: 'text/html', body: '<title>Stripe Portal test</title>',
   }));
+  await page.route('https://accounts.google.com/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<title>Google account link test</title>',
+  }));
   await page.route('https://control.agentsight.us/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -238,7 +243,13 @@ export async function mockController(page: Page, options: {
     if (request.headers().authorization !== 'Bearer browser-test-session') {
       return json(route, { error: 'missing_browser_test_authorization' }, 401);
     }
-    if (path === '/v1/me') return json(route, { id: 'user-1', email: 'owner@example.com', name: 'Test Owner', provider: 'github' });
+    if (path === '/v1/me') return json(route, {
+      id: 'user-1', email: 'owner@example.com', name: 'Test Owner', providers: ['github'],
+    });
+    if (path === '/v1/auth/link/google' && request.method() === 'POST') {
+      state.accountLinks.push({ provider: 'google', ...request.postDataJSON() });
+      return json(route, { url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=browser-test' });
+    }
     if (path === '/v1/auth/logout') {
       state.signOuts += 1;
       return json(route, { ok: true });

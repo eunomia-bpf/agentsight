@@ -15,6 +15,7 @@ const MAX_WEBHOOK_BYTES = 512 * 1024;
 const STRIPE_TIMEOUT_MS = 10_000;
 const ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
 const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
+const EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
 const INACTIVE_BILLING = new Set<BillingStatus>(['inactive', 'canceled']);
 
 export interface StripeEnv {
@@ -23,6 +24,8 @@ export interface StripeEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   STRIPE_PRO_MONTHLY_PRICE_ID?: string;
   STRIPE_PRO_ANNUAL_PRICE_ID?: string;
+  STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS?: string;
+  STRIPE_PRO_ANNUAL_LEGACY_PRICE_IDS?: string;
   STRIPE_TEAM_MONTHLY_PRICE_ID?: string;
 }
 
@@ -59,6 +62,11 @@ interface StripeEvent {
   type?: string;
   livemode?: boolean;
   data?: { object?: StripeSubscription };
+}
+
+interface StripeSubscriptionSearch {
+  data?: StripeSubscription[];
+  has_more?: boolean;
 }
 
 type StripeFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
@@ -114,6 +122,15 @@ export async function createStripeCheckout(
   const price = stripePrice(env, input.plan, input.interval);
   if (!price) throw new AccessError(503, 'billing_price_unavailable');
 
+  // Stripe only guarantees idempotency-key retention for at least 24 hours,
+  // while a lost webhook can be retried for days. Reconcile that gap against
+  // Stripe's subscription index before a new Checkout Session is created, so
+  // stale local billing columns cannot create a second live subscription.
+  const signal = AbortSignal.timeout(STRIPE_TIMEOUT_MS);
+  await assertNoBlockingStripeSubscription(
+    env, input.organizationId, secret, stripeFetch, signal,
+  );
+
   const origin = new URL(env.APP_ORIGIN).origin;
   const body = new URLSearchParams({
     mode: 'subscription',
@@ -136,7 +153,7 @@ export async function createStripeCheckout(
 
   const session = await stripeRequest<{ url?: string }>(
     '/checkout/sessions', secret, body, stripeFetch,
-    await checkoutIdempotencyKey(input),
+    await checkoutIdempotencyKey(input), signal,
   );
   if (!session.url || !session.url.startsWith('https://checkout.stripe.com/')) {
     throw new AccessError(502, 'billing_provider_invalid_response');
@@ -188,15 +205,16 @@ export async function handleStripeWebhook(
   const eventSubscription = event.data?.object;
   const subscriptionId = eventSubscription?.id || '';
   const organizationId = eventSubscription?.metadata?.organization_id || '';
-  if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)
+  const eventId = event.id || '';
+  if (!EVENT_ID_PATTERN.test(eventId) || !SUBSCRIPTION_ID_PATTERN.test(subscriptionId)
       || !ORGANIZATION_ID_PATTERN.test(organizationId)) {
     throw new AccessError(400, 'stripe_event_invalid');
   }
   const coordinator = env.NODE_RELAY.get(env.NODE_RELAY.idFromName(`billing:${organizationId}`));
-  const result = await coordinator.fetch(new Request('https://relay.internal/billing/reconcile', {
+  const result = await coordinator.fetch(new Request('https://relay.internal/billing/enqueue', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId, subscriptionId }),
+    body: JSON.stringify({ eventId, organizationId, subscriptionId }),
   }));
   if (!result.ok) {
     const body = await result.json().catch(() => null) as { error?: string } | null;
@@ -295,11 +313,10 @@ export function subscriptionBillingState(subscription: StripeSubscription, env: 
   const items = subscription.items?.data || [];
   if (items.length !== 1) throw new AccessError(400, 'stripe_subscription_shape_invalid');
   const priceId = items[0]?.price?.id || '';
-  const matched = [
-    [env.STRIPE_PRO_MONTHLY_PRICE_ID, 'pro', 'monthly'],
-    [env.STRIPE_PRO_ANNUAL_PRICE_ID, 'pro', 'annual'],
-  ].find(([configured]) => configured && configured === priceId);
-  if (!matched) throw new AccessError(400, 'stripe_price_unrecognized');
+  const matchedIntervals = (['monthly', 'annual'] as const).filter((interval) => (
+    recognizedProPriceIds(env, interval).has(priceId)
+  ));
+  if (matchedIntervals.length !== 1) throw new AccessError(400, 'stripe_price_unrecognized');
   const organizationId = subscription.metadata?.organization_id || '';
   if (!ORGANIZATION_ID_PATTERN.test(organizationId)) {
     throw new AccessError(400, 'stripe_organization_invalid');
@@ -309,13 +326,24 @@ export function subscriptionBillingState(subscription: StripeSubscription, env: 
   if (!customer) throw new AccessError(400, 'stripe_customer_invalid');
   return {
     organizationId,
-    plan: matched[1] as Exclude<Plan, 'free' | 'enterprise'>,
-    interval: matched[2] as 'monthly' | 'annual',
+    plan: 'pro' as Exclude<Plan, 'free' | 'enterprise'>,
+    interval: matchedIntervals[0],
     status: stripeBillingStatus(subscription.status || ''),
     customerId: customer,
     currentPeriodEnd: subscription.current_period_end
       || subscription.items?.data?.[0]?.current_period_end || null,
   };
+}
+
+function recognizedProPriceIds(
+  env: StripeEnv,
+  interval: 'monthly' | 'annual',
+): Set<string> {
+  const current = interval === 'monthly'
+    ? env.STRIPE_PRO_MONTHLY_PRICE_ID : env.STRIPE_PRO_ANNUAL_PRICE_ID;
+  const legacy = interval === 'monthly'
+    ? env.STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS : env.STRIPE_PRO_ANNUAL_LEGACY_PRICE_IDS;
+  return new Set([current || '', ...(legacy || '').split(',').map((id) => id.trim())].filter(Boolean));
 }
 
 export function stripeBillingStatus(status: string): BillingStatus {
@@ -340,12 +368,43 @@ async function stripeGetSubscription(
   return stripeResponse<StripeSubscription>(response);
 }
 
+async function assertNoBlockingStripeSubscription(
+  env: StripeEnv,
+  organizationId: string,
+  secret: string,
+  stripeFetch: StripeFetch,
+  signal: AbortSignal,
+): Promise<void> {
+  const query = new URLSearchParams({
+    query: `metadata['organization_id']:'${organizationId}'`,
+    limit: '100',
+  });
+  const response = await stripeFetch(`${STRIPE_API}/subscriptions/search?${query}`, {
+    headers: { Authorization: `Bearer ${secret}` },
+    signal,
+  });
+  const search = await stripeResponse<StripeSubscriptionSearch>(response);
+  if (!Array.isArray(search.data) || search.has_more) {
+    throw new AccessError(502, 'billing_provider_invalid_response');
+  }
+  for (const subscription of search.data) {
+    const mapped = subscriptionBillingState(subscription, env);
+    if (mapped.organizationId !== organizationId) {
+      throw new AccessError(502, 'billing_provider_invalid_response');
+    }
+    if (!INACTIVE_BILLING.has(mapped.status)) {
+      throw new AccessError(409, 'billing_subscription_already_exists');
+    }
+  }
+}
+
 async function stripeRequest<T>(
   path: string,
   secret: string,
   body: URLSearchParams,
   stripeFetch: StripeFetch,
   idempotencyKey?: string,
+  signal: AbortSignal = AbortSignal.timeout(STRIPE_TIMEOUT_MS),
 ): Promise<T> {
   const response = await stripeFetch(`${STRIPE_API}${path}`, {
     method: 'POST',
@@ -355,7 +414,7 @@ async function stripeRequest<T>(
       ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     body,
-    signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
+    signal,
   });
   return stripeResponse<T>(response);
 }

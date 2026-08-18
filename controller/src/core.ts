@@ -17,7 +17,7 @@ interface Env {
 
 export type Provider = 'github' | 'google';
 
-interface OAuthProfile {
+export interface OAuthProfile {
   provider: Provider;
   providerUserId: string;
   email: string;
@@ -77,6 +77,8 @@ export default {
         response = await startOAuth(request, env, providerFromPath(url.pathname));
       } else if (request.method === 'GET' && url.pathname.startsWith('/v1/auth/callback/')) {
         response = await finishOAuth(request, env, providerFromPath(url.pathname));
+      } else if (request.method === 'POST' && url.pathname.startsWith('/v1/auth/link/')) {
+        response = await startOAuthLink(request, env, providerFromPath(url.pathname));
       } else if (request.method === 'POST' && url.pathname === '/v1/auth/exchange') {
         response = await exchangeAuthCode(request, env);
       } else if (request.method === 'POST' && url.pathname === '/v1/auth/logout') {
@@ -127,27 +129,49 @@ async function startOAuth(request: Request, env: Env, provider: Provider): Promi
     await sha256(state), provider, returnTo, codeChallenge, nowSeconds() + STATE_TTL_SECONDS,
   ).run();
 
-  const authorize = new URL(config.authorizeUrl);
-  authorize.searchParams.set('client_id', config.clientId);
-  authorize.searchParams.set('redirect_uri', config.redirectUri);
-  authorize.searchParams.set('response_type', 'code');
-  authorize.searchParams.set('scope', config.scope);
-  authorize.searchParams.set('state', state);
-  if (provider === 'google') {
-    authorize.searchParams.set('access_type', 'online');
-    authorize.searchParams.set('prompt', 'select_account');
+  return Response.redirect(oauthAuthorizeUrl(provider, config, state), 302);
+}
+
+async function startOAuthLink(request: Request, env: Env, provider: Provider): Promise<Response> {
+  const user = await authenticateUser(request, env.DB);
+  const body = await readJson<{ code_challenge?: unknown }>(request);
+  const codeChallenge = typeof body.code_challenge === 'string' ? body.code_challenge : '';
+  if (!PKCE_CHALLENGE_PATTERN.test(codeChallenge)) throw new HttpError(400, 'pkce_required');
+  const config = oauthConfig(provider, env, new URL(request.url).origin);
+  if (!config) throw new HttpError(503, `${provider}_login_not_configured`);
+  const clientKey = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!await oauthStartAllowed(env.OAUTH_IP_LIMITER, env.OAUTH_LOCATION_LIMITER, clientKey)) {
+    throw new HttpError(429, 'rate_limited');
   }
-  return Response.redirect(authorize.toString(), 302);
+
+  await deleteExpiredRows(env.DB);
+  const state = randomToken();
+  const stateHash = await sha256(state);
+  const expiresAt = nowSeconds() + STATE_TTL_SECONDS;
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO oauth_states (state_hash, provider, return_to, code_challenge, expires_at)
+       VALUES (?1, ?2, ?3, ?4, ?5)`,
+    ).bind(stateHash, provider, allowedReturnTo(null, env.APP_ORIGIN), codeChallenge, expiresAt),
+    // Reuse an existing short-lived table for the authenticated link intent;
+    // this keeps the flow compatible with every deployed D1 schema.
+    env.DB.prepare(
+      `INSERT INTO auth_codes (code_hash, user_id, provider, code_challenge, expires_at, consumed_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, NULL)`,
+    ).bind(stateHash, user.id, `link:${provider}`, codeChallenge, expiresAt),
+  ]);
+  return json({ url: oauthAuthorizeUrl(provider, config, state) });
 }
 
 async function finishOAuth(request: Request, env: Env, provider: Provider): Promise<Response> {
   const url = new URL(request.url);
   const state = url.searchParams.get('state') || '';
   const code = url.searchParams.get('code') || '';
+  const stateHash = await sha256(state);
   const stateRow = await env.DB.prepare(
     `DELETE FROM oauth_states WHERE state_hash = ?1 AND provider = ?2 AND expires_at >= ?3
      RETURNING return_to, code_challenge`,
-  ).bind(await sha256(state), provider, nowSeconds())
+  ).bind(stateHash, provider, nowSeconds())
     .first<{ return_to: string; code_challenge: string | null }>();
   if (!stateRow) return authErrorRedirect(env.APP_ORIGIN, 'oauth_state_invalid');
   if (!code) return authErrorRedirect(stateRow.return_to, 'oauth_denied');
@@ -157,7 +181,16 @@ async function finishOAuth(request: Request, env: Env, provider: Provider): Prom
   if (!config) return authErrorRedirect(stateRow.return_to, `${provider}_login_not_configured`);
   try {
     const profile = await fetchOAuthProfile(provider, code, config);
-    const user = await upsertUser(env.DB, profile);
+    const linkIntent = await env.DB.prepare(
+      `DELETE FROM auth_codes
+       WHERE code_hash = ?1 AND provider = ?2 AND code_challenge = ?3
+         AND consumed_at IS NULL AND expires_at >= ?4
+       RETURNING user_id`,
+    ).bind(stateHash, `link:${provider}`, stateRow.code_challenge, nowSeconds())
+      .first<{ user_id: string }>();
+    const user = linkIntent
+      ? await linkOAuthAccount(env.DB, linkIntent.user_id, profile)
+      : await upsertUser(env.DB, profile);
     const appCode = randomToken();
     await env.DB.prepare(
       `INSERT INTO auth_codes (code_hash, user_id, provider, code_challenge, expires_at)
@@ -184,6 +217,7 @@ async function exchangeAuthCode(request: Request, env: Env): Promise<Response> {
   const row = await env.DB.prepare(
     `UPDATE auth_codes SET consumed_at = ?1
      WHERE code_hash = ?2 AND code_challenge = ?3
+       AND provider IN ('github', 'google')
        AND consumed_at IS NULL AND expires_at >= ?1
      RETURNING user_id`,
   ).bind(nowSeconds(), await sha256(body.code), codeChallenge).first<{ user_id: string }>();
@@ -199,7 +233,12 @@ async function exchangeAuthCode(request: Request, env: Env): Promise<Response> {
 
 async function currentUser(request: Request, env: Env): Promise<Response> {
   const user = await authenticateUser(request, env.DB);
-  return json(publicUser(user));
+  const accounts = await env.DB.prepare(
+    'SELECT provider FROM oauth_accounts WHERE user_id = ?1 ORDER BY provider',
+  ).bind(user.id).all<{ provider: string }>();
+  const providers = accounts.results.map((account) => account.provider)
+    .filter((provider): provider is Provider => provider === 'github' || provider === 'google');
+  return json({ ...publicUser(user), providers });
 }
 
 async function logout(request: Request, env: Env): Promise<Response> {
@@ -300,29 +339,77 @@ async function googleProfile(accessToken: string): Promise<OAuthProfile> {
   };
 }
 
-async function upsertUser(db: D1Database, profile: OAuthProfile): Promise<UserRow> {
+export async function upsertUser(db: D1Database, profile: OAuthProfile): Promise<UserRow> {
   const account = await db.prepare(
     `SELECT u.id, u.email, u.name, u.avatar_url FROM oauth_accounts a
      JOIN users u ON u.id = a.user_id WHERE a.provider = ?1 AND a.provider_user_id = ?2`,
   ).bind(profile.provider, profile.providerUserId).first<UserRow>();
-  const byEmail = account || await db.prepare(
-    'SELECT id, email, name, avatar_url FROM users WHERE email = ?1',
-  ).bind(profile.email).first<UserRow>();
-  const id = byEmail?.id || crypto.randomUUID();
+  if (account) {
+    const now = nowSeconds();
+    await db.prepare(
+      'UPDATE users SET name = ?1, avatar_url = ?2, updated_at = ?3 WHERE id = ?4',
+    ).bind(profile.name, profile.avatarUrl || null, now, account.id).run();
+    return { ...account, name: profile.name, avatar_url: profile.avatarUrl || null };
+  }
+
+  const normalizedEmail = profile.email.trim().toLowerCase();
+  const byEmail = await db.prepare(
+    'SELECT id FROM users WHERE lower(email) = lower(?1)',
+  ).bind(normalizedEmail).first<{ id: string }>();
+  if (byEmail) throw new HttpError(409, 'oauth_account_link_required');
+  const id = crypto.randomUUID();
   const now = nowSeconds();
   await db.batch([
     db.prepare(
       `INSERT INTO users (id, email, name, avatar_url, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?5)
-       ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name,
-       avatar_url = excluded.avatar_url, updated_at = excluded.updated_at`,
-    ).bind(id, profile.email, profile.name, profile.avatarUrl || null, now),
+       VALUES (?1, ?2, ?3, ?4, ?5, ?5)`,
+    ).bind(id, normalizedEmail, profile.name, profile.avatarUrl || null, now),
     db.prepare(
-      `INSERT INTO oauth_accounts (provider, provider_user_id, user_id) VALUES (?1, ?2, ?3)
-       ON CONFLICT(provider, provider_user_id) DO UPDATE SET user_id = excluded.user_id`,
+      'INSERT INTO oauth_accounts (provider, provider_user_id, user_id) VALUES (?1, ?2, ?3)',
     ).bind(profile.provider, profile.providerUserId, id),
   ]);
-  return { id, email: profile.email, name: profile.name, avatar_url: profile.avatarUrl || null };
+  return { id, email: normalizedEmail, name: profile.name, avatar_url: profile.avatarUrl || null };
+}
+
+export async function linkOAuthAccount(
+  db: D1Database,
+  userId: string,
+  profile: OAuthProfile,
+): Promise<UserRow> {
+  const existing = await db.prepare(
+    'SELECT user_id FROM oauth_accounts WHERE provider = ?1 AND provider_user_id = ?2',
+  ).bind(profile.provider, profile.providerUserId).first<{ user_id: string }>();
+  if (existing && existing.user_id !== userId) {
+    throw new HttpError(409, 'oauth_account_already_linked');
+  }
+  const user = await db.prepare(
+    'SELECT id, email, name, avatar_url FROM users WHERE id = ?1',
+  ).bind(userId).first<UserRow>();
+  if (!user) throw new HttpError(401, 'session_invalid_or_expired');
+  if (!existing) {
+    await db.prepare(
+      'INSERT INTO oauth_accounts (provider, provider_user_id, user_id) VALUES (?1, ?2, ?3)',
+    ).bind(profile.provider, profile.providerUserId, userId).run();
+  }
+  return user;
+}
+
+function oauthAuthorizeUrl(
+  provider: Provider,
+  config: NonNullable<ReturnType<typeof oauthConfig>>,
+  state: string,
+): string {
+  const authorize = new URL(config.authorizeUrl);
+  authorize.searchParams.set('client_id', config.clientId);
+  authorize.searchParams.set('redirect_uri', config.redirectUri);
+  authorize.searchParams.set('response_type', 'code');
+  authorize.searchParams.set('scope', config.scope);
+  authorize.searchParams.set('state', state);
+  if (provider === 'google') {
+    authorize.searchParams.set('access_type', 'online');
+    authorize.searchParams.set('prompt', 'select_account');
+  }
+  return authorize.toString();
 }
 
 function oauthConfig(provider: Provider, env: Env, origin: string) {
