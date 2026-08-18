@@ -153,7 +153,7 @@ export function FleetOverview({
               )}
               {organization.role !== 'owner' ? (
                 <p className="mt-3 text-xs text-slate-500">{t('billing.ownerOnly')}</p>
-              ) : organization.billingStatus !== 'inactive' ? (
+              ) : organization.billingStatus !== 'inactive' && organization.billingStatus !== 'canceled' ? (
                 <button type="button" onClick={onManageBilling} disabled={billingBusy}
                   className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
                   {billingBusy ? t('billing.opening') : t('billing.manage')}

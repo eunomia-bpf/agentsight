@@ -301,6 +301,14 @@ export class NodeRelay {
     try {
       const status = await reconcileStripeSubscription(
         this.env as RelayEnv & StripeEnv, input.organizationId, input.subscriptionId,
+        fetch,
+        async () => {
+          // A Stripe read can outlive this Durable Object instance during a
+          // network partition or code update. A storage access immediately
+          // before every D1 write makes Cloudflare reject a stale instance,
+          // leaving Stripe to retry the webhook on the current coordinator.
+          await this.ctx.storage.get('__agentsight_billing_fence');
+        },
       );
       return json({ received: true, status });
     } catch (error) {

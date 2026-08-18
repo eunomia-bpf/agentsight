@@ -6,7 +6,9 @@ import { resolveControllerUrl } from '@/lib/controllerOrigin.mjs';
 
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
-const REQUEST_TIMEOUT_MS = 8_000;
+// The Controller gives Stripe calls up to 10 seconds. The browser must wait
+// longer so a successful Checkout creation is never reported as a failure.
+const REQUEST_TIMEOUT_MS = 15_000;
 let cloudCodeExchange: Promise<string> | null = null;
 
 export const controllerUrl = resolveControllerUrl(

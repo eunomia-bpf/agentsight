@@ -72,17 +72,30 @@ test('Checkout binds the organization and subscription metadata to a configured 
 
 test('Concurrent Checkout choices share one Stripe idempotency generation', async () => {
   const keys: string[] = [];
+  const requests = new Map<string, string>();
+  let sessionsCreated = 0;
   const checkout = (interval: 'monthly' | 'annual') => createStripeCheckout(stripeEnv, {
     organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
     plan: 'pro', interval, externalCustomerId: null, externalSubscriptionId: null,
     billingStatus: 'inactive',
   }, async (_input, init) => {
-    keys.push(new Headers(init?.headers).get('Idempotency-Key') || '');
+    const key = new Headers(init?.headers).get('Idempotency-Key') || '';
+    const params = String(init?.body);
+    keys.push(key);
+    const existing = requests.get(key);
+    if (existing && existing !== params) {
+      return Response.json({ error: { type: 'idempotency_error' } }, { status: 400 });
+    }
+    requests.set(key, params);
+    sessionsCreated += 1;
     return Response.json({ url: 'https://checkout.stripe.com/c/pay/test' });
   });
-  await Promise.all([checkout('monthly'), checkout('annual')]);
+  const results = await Promise.allSettled([checkout('monthly'), checkout('annual')]);
   assert.equal(keys.length, 2);
   assert.equal(keys[0], keys[1]);
+  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+  assert.equal(results.filter((result) => result.status === 'rejected').length, 1);
+  assert.equal(sessionsCreated, 1);
 });
 
 test('Team checkout fails closed until seat quantity can be reconciled', async () => {
@@ -140,7 +153,7 @@ test('Subscription state is derived from configured prices rather than untrusted
   assert.equal(mapped.interval, 'monthly');
   assert.equal(mapped.status, 'active');
   assert.equal(stripeBillingStatus('unpaid'), 'past_due');
-  assert.equal(stripeBillingStatus('incomplete'), 'inactive');
+  assert.equal(stripeBillingStatus('incomplete'), 'past_due');
   assert.throws(
     () => subscriptionBillingState({
       customer: 'cus_test', status: 'active', metadata: { organization_id: 'org_personal_user1' },
@@ -167,6 +180,14 @@ test('Subscription state is derived from configured prices rather than untrusted
     }, stripeEnv),
     (error: unknown) => error instanceof AccessError && error.message === 'stripe_price_unrecognized',
   );
+});
+
+test('Only terminal Stripe states allow a replacement Checkout', () => {
+  assert.equal(stripeBillingStatus('canceled'), 'canceled');
+  assert.equal(stripeBillingStatus('incomplete_expired'), 'canceled');
+  assert.equal(stripeBillingStatus('incomplete'), 'past_due');
+  assert.equal(stripeBillingStatus('paused'), 'past_due');
+  assert.equal(stripeBillingStatus('future_recoverable_state'), 'past_due');
 });
 
 test('Verified subscription webhook routes reconciliation through the organization coordinator', async () => {
@@ -313,6 +334,36 @@ test('A replacement subscription can activate when Stripe shows its predecessor 
   ]);
   assert.equal(state.externalSubscriptionId, 'sub_new');
   assert.equal(state.billingStatus, 'active');
+});
+
+test('A stale Durable Object instance is fenced after Stripe reads and before D1 writes', async () => {
+  let writes = 0;
+  const db = {
+    prepare: (query: string) => ({
+      bind: () => ({
+        first: async () => ({
+          kind: 'personal', billing_status: 'active', external_subscription_id: 'sub_test',
+        }),
+        run: async () => {
+          if (query.startsWith('UPDATE organizations')) writes += 1;
+          return { success: true, meta: { changes: 1 } };
+        },
+      }),
+    }),
+  } as unknown as D1Database;
+
+  await assert.rejects(reconcileStripeSubscription(
+    { ...stripeEnv, DB: db },
+    'org_personal_user1',
+    'sub_test',
+    async () => Response.json({
+      id: 'sub_test', customer: 'cus_test', status: 'canceled',
+      metadata: { organization_id: 'org_personal_user1' },
+      items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+    }),
+    async () => { throw new Error('Durable Object is no longer current'); },
+  ), /no longer current/);
+  assert.equal(writes, 0);
 });
 
 test('Webhook rejects an oversized body before parsing or touching D1', async () => {

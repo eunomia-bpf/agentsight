@@ -91,6 +91,7 @@ test('billing reconciliation is serialized per organization Durable Object', asy
   let fetchCalls = 0;
   let inFlight = 0;
   let peakInFlight = 0;
+  let fenceChecks = 0;
   globalThis.fetch = async () => {
     fetchCalls += 1;
     inFlight += 1;
@@ -116,6 +117,12 @@ test('billing reconciliation is serialized per organization Durable Object', asy
   const ctx = {
     setWebSocketAutoResponse() {},
     getWebSockets: () => [],
+    storage: {
+      get: async () => {
+        fenceChecks += 1;
+        return undefined;
+      },
+    },
   } as unknown as DurableObjectState;
   const relay = new NodeRelay(ctx, {
     DB: db,
@@ -144,6 +151,7 @@ test('billing reconciliation is serialized per organization Durable Object', asy
     assert.deepEqual(responses.map((response) => response.status), [200, 200]);
     assert.equal(fetchCalls, 2);
     assert.equal(peakInFlight, 1);
+    assert.equal(fenceChecks, 2);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);

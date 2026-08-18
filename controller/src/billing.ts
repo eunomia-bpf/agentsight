@@ -210,6 +210,7 @@ export async function reconcileStripeSubscription(
   organizationId: string,
   subscriptionId: string,
   stripeFetch: StripeFetch = fetch,
+  assertWriteCurrent: () => Promise<void> = async () => {},
 ): Promise<'updated' | 'ignored'> {
   if (!ORGANIZATION_ID_PATTERN.test(organizationId)
       || !SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
@@ -247,6 +248,7 @@ export async function reconcileStripeSubscription(
         throw new AccessError(400, 'stripe_organization_mismatch');
       }
       if (!INACTIVE_BILLING.has(predecessorState.status)) return 'ignored';
+      await assertWriteCurrent();
       await setStripeBilling(env.DB, organizationId, {
         plan: 'pro',
         interval: predecessorState.interval,
@@ -257,6 +259,7 @@ export async function reconcileStripeSubscription(
       });
     }
   }
+  await assertWriteCurrent();
   return setStripeBilling(env.DB, organizationId, {
     plan: 'pro',
     interval: mapped.interval,
@@ -318,9 +321,11 @@ export function subscriptionBillingState(subscription: StripeSubscription, env: 
 export function stripeBillingStatus(status: string): BillingStatus {
   if (status === 'active') return 'active';
   if (status === 'trialing') return 'trialing';
-  if (status === 'past_due' || status === 'unpaid') return 'past_due';
-  if (status === 'canceled' || status === 'paused') return 'canceled';
-  return 'inactive';
+  if (status === 'canceled' || status === 'incomplete_expired') return 'canceled';
+  // incomplete and paused subscriptions can still become billable. Treat them,
+  // and any future unknown Stripe state, as recoverable rather than allowing a
+  // second Checkout subscription to be created alongside them.
+  return 'past_due';
 }
 
 async function stripeGetSubscription(
