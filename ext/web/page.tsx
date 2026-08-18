@@ -14,6 +14,7 @@ import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
 import type { FleetNodeSample } from '@/lib/fleetData';
 import {
   CloudSessionExpiredError,
+  type BillingCheckoutAvailability,
   type BillingInterval,
   type CheckoutPlan,
   type CloudIdentity,
@@ -26,6 +27,7 @@ import {
   exchangeCloudCode,
   fetchCloudIdentity,
   fetchCloudNodes,
+  fetchBillingCheckoutAvailability,
   fetchControllerDirectConfig,
   fetchOrganizations,
   forgetCloudNode,
@@ -106,6 +108,8 @@ export default function Home() {
   const [fleetError, setFleetError] = useState('');
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingError, setBillingError] = useState('');
+  const [billingCheckout, setBillingCheckout] = useState<BillingCheckoutAvailability | null>(null);
+  const [billingResult, setBillingResult] = useState<'success' | 'canceled' | null>(null);
   const activationGeneration = useRef(0);
   const fleetGeneration = useRef(0);
   const directoryGeneration = useRef(0);
@@ -131,6 +135,7 @@ export default function Home() {
     setFleetError('');
     setBillingBusy(false);
     setBillingError('');
+    setBillingCheckout(null);
   }, []);
 
   const handleCloudError = useCallback((cause: unknown, fallback: string) => {
@@ -742,6 +747,36 @@ export default function Home() {
   }, [activateClient, handleCloudError, loadCloudDirectory, refreshCloudNodes]);
 
   useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get('billing');
+    if (result === 'success' || result === 'canceled') {
+      setBillingResult(result);
+      url.searchParams.delete('billing');
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    setBillingCheckout(null);
+    const token = loadCloudSession();
+    if (!identity || !token || !activeOrganizationId) return;
+    let cancelled = false;
+    void fetchBillingCheckoutAvailability(token, activeOrganizationId)
+      .then((availability) => {
+        if (!cancelled) setBillingCheckout(availability);
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        if (cause instanceof CloudSessionExpiredError) {
+          handleCloudError(cause, 'Your AgentSight sign-in has expired.');
+          return;
+        }
+        setBillingError(cause instanceof Error ? cause.message : 'Could not load billing availability.');
+      });
+    return () => { cancelled = true; };
+  }, [activeOrganizationId, handleCloudError, identity]);
+
+  useEffect(() => {
     if (mode !== 'live' || !activeClient) return;
     let cancelled = false;
     let overviewRefreshing = false;
@@ -959,6 +994,8 @@ export default function Home() {
         ) : identity && mode === 'directory' ? (
           <FleetOverview samples={fleetSamples} loading={fleetLoading} error={fleetError || nodeError}
           organization={activeOrganization}
+          billingCheckout={billingCheckout}
+          billingResult={billingResult}
           billingBusy={billingBusy} billingError={billingError}
           onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
           onOpenNode={(nodeId) => { void openNode(nodeId); }}

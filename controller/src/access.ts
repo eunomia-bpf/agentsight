@@ -632,6 +632,60 @@ export async function setBilling(
   if (!result.meta.changes) throw new AccessError(404, 'organization_not_found');
 }
 
+/**
+ * Apply Stripe state without allowing a second subscription to replace a
+ * currently active one. The caller serializes updates for an organization;
+ * this conditional update is the final fail-closed guard for old or duplicate
+ * subscription events and uses only the existing billing columns.
+ */
+export async function setStripeBilling(
+  db: D1Database,
+  organizationId: string,
+  input: {
+    plan: 'pro';
+    interval: 'monthly' | 'annual';
+    status: BillingStatus;
+    externalCustomerId: string;
+    externalSubscriptionId: string;
+    currentPeriodEnd: number | null;
+  },
+): Promise<'updated' | 'ignored'> {
+  const result = await db.prepare(
+    `UPDATE organizations SET
+       plan = ?1, billing_interval = ?2, billing_status = ?3,
+       external_customer_id = ?4, external_subscription_id = ?5,
+       current_period_end = ?6, updated_at = ?7
+     WHERE id = ?8 AND kind = 'personal'
+       AND (
+         external_subscription_id IS NULL
+         OR external_subscription_id = ?5
+         OR billing_status IN ('inactive', 'canceled')
+       )`,
+  ).bind(
+    input.plan,
+    input.interval,
+    input.status,
+    input.externalCustomerId,
+    input.externalSubscriptionId,
+    input.currentPeriodEnd,
+    nowSeconds(),
+    organizationId,
+  ).run();
+  if (result.meta.changes) return 'updated';
+
+  const existing = await db.prepare(
+    `SELECT kind, billing_status, external_subscription_id
+     FROM organizations WHERE id = ?1`,
+  ).bind(organizationId).first<{
+    kind: OrganizationKind;
+    billing_status: BillingStatus;
+    external_subscription_id: string | null;
+  }>();
+  if (!existing) throw new AccessError(404, 'organization_not_found');
+  if (existing.kind !== 'personal') throw new AccessError(400, 'billing_plan_mismatch');
+  return 'ignored';
+}
+
 export async function getBillingProviderState(
   db: D1Database,
   userId: string,

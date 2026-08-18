@@ -6,7 +6,12 @@
 import { useMemo, useState } from 'react';
 import { ArrowPathIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
 import { useTranslation } from '@/i18n';
-import type { BillingInterval, CheckoutPlan, CloudOrganization } from '@/lib/controllerClient';
+import type {
+  BillingCheckoutAvailability,
+  BillingInterval,
+  CheckoutPlan,
+  CloudOrganization,
+} from '@/lib/controllerClient';
 import {
   filterFleetNodes, fleetSubscriptions, fleetTotals, isRunningSession,
   type FleetNodeSample,
@@ -31,6 +36,8 @@ export function FleetOverview({
   loading,
   error,
   organization,
+  billingCheckout,
+  billingResult,
   billingBusy,
   billingError,
   onRefresh,
@@ -42,6 +49,8 @@ export function FleetOverview({
   loading: boolean;
   error: string;
   organization: CloudOrganization | null;
+  billingCheckout: BillingCheckoutAvailability | null;
+  billingResult: 'success' | 'canceled' | null;
   billingBusy: boolean;
   billingError: string;
   onRefresh: () => void;
@@ -137,24 +146,41 @@ export function FleetOverview({
                 {organization.contributorPro ? t('billing.contributor') : t('billing.preview')}
               </p>
               {billingError && <p className="mt-3 text-xs text-red-600">{billingError}</p>}
+              {billingResult && (
+                <p className={`mt-3 text-xs ${billingResult === 'success' ? 'text-emerald-700' : 'text-slate-500'}`}>
+                  {t(`billing.${billingResult}`)}
+                </p>
+              )}
               {organization.role !== 'owner' ? (
                 <p className="mt-3 text-xs text-slate-500">{t('billing.ownerOnly')}</p>
-              ) : organization.contributorPro ? null : organization.billingStatus !== 'inactive' ? (
+              ) : organization.billingStatus !== 'inactive' ? (
                 <button type="button" onClick={onManageBilling} disabled={billingBusy}
                   className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
                   {billingBusy ? t('billing.opening') : t('billing.manage')}
                 </button>
-              ) : organization.kind === 'personal' ? (
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => onCheckout('pro', 'monthly')} disabled={billingBusy}
-                    className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50">
-                    {billingBusy ? t('billing.opening') : t('billing.monthly')}
-                  </button>
-                  <button type="button" onClick={() => onCheckout('pro', 'annual')} disabled={billingBusy}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                    {billingBusy ? t('billing.opening') : t('billing.annual')}
-                  </button>
-                </div>
+              ) : organization.contributorPro ? null : organization.kind === 'personal' ? (
+                billingCheckout === null ? (
+                  <p className="mt-4 text-xs text-slate-500">{t('billing.checking')}</p>
+                ) : billingCheckout.plans.pro.monthly || billingCheckout.plans.pro.annual ? (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {billingCheckout.plans.pro.monthly && (
+                      <button type="button" onClick={() => onCheckout('pro', 'monthly')} disabled={billingBusy}
+                        className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                        {billingBusy ? t('billing.opening') : t('billing.monthly')}
+                      </button>
+                    )}
+                    {billingCheckout.plans.pro.annual && (
+                      <button type="button" onClick={() => onCheckout('pro', 'annual')} disabled={billingBusy}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                        {billingBusy ? t('billing.opening') : t('billing.annual')}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    {t('billing.unavailable')}
+                  </p>
+                )
               ) : (
                 <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
                   {t('billing.teamContact')}

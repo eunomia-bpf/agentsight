@@ -80,10 +80,26 @@ test('organization owner can open Pro Checkout and the Stripe billing portal', a
   await expect(page).toHaveURL('https://checkout.stripe.com/c/pay/browser-test');
 
   state.billingStatus = 'active';
+  state.contributorPro = true;
   await page.goto('/');
   await page.getByRole('button', { name: 'Manage billing' }).click();
   await expect.poll(() => state.billingPortalRequests).toBe(1);
   await expect(page).toHaveURL('https://billing.stripe.com/p/session/browser-test');
+});
+
+test('billing controls fail closed when Stripe is unavailable', async ({ page }) => {
+  await mockController(page, {
+    signedIn: true, billingStatus: 'inactive', checkoutAvailable: false,
+  });
+  await page.goto('/');
+
+  await expect(page.getByText('Paid checkout is not configured for this deployment.')).toBeVisible();
+  await expect(page.getByRole('button', { name: '$5 monthly' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '$49 yearly' })).toHaveCount(0);
+
+  await page.goto('/?billing=canceled');
+  await expect(page.getByText('Checkout was canceled. No subscription change was made.')).toBeVisible();
+  await expect(page).toHaveURL('/');
 });
 
 test('conversation, message send, process tree, timeline filters, and event detail work together', async ({ page }) => {

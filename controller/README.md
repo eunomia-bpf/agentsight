@@ -96,8 +96,7 @@ subscription webhooks, and the Stripe customer portal only when all required
 runtime bindings are present:
 
 - secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`;
-- variables: `STRIPE_PRO_MONTHLY_PRICE_ID`, `STRIPE_PRO_ANNUAL_PRICE_ID`, and
-  `STRIPE_TEAM_MONTHLY_PRICE_ID`.
+- variables: `STRIPE_PRO_MONTHLY_PRICE_ID` and `STRIPE_PRO_ANNUAL_PRICE_ID`.
 
 Configure the Stripe endpoint as
 `https://control.agentsight.us/v1/billing/webhook` and subscribe it to
@@ -105,12 +104,15 @@ Configure the Stripe endpoint as
 `customer.subscription.deleted`. Webhook signatures are verified against the
 unmodified request body with Stripe's five-minute replay window. Subscription
 state is derived from the configured Price IDs, not request metadata, and is
-stored in the existing organization billing columns; this integration adds no
-D1 migration. During hosted preview, billing records remain truthful while the
-existing unlimited-preview switch continues to grant access independently.
-Self-service Checkout is enabled only for Pro monthly/annual. Team remains
-listed at $10/user/month, but its per-seat Checkout stays fail-closed until
-membership changes can reconcile the Stripe quantity durably.
+serialized per organization through the existing Durable Object binding before
+it is stored in the existing organization billing columns. Checkout creation
+uses a Stripe idempotency generation so concurrent retries cannot create two
+subscriptions. This integration adds no D1 migration. During hosted preview,
+billing records remain truthful while the existing unlimited-preview switch
+continues to grant access independently. Self-service Checkout and webhook
+mapping are enabled only for personal Pro monthly/annual. Team remains listed
+at $10/user/month, but all Team Stripe state stays fail-closed until membership
+changes can reconcile the paid quantity durably.
 
 One Worker deployment contains both surfaces from the same repository revision:
 

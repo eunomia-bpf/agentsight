@@ -65,7 +65,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold text-slate-950">Retention and your choices</h2>
           <p className="mt-2">
             Login sessions expire after 30 days. Expired OAuth state, authorization codes,
-            sessions, and invitations are regularly removed. Account, organization, Node, and
+            sessions, and invitations are removed during sign-in maintenance. Account, organization, Node, and
             billing records remain while needed to provide the service or meet legal obligations.
             You can sign out, remove Nodes, delete an account-saved Direct configuration, manage
             billing through Stripe, or ask us to delete hosted account data.

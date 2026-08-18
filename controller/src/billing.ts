@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { AccessError, setBilling, type BillingStatus, type Plan } from './access.ts';
+import { AccessError, setStripeBilling, type BillingStatus, type Plan } from './access.ts';
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 const WEBHOOK_TOLERANCE_SECONDS = 5 * 60;
 const MAX_WEBHOOK_BYTES = 512 * 1024;
+const STRIPE_TIMEOUT_MS = 10_000;
+const ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
+const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
 
 export interface StripeEnv {
   APP_ORIGIN: string;
@@ -126,6 +129,7 @@ export async function createStripeCheckout(
 
   const session = await stripeRequest<{ url?: string }>(
     '/checkout/sessions', secret, body, stripeFetch,
+    await checkoutIdempotencyKey(input),
   );
   if (!session.url || !session.url.startsWith('https://checkout.stripe.com/')) {
     throw new AccessError(502, 'billing_provider_invalid_response');
@@ -154,8 +158,7 @@ export async function createStripePortal(
 
 export async function handleStripeWebhook(
   request: Request,
-  env: StripeEnv & { DB: D1Database },
-  stripeFetch: StripeFetch = fetch,
+  env: StripeEnv & { DB: D1Database; NODE_RELAY: DurableObjectNamespace },
 ): Promise<Response> {
   if (!env.STRIPE_WEBHOOK_SECRET || !env.STRIPE_SECRET_KEY) {
     throw new AccessError(503, 'billing_not_configured');
@@ -176,20 +179,53 @@ export async function handleStripeWebhook(
     return json({ received: true });
   }
   const eventSubscription = event.data?.object;
-  if (!eventSubscription?.id) throw new AccessError(400, 'stripe_event_invalid');
+  const subscriptionId = eventSubscription?.id || '';
+  const organizationId = eventSubscription?.metadata?.organization_id || '';
+  if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)
+      || !ORGANIZATION_ID_PATTERN.test(organizationId)) {
+    throw new AccessError(400, 'stripe_event_invalid');
+  }
+  const coordinator = env.NODE_RELAY.get(env.NODE_RELAY.idFromName(`billing:${organizationId}`));
+  const result = await coordinator.fetch(new Request('https://relay.internal/billing/reconcile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organizationId, subscriptionId }),
+  }));
+  if (!result.ok) {
+    const body = await result.json().catch(() => null) as { error?: string } | null;
+    throw new AccessError(result.status, body?.error || 'billing_reconciliation_failed');
+  }
+  return json({ received: true });
+}
+
+export async function reconcileStripeSubscription(
+  env: StripeEnv & { DB: D1Database },
+  organizationId: string,
+  subscriptionId: string,
+  stripeFetch: StripeFetch = fetch,
+): Promise<'updated' | 'ignored'> {
+  if (!ORGANIZATION_ID_PATTERN.test(organizationId)
+      || !SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
+    throw new AccessError(400, 'stripe_event_invalid');
+  }
   const subscription = await stripeGetSubscription(
-    eventSubscription.id, env.STRIPE_SECRET_KEY, stripeFetch,
+    subscriptionId, requiredStripeSecret(env), stripeFetch,
   );
+  if (subscription.id !== subscriptionId) {
+    throw new AccessError(502, 'billing_provider_invalid_response');
+  }
   const mapped = subscriptionBillingState(subscription, env);
-  await setBilling(env.DB, mapped.organizationId, {
-    plan: mapped.plan,
+  if (mapped.organizationId !== organizationId) {
+    throw new AccessError(400, 'stripe_organization_mismatch');
+  }
+  return setStripeBilling(env.DB, organizationId, {
+    plan: 'pro',
     interval: mapped.interval,
     status: mapped.status,
     externalCustomerId: mapped.customerId,
-    externalSubscriptionId: subscription.id || eventSubscription.id,
+    externalSubscriptionId: subscription.id || subscriptionId,
     currentPeriodEnd: mapped.currentPeriodEnd,
   });
-  return json({ received: true });
 }
 
 export async function verifyStripeSignature(
@@ -214,15 +250,16 @@ export async function verifyStripeSignature(
 }
 
 export function subscriptionBillingState(subscription: StripeSubscription, env: StripeEnv) {
-  const priceId = subscription.items?.data?.[0]?.price?.id || '';
+  const items = subscription.items?.data || [];
+  if (items.length !== 1) throw new AccessError(400, 'stripe_subscription_shape_invalid');
+  const priceId = items[0]?.price?.id || '';
   const matched = [
     [env.STRIPE_PRO_MONTHLY_PRICE_ID, 'pro', 'monthly'],
     [env.STRIPE_PRO_ANNUAL_PRICE_ID, 'pro', 'annual'],
-    [env.STRIPE_TEAM_MONTHLY_PRICE_ID, 'team', 'monthly'],
   ].find(([configured]) => configured && configured === priceId);
   if (!matched) throw new AccessError(400, 'stripe_price_unrecognized');
   const organizationId = subscription.metadata?.organization_id || '';
-  if (!/^org_[A-Za-z0-9_]{1,124}$/.test(organizationId)) {
+  if (!ORGANIZATION_ID_PATTERN.test(organizationId)) {
     throw new AccessError(400, 'stripe_organization_invalid');
   }
   const customer = typeof subscription.customer === 'string'
@@ -254,6 +291,7 @@ async function stripeGetSubscription(
 ): Promise<StripeSubscription> {
   const response = await stripeFetch(`${STRIPE_API}/subscriptions/${encodeURIComponent(id)}`, {
     headers: { Authorization: `Bearer ${secret}` },
+    signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
   });
   return stripeResponse<StripeSubscription>(response);
 }
@@ -263,16 +301,36 @@ async function stripeRequest<T>(
   secret: string,
   body: URLSearchParams,
   stripeFetch: StripeFetch,
+  idempotencyKey?: string,
 ): Promise<T> {
   const response = await stripeFetch(`${STRIPE_API}${path}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
       'Content-Type': 'application/x-www-form-urlencoded',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
     body,
+    signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
   });
   return stripeResponse<T>(response);
+}
+
+async function checkoutIdempotencyKey(input: CheckoutInput): Promise<string> {
+  // Stripe retains idempotency results for at least 24 hours, matching the
+  // default Checkout Session lifetime. One organization billing generation
+  // therefore cannot create multiple subscriptions through concurrent tabs or
+  // retries; a different price request safely conflicts instead of charging.
+  const generation = [
+    'agentsight-checkout-v1',
+    input.organizationId,
+    input.externalSubscriptionId || 'none',
+    input.billingStatus || 'inactive',
+  ].join(':');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(generation));
+  return `agentsight-${Array.from(new Uint8Array(digest), (byte) => (
+    byte.toString(16).padStart(2, '0')
+  )).join('')}`;
 }
 
 async function stripeResponse<T>(response: Response): Promise<T> {

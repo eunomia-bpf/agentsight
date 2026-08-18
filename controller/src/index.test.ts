@@ -6,7 +6,7 @@ import test from 'node:test';
 import {
   allowedBrowserOrigin, allowedReturnTo, configuredOAuthProviders, decryptDirectConfig,
   directConfigNodeIdFromPath, encryptDirectConfig, githubApiHeaders, nodeIdFromPath,
-  normalizeDirectEndpoint, oauthStartAllowed, publicPricing, roleAllows, sha256Base64Url, validNodeId,
+  normalizeDirectEndpoint, oauthStartAllowed, publicPricing, readJson, roleAllows, sha256Base64Url, validNodeId,
 } from './index.ts';
 import {
   AccessError,
@@ -183,4 +183,23 @@ test('rejected client requests do not consume the location OAuth bucket', async 
   const accepted = { limit: async () => ({ success: true }) };
   assert.equal(await oauthStartAllowed(accepted, location, '192.0.2.2'), true);
   assert.equal(locationCalls, 1);
+});
+
+test('JSON body reader cancels an oversized stream before buffering the request', async () => {
+  let cancelled = false;
+  const request = new Request('https://control.agentsight.us/v1/organizations/org_test/billing/checkout', {
+    method: 'POST',
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(64 * 1024));
+        controller.enqueue(new Uint8Array(64 * 1024));
+      },
+      cancel() { cancelled = true; },
+    }),
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  await assert.rejects(readJson(request), (error: unknown) => (
+    error instanceof AccessError && error.status === 413 && error.code === 'request_too_large'
+  ));
+  assert.equal(cancelled, true);
 });

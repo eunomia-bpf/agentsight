@@ -44,6 +44,14 @@ export interface CloudOrganization {
 export type CheckoutPlan = 'pro' | 'team';
 export type BillingInterval = 'monthly' | 'annual';
 
+export interface BillingCheckoutAvailability {
+  enabled: boolean;
+  plans: {
+    pro: { monthly: boolean; annual: boolean };
+    team: { monthly: boolean; annual: boolean };
+  };
+}
+
 export interface CloudNode {
   id: string;
   organizationId: string;
@@ -193,6 +201,27 @@ export async function createBillingCheckout(
     throw new Error('The Controller returned an invalid checkout URL.');
   }
   return body.url;
+}
+
+export async function fetchBillingCheckoutAvailability(
+  token: string,
+  organizationId: string,
+): Promise<BillingCheckoutAvailability> {
+  const response = await request(
+    `${controllerUrl}/v1/organizations/${encodeURIComponent(organizationId)}/billing`,
+    { headers: authHeaders(token), cache: 'no-store' },
+  );
+  if (!response.ok) await responseError(response, 'Could not load billing availability');
+  const body = await response.json().catch(() => null) as {
+    checkout?: BillingCheckoutAvailability;
+  } | null;
+  const checkout = body?.checkout;
+  if (!checkout || typeof checkout.enabled !== 'boolean'
+      || typeof checkout.plans?.pro?.monthly !== 'boolean'
+      || typeof checkout.plans?.pro?.annual !== 'boolean') {
+    throw new Error('The Controller returned invalid billing availability.');
+  }
+  return checkout;
 }
 
 export async function createBillingPortal(token: string, organizationId: string): Promise<string> {

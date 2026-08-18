@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+import {
+  reconcileStripeSubscription,
+  type StripeEnv,
+} from './billing.ts';
+import { AccessError } from './access.ts';
+
 const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 const RELAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
 const NODE_VERSION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/;
@@ -14,6 +20,12 @@ const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
 export interface RelayEnv {
   DB: D1Database;
   NODE_RELAY: DurableObjectNamespace;
+  APP_ORIGIN?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_PRO_MONTHLY_PRICE_ID?: string;
+  STRIPE_PRO_ANNUAL_PRICE_ID?: string;
+  STRIPE_TEAM_MONTHLY_PRICE_ID?: string;
 }
 
 export interface BrowserRelayRoute {
@@ -150,10 +162,13 @@ export async function proxyNodeRequest(
 
 export class NodeRelay {
   private readonly ctx: DurableObjectState;
+  private readonly env: RelayEnv;
   private pending = new Map<string, PendingRequest>();
+  private billingQueue: Promise<void> = Promise.resolve();
 
-  constructor(ctx: DurableObjectState, _env: RelayEnv) {
+  constructor(ctx: DurableObjectState, env: RelayEnv) {
     this.ctx = ctx;
+    this.env = env;
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
 
@@ -167,6 +182,9 @@ export class NodeRelay {
     }
     if (url.pathname === '/request' && request.method === 'POST') {
       return this.forwardRequest(request);
+    }
+    if (url.pathname === '/billing/reconcile' && request.method === 'POST') {
+      return this.reconcileBilling(request);
     }
     return json({ error: 'not_found' }, 404);
   }
@@ -263,6 +281,34 @@ export class NodeRelay {
         resolve(json({ error: 'node_offline' }, 503));
       }
     });
+  }
+
+  private async reconcileBilling(request: Request): Promise<Response> {
+    let input: { organizationId?: unknown; subscriptionId?: unknown };
+    try {
+      input = await request.json() as typeof input;
+    } catch {
+      return json({ error: 'stripe_event_invalid' }, 400);
+    }
+    if (typeof input.organizationId !== 'string' || typeof input.subscriptionId !== 'string') {
+      return json({ error: 'stripe_event_invalid' }, 400);
+    }
+
+    const previous = this.billingQueue;
+    let release!: () => void;
+    this.billingQueue = new Promise<void>((resolve) => { release = resolve; });
+    await previous;
+    try {
+      const status = await reconcileStripeSubscription(
+        this.env as RelayEnv & StripeEnv, input.organizationId, input.subscriptionId,
+      );
+      return json({ received: true, status });
+    } catch (error) {
+      if (error instanceof AccessError) return json({ error: error.code }, error.status);
+      throw error;
+    } finally {
+      release();
+    }
   }
 }
 

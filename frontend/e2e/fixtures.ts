@@ -157,6 +157,8 @@ export interface MockState {
   billingCheckouts: unknown[];
   billingPortalRequests: number;
   billingStatus: 'inactive' | 'active';
+  contributorPro: boolean;
+  checkoutAvailable: boolean;
 }
 
 function json(route: Route, body: unknown, status = 200) {
@@ -178,12 +180,16 @@ export async function mockController(page: Page, options: {
   nodeListDelayMs?: number;
   responseDelayMs?: number;
   billingStatus?: 'inactive' | 'active';
+  contributorPro?: boolean;
+  checkoutAvailable?: boolean;
 } = {}) {
   const state: MockState = {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
     messageAcceptedAt: null,
     blockMessages: options.blockMessages ?? false, organizations: [], registrations: [], directRequests: [],
     billingCheckouts: [], billingPortalRequests: 0, billingStatus: options.billingStatus ?? 'active',
+    contributorPro: options.contributorPro ?? false,
+    checkoutAvailable: options.checkoutAvailable ?? true,
   };
   await mockEmbeddedProbe(page);
   if (options.signedIn) {
@@ -248,8 +254,17 @@ export async function mockController(page: Page, options: {
     if (path === '/v1/organizations') return json(route, { organizations: [{
       id: 'org-personal', name: 'Test Owner', kind: 'personal', role: 'owner', plan: 'pro',
       effectivePlan: 'pro', billingInterval: 'monthly', billingStatus: state.billingStatus,
-      currentPeriodEnd: 4_102_444_800, contributorPro: false, createdAt: 1_779_000_000,
+      currentPeriodEnd: 4_102_444_800, contributorPro: state.contributorPro, createdAt: 1_779_000_000,
     }] });
+    if (path === '/v1/organizations/org-personal/billing' && request.method() === 'GET') {
+      return json(route, { checkout: {
+        provider: 'stripe', enabled: state.checkoutAvailable,
+        plans: {
+          pro: { monthly: state.checkoutAvailable, annual: state.checkoutAvailable },
+          team: { monthly: false, annual: false },
+        },
+      } });
+    }
     if (path === '/v1/organizations/org-personal/billing/checkout' && request.method() === 'POST') {
       state.billingCheckouts.push(request.postDataJSON());
       return json(route, { url: 'https://checkout.stripe.com/c/pay/browser-test' });

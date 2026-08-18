@@ -249,6 +249,8 @@ export default {
 
       const billingAction = organizationBillingActionPath(url.pathname);
       if (billingAction && request.method === 'POST') {
+        const rate = await env.OAUTH_IP_LIMITER.limit({ key: `billing:${user.id}` });
+        if (!rate.success) throw new AccessError(429, 'billing_rate_limited');
         const provider = await getBillingProviderState(
           env.DB, user.id, billingAction.organizationId,
         );
@@ -537,11 +539,35 @@ function isInviteRole(value: unknown): value is Exclude<Role, 'owner'> {
   return value === 'viewer' || value === 'operator' || value === 'admin';
 }
 
-async function readJson<T>(request: Request): Promise<T> {
+export async function readJson<T>(request: Request): Promise<T> {
+  const maxBytes = 96 * 1024;
   const declared = Number(request.headers.get('Content-Length') || '0');
-  if (declared > 96 * 1024) throw new AccessError(413, 'request_too_large');
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > 96 * 1024) throw new AccessError(413, 'request_too_large');
+  if (declared > maxBytes) throw new AccessError(413, 'request_too_large');
+  if (!request.body) throw new AccessError(400, 'invalid_json');
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel('request too large');
+        throw new AccessError(413, 'request_too_large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const joined = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const text = new TextDecoder().decode(joined);
   try { return JSON.parse(text) as T; } catch { throw new AccessError(400, 'invalid_json'); }
 }
 
