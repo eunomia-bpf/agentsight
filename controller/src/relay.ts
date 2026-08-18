@@ -346,6 +346,42 @@ export class NodeRelay {
     });
   }
 
+  private async rotateCheckoutGenerationIfExpired(
+    generation: string,
+    now: number,
+  ): Promise<boolean> {
+    let rotated = false;
+    await this.ctx.storage.transaction(async (transaction) => {
+      const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+      if (stored?.generation !== generation
+          || stored.expiresAt + BILLING_CHECKOUT_EXPIRY_GRACE_MS > now) return;
+      rotated = true;
+      await transaction.delete(BILLING_CHECKOUT_KEY);
+    });
+    return rotated;
+  }
+
+  private async beginCheckoutGeneration(
+    generation: string,
+  ): Promise<PendingBillingCheckout | null> {
+    let active: PendingBillingCheckout | null = null;
+    await this.ctx.storage.transaction(async (transaction) => {
+      const stored = await transaction.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY);
+      if (stored?.generation !== generation) return;
+      active = stored;
+      if (stored.session) return;
+      active = {
+        ...stored,
+        // A response can be lost after Stripe accepted the request. Keep this
+        // generation until every Session that this attempt could have created
+        // has reached Stripe's default 24-hour expiry.
+        expiresAt: Date.now() + STRIPE_CHECKOUT_LIFETIME_SECONDS * 1_000,
+      };
+      await transaction.put(BILLING_CHECKOUT_KEY, active);
+    });
+    return active;
+  }
+
   private acceptNodeSocket(): Response {
     for (const socket of this.ctx.getWebSockets('node')) {
       try { socket.close(1012, 'replaced by a newer Node connection'); } catch { /* best effort */ }
@@ -513,13 +549,26 @@ export class NodeRelay {
           }
           if (status === 'open') return json({ url: checkout.session.url });
         }
-        await this.deleteCheckoutGeneration(checkout.generation);
-        checkout = await reserve();
+        const rotated = await this.rotateCheckoutGenerationIfExpired(
+          checkout.generation, Date.now(),
+        );
+        checkout = rotated
+          ? await reserve()
+          : await this.ctx.storage.get<PendingBillingCheckout>(BILLING_CHECKOUT_KEY)
+            || await reserve();
       } catch (error) {
         if (error instanceof AccessError) return json({ error: error.code }, error.status);
         return json({ error: 'billing_provider_failed' }, 502);
       }
     }
+    if (checkout.input.plan !== input.plan || checkout.input.interval !== input.interval) {
+      return json({ error: 'billing_checkout_in_progress' }, 409);
+    }
+    if (checkout.session) return json({ url: checkout.session.url });
+
+    const activeCheckout = await this.beginCheckoutGeneration(checkout.generation);
+    if (!activeCheckout) return json({ error: 'billing_checkout_in_progress' }, 409);
+    checkout = activeCheckout;
     if (checkout.input.plan !== input.plan || checkout.input.interval !== input.interval) {
       return json({ error: 'billing_checkout_in_progress' }, 409);
     }

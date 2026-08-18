@@ -346,7 +346,16 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
   };
   let transactionQueue: Promise<unknown> = Promise.resolve();
   let checkoutPosts = 0;
+  let checkoutSessions = 0;
   const checkoutPrices: string[] = [];
+  const sessionsByIdempotencyKey = new Map<string, {
+    id: string; url: string; expires_at: number;
+  }>();
+  let holdNextCheckout = false;
+  let checkoutStarted!: () => void;
+  const checkoutStart = new Promise<void>((resolve) => { checkoutStarted = resolve; });
+  let releaseCheckout!: () => void;
+  const checkoutRelease = new Promise<void>((resolve) => { releaseCheckout = resolve; });
   globalThis.fetch = async (input, init) => {
     if (String(input).includes('/subscriptions/search?')) {
       return Response.json({ data: [], has_more: false });
@@ -362,11 +371,23 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
     checkoutPosts += 1;
     const body = init?.body as URLSearchParams;
     checkoutPrices.push(body.get('line_items[0][price]') || '');
-    return Response.json({
-      id: `cs_test_durable${checkoutPosts}`,
-      url: `https://checkout.stripe.com/c/pay/durable${checkoutPosts}`,
-      expires_at: Math.floor(Date.now() / 1_000) + 24 * 60 * 60,
-    });
+    const idempotencyKey = new Headers(init?.headers).get('Idempotency-Key') || '';
+    let session = sessionsByIdempotencyKey.get(idempotencyKey);
+    if (!session) {
+      checkoutSessions += 1;
+      session = {
+        id: `cs_test_durable${checkoutSessions}`,
+        url: `https://checkout.stripe.com/c/pay/durable${checkoutSessions}`,
+        expires_at: Math.floor(Date.now() / 1_000) + 24 * 60 * 60,
+      };
+      sessionsByIdempotencyKey.set(idempotencyKey, session);
+    }
+    if (holdNextCheckout) {
+      holdNextCheckout = false;
+      checkoutStarted();
+      await checkoutRelease;
+    }
+    return Response.json(session);
   };
   const ctx = {
     setWebSocketAutoResponse() {},
@@ -430,10 +451,22 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
     stored.set(checkoutKey, {
       ...checkoutState, session: undefined, expiresAt: Date.now() - 120_000,
     });
-    const recovered = await checkout('monthly');
+    holdNextCheckout = true;
+    const recoveredPromise = checkout('monthly');
+    await checkoutStart;
+    const inFlightState = stored.get(checkoutKey) as { generation: string; expiresAt: number };
+    assert.ok(inFlightState.expiresAt - Date.now() > 23 * 60 * 60 * 1_000);
+    const concurrent = await checkout('monthly');
+    assert.equal(concurrent.status, 200);
+    assert.equal((stored.get(checkoutKey) as { generation: string }).generation,
+      inFlightState.generation);
+    releaseCheckout();
+    const recovered = await recoveredPromise;
     assert.equal(recovered.status, 200);
-    assert.equal(checkoutPosts, 2);
+    assert.equal(checkoutPosts, 3);
+    assert.equal(checkoutSessions, 2);
     assert.equal(checkoutPrices[1], 'price_pro_monthly_v2');
+    assert.equal(checkoutPrices[2], 'price_pro_monthly_v2');
 
     const recoveredState = stored.get(checkoutKey) as { expiresAt: number };
     stored.set(checkoutKey, { ...recoveredState, expiresAt: Date.now() - 120_000 });
@@ -442,7 +475,8 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
     assert.deepEqual(await replacement.json(), {
       url: 'https://checkout.stripe.com/c/pay/durable3',
     });
-    assert.equal(checkoutPosts, 3);
+    assert.equal(checkoutPosts, 4);
+    assert.equal(checkoutSessions, 3);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
