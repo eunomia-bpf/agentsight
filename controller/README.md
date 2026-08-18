@@ -86,6 +86,32 @@ Hosted deployment is automatic through Cloudflare Workers Builds. The repository
 
 The OAuth runtime bindings such as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are only used when a person chooses **Sign in with GitHub**. Configure the client ID as a Worker variable or secret and the client secret as a Worker secret. They are not Git repository credentials, Cloudflare deployment credentials, or GitHub Actions secrets. Both Wrangler configs set `keep_vars` so an automatic code deployment preserves these Dashboard-managed bindings.
 
+Google login uses the same pattern with `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET`. Its production OAuth client must authorize
+`https://app.agentsight.us` as a JavaScript origin and
+`https://control.agentsight.us/v1/auth/callback/google` as a redirect URI.
+
+Stripe Billing is optional and fail-closed. The Worker exposes hosted Checkout,
+subscription webhooks, and the Stripe customer portal only when all required
+runtime bindings are present:
+
+- secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`;
+- variables: `STRIPE_PRO_MONTHLY_PRICE_ID`, `STRIPE_PRO_ANNUAL_PRICE_ID`, and
+  `STRIPE_TEAM_MONTHLY_PRICE_ID`.
+
+Configure the Stripe endpoint as
+`https://control.agentsight.us/v1/billing/webhook` and subscribe it to
+`customer.subscription.created`, `customer.subscription.updated`, and
+`customer.subscription.deleted`. Webhook signatures are verified against the
+unmodified request body with Stripe's five-minute replay window. Subscription
+state is derived from the configured Price IDs, not request metadata, and is
+stored in the existing organization billing columns; this integration adds no
+D1 migration. During hosted preview, billing records remain truthful while the
+existing unlimited-preview switch continues to grant access independently.
+Self-service Checkout is enabled only for Pro monthly/annual. Team remains
+listed at $10/user/month, but its per-seat Checkout stays fail-closed until
+membership changes can reconcile the Stripe quantity durably.
+
 One Worker deployment contains both surfaces from the same repository revision:
 
 - `app.agentsight.us` serves the frontend and static assets;

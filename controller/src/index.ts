@@ -23,6 +23,7 @@ import {
   deleteNode,
   ensurePersonalOrganization,
   getConfig,
+  getBillingProviderState,
   getDirectConfig,
   getNodeAccess,
   getOrganizationAccess,
@@ -43,6 +44,13 @@ import {
   validNodeId,
 } from './access.ts';
 import {
+  createStripeCheckout,
+  createStripePortal,
+  handleStripeWebhook,
+  stripeCheckoutAvailability,
+  type StripeEnv,
+} from './billing.ts';
+import {
   NodeRelay,
   browserRelayRoute,
   connectNodeRelay,
@@ -54,7 +62,7 @@ import {
   type RelayEnv,
 } from './relay.ts';
 
-interface Env extends RelayEnv {
+interface Env extends RelayEnv, StripeEnv {
   APP_ORIGIN: string;
   OAUTH_IP_LIMITER: RateLimit;
   OAUTH_LOCATION_LIMITER: RateLimit;
@@ -110,11 +118,18 @@ export default {
 
     try {
       if (request.method === 'GET' && url.pathname === '/v1/pricing') {
-        return respond(json(publicPricing()));
+        return respond(json({
+          ...publicPricing(),
+          checkout: stripeCheckoutAvailability(env),
+        }));
       }
 
       if (isCoreIdentityRoute(url.pathname)) {
         return respond(await core.fetch(request, env));
+      }
+
+      if (request.method === 'POST' && url.pathname === '/v1/billing/webhook') {
+        return respond(await handleStripeWebhook(request, env));
       }
 
       if (url.pathname.startsWith('/v1/admin/')) {
@@ -228,6 +243,36 @@ export default {
           current_period_end: access.currentPeriodEnd,
           contributor_pro: access.contributorPro,
           price: publicPricing(),
+          checkout: stripeCheckoutAvailability(env),
+        }));
+      }
+
+      const billingAction = organizationBillingActionPath(url.pathname);
+      if (billingAction && request.method === 'POST') {
+        const provider = await getBillingProviderState(
+          env.DB, user.id, billingAction.organizationId,
+        );
+        if (billingAction.action === 'portal') {
+          return respond(json({
+            url: await createStripePortal(env, provider.externalCustomerId),
+          }));
+        }
+        const body = await readJson<{ plan?: unknown; interval?: unknown }>(request);
+        if ((body.plan !== 'pro' && body.plan !== 'team')
+            || (body.interval !== 'monthly' && body.interval !== 'annual')) {
+          throw new AccessError(400, 'invalid_billing_checkout');
+        }
+        return respond(json({
+          url: await createStripeCheckout(env, {
+            organizationId: provider.access.id,
+            organizationKind: provider.access.kind,
+            email: user.email,
+            plan: body.plan,
+            interval: body.interval,
+            externalCustomerId: provider.externalCustomerId,
+            externalSubscriptionId: provider.externalSubscriptionId,
+            billingStatus: provider.access.billingStatus,
+          }),
         }));
       }
 
@@ -455,6 +500,21 @@ function organizationBillingPath(pathname: string): string | null {
   const match = pathname.match(/^\/v1\/organizations\/([^/]+)\/billing$/);
   if (!match) return null;
   try { return decodeURIComponent(match[1]); } catch { return null; }
+}
+
+function organizationBillingActionPath(
+  pathname: string,
+): { organizationId: string; action: 'checkout' | 'portal' } | null {
+  const match = pathname.match(/^\/v1\/organizations\/([^/]+)\/billing\/(checkout|portal)$/);
+  if (!match) return null;
+  try {
+    return {
+      organizationId: decodeURIComponent(match[1]),
+      action: match[2] as 'checkout' | 'portal',
+    };
+  } catch {
+    return null;
+  }
 }
 
 function nodeCapabilityPath(pathname: string): string | null {

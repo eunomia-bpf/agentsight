@@ -632,6 +632,31 @@ export async function setBilling(
   if (!result.meta.changes) throw new AccessError(404, 'organization_not_found');
 }
 
+export async function getBillingProviderState(
+  db: D1Database,
+  userId: string,
+  organizationId: string,
+): Promise<{
+  access: OrganizationAccess;
+  externalCustomerId: string | null;
+  externalSubscriptionId: string | null;
+}> {
+  const access = await requireOrganizationAction(db, userId, organizationId, 'billing.manage');
+  const row = await db.prepare(
+    `SELECT external_customer_id, external_subscription_id
+     FROM organizations WHERE id = ?1`,
+  ).bind(organizationId).first<{
+    external_customer_id: string | null;
+    external_subscription_id: string | null;
+  }>();
+  if (!row) throw new AccessError(404, 'organization_not_found');
+  return {
+    access,
+    externalCustomerId: row.external_customer_id,
+    externalSubscriptionId: row.external_subscription_id,
+  };
+}
+
 export async function grantLifetimePro(
   db: D1Database,
   email: string,
