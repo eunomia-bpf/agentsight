@@ -5,7 +5,7 @@
 //! container without copying provider credentials to the host.
 
 use crate::server::session_runtime::{
-    ProviderLine, SubmitError, read_provider_line, submit_message,
+    ProviderLine, SubmitError, read_provider_line, submit_message_in_external_sandbox,
 };
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use agent_session::AgentSession;
@@ -161,16 +161,20 @@ async fn dispatch_bridge_request(
                 ))
             } else {
                 match agent_native_sessions::find_session(cache, &session_id) {
-                    Some(session) => match submit_message(&session, message.trim()).await {
-                        Ok(result) => Ok(BridgeResult::Submitted {
-                            agent_type: session.agent_type,
-                            transport: result.transport.into(),
-                        }),
-                        Err(SubmitError::Conflict(message)) => {
-                            Err(bridge_error("conflict", message))
+                    Some(session) => {
+                        match submit_message_in_external_sandbox(&session, message.trim()).await {
+                            Ok(result) => Ok(BridgeResult::Submitted {
+                                agent_type: session.agent_type,
+                                transport: result.transport.into(),
+                            }),
+                            Err(SubmitError::Conflict(message)) => {
+                                Err(bridge_error("conflict", message))
+                            }
+                            Err(SubmitError::Failed(message)) => {
+                                Err(bridge_error("failed", message))
+                            }
                         }
-                        Err(SubmitError::Failed(message)) => Err(bridge_error("failed", message)),
-                    },
+                    }
                     None => Err(bridge_error("not_found", "session not found")),
                 }
             }

@@ -76,6 +76,7 @@ enum Runtime {
         state: Arc<StdMutex<CodexState>>,
         responses: PendingCodexResponses,
         next_id: u64,
+        externally_sandboxed: bool,
     },
 }
 
@@ -147,6 +148,7 @@ impl Runtime {
                 state,
                 responses,
                 next_id,
+                externally_sandboxed,
             } => {
                 let (thread_id, active_turn, starting) = state
                     .lock()
@@ -170,11 +172,7 @@ impl Runtime {
                         .lock()
                         .map_err(|_| failed("Codex state lock poisoned"))?
                         .starting = true;
-                    json!({
-                        "method":"turn/start","id":*next_id,
-                        "params":{"threadId":thread_id,
-                            "input":[{"type":"text","text":message}]}
-                    })
+                    codex_turn_start_request(&thread_id, message, *next_id, *externally_sandboxed)
                 };
                 let request_id = *next_id;
                 let (response_tx, response_rx) = oneshot::channel();
@@ -227,6 +225,21 @@ pub async fn submit_message(
     session: &AgentSession,
     message: &str,
 ) -> Result<SubmitResult, SubmitError> {
+    submit_message_with_sandbox(session, message, false).await
+}
+
+pub(super) async fn submit_message_in_external_sandbox(
+    session: &AgentSession,
+    message: &str,
+) -> Result<SubmitResult, SubmitError> {
+    submit_message_with_sandbox(session, message, true).await
+}
+
+async fn submit_message_with_sandbox(
+    session: &AgentSession,
+    message: &str,
+    externally_sandboxed: bool,
+) -> Result<SubmitResult, SubmitError> {
     let slot = {
         let mut map = runtimes().lock().await;
         Arc::clone(
@@ -270,7 +283,7 @@ pub async fn submit_message(
                 Ok((Some(runtime), transport))
             }
             agent_session::AGENT_CODEX => {
-                let mut runtime = start_codex(session).await?;
+                let mut runtime = start_codex(session, externally_sandboxed).await?;
                 let transport = runtime.send(message).await?;
                 Ok((Some(runtime), transport))
             }
@@ -439,7 +452,10 @@ fn claude_error_message(value: &Value) -> String {
         .unwrap_or_else(|| "Claude rejected the request".into())
 }
 
-async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
+async fn start_codex(
+    session: &AgentSession,
+    externally_sandboxed: bool,
+) -> Result<Runtime, SubmitError> {
     let mut command = codex_command(session);
     command.args(["app-server", "--listen", "stdio://"]);
     configure(&mut command, session, true)?;
@@ -501,7 +517,28 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
         state,
         responses,
         next_id: 2,
+        externally_sandboxed,
     })
+}
+
+fn codex_turn_start_request(
+    thread_id: &str,
+    message: &str,
+    request_id: u64,
+    externally_sandboxed: bool,
+) -> Value {
+    let mut params = json!({
+        "threadId":thread_id,
+        "input":[{"type":"text","text":message}]
+    });
+    if externally_sandboxed {
+        params["approvalPolicy"] = json!("never");
+        params["sandboxPolicy"] = json!({
+            "type":"externalSandbox",
+            "networkAccess":"enabled"
+        });
+    }
+    json!({"method":"turn/start","id":request_id,"params":params})
 }
 
 fn codex_resume_request(thread_id: &str) -> Value {
@@ -1823,6 +1860,20 @@ mod tests {
                 "threadId":"thread-1","excludeTurns":true
             }})
         );
+    }
+
+    #[test]
+    fn codex_container_turn_uses_the_external_sandbox_boundary() {
+        let request = codex_turn_start_request("thread-1", "continue", 3, true);
+        assert_eq!(request["params"]["approvalPolicy"], "never");
+        assert_eq!(
+            request["params"]["sandboxPolicy"],
+            json!({"type":"externalSandbox","networkAccess":"enabled"})
+        );
+
+        let local = codex_turn_start_request("thread-1", "continue", 3, false);
+        assert!(local["params"].get("approvalPolicy").is_none());
+        assert!(local["params"].get("sandboxPolicy").is_none());
     }
 
     #[tokio::test]

@@ -141,6 +141,14 @@ provider runtime supports messaging. Provider credentials stay in the
 container. Repeat `--docker-container` to include more containers; duplicate
 session IDs return a conflict instead of selecting an arbitrary target.
 
+For Codex sessions resumed through this bridge, the named container is the
+external sandbox boundary: AgentSight disables Codex's nested command sandbox
+and interactive approvals for that turn. This avoids user-namespace failures in
+locked-down dev containers while keeping local, non-container session defaults
+unchanged. Configure only containers whose filesystem and network access are an
+acceptable boundary. Credentials may be mounted at runtime; AgentSight neither
+copies them into the host Node nor stores them in the image.
+
 Standard Docker socket or `docker` group access is daemon-wide and is normally
 equivalent to host root; the named-container option limits AgentSight behavior,
 not Docker's authorization boundary. For a narrower boundary, use a rootless

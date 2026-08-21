@@ -167,6 +167,11 @@ Code、Codex 和 Gemini CLI 支持恢复并发送消息。其他命令仍可由�
 观测，但要等对应 provider runtime 支持后才能恢复。认证始终留在容器内。可重复
 传入 `--docker-container`；如果 session ID 冲突，AgentSight 会拒绝猜测目标。
 
+通过该 bridge 恢复 Codex 会话时，指定容器就是外部 sandbox 边界：AgentSight 会对该 turn
+关闭 Codex 的嵌套命令 sandbox 和交互式批准。这样受限 dev container 不需要创建用户命名空间，
+而本机非容器会话仍保留默认策略。只应配置其文件系统和网络访问可以作为可信边界的容器。
+凭据可以在运行时挂载；AgentSight 不会把凭据复制进宿主 Node，也不会写入镜像。
+
 标准 Docker socket 或 `docker` 用户组权限是 daemon 级的，通常等价于宿主 root；
 指定容器名只限制 AgentSight 的行为，不是 Docker 的授权边界。如果需要更窄的边界，请使用
 每用户 rootless Docker daemon，或只放行必需 inspect/exec 操作的 allowlist broker/socket proxy。
