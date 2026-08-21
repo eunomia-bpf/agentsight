@@ -604,7 +604,7 @@ async fn serve_session_api(
     match resolve_session(sessions, container_bridges.as_ref(), session_id).await {
         Ok(Some(resolved)) => Ok(json_response(StatusCode::OK, resolved.session())),
         Ok(None) => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-        Err(response) => Ok(response),
+        Err(response) => Ok(*response),
     }
 }
 
@@ -646,7 +646,7 @@ async fn serve_session_message_api(
     let resolved = match resolve_session(sessions, container_bridges.as_ref(), session_id).await {
         Ok(Some(resolved)) => resolved,
         Ok(None) => return Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-        Err(response) => return Ok(response),
+        Err(response) => return Ok(*response),
     };
     match resolved {
         ResolvedSession::Local(session) => {
@@ -700,7 +700,7 @@ async fn resolve_session(
     sessions: Arc<Mutex<SessionCache>>,
     container_bridges: Option<&ContainerBridges>,
     session_id: &str,
-) -> Result<Option<ResolvedSession>, Response<Full<Bytes>>> {
+) -> Result<Option<ResolvedSession>, Box<Response<Full<Bytes>>>> {
     let local_id = session_id.to_string();
     let local = tokio::task::spawn_blocking(move || {
         sessions
@@ -710,31 +710,31 @@ async fn resolve_session(
     })
     .await
     .map_err(|error| {
-        json_error(
+        Box::new(json_error(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("session query task failed: {error}"),
-        )
+        ))
     })?
     .map_err(|error| {
-        json_error(
+        Box::new(json_error(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("failed to load session: {error}"),
-        )
+        ))
     })?;
     let remote = match container_bridges {
         Some(bridges) => bridges
             .get_session(session_id)
             .await
-            .map_err(container_bridge_error_response)?,
+            .map_err(|error| Box::new(container_bridge_error_response(error)))?,
         None => None,
     };
     match (local, remote) {
-        (Some(_), Some((container, _))) => Err(json_error(
+        (Some(_), Some((container, _))) => Err(Box::new(json_error(
             StatusCode::CONFLICT,
             &format!(
                 "session {session_id} exists both locally and in Docker container {container}"
             ),
-        )),
+        ))),
         (Some(session), None) => Ok(Some(ResolvedSession::Local(session))),
         (None, Some((container, session))) => {
             Ok(Some(ResolvedSession::Container { container, session }))
