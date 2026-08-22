@@ -26,6 +26,13 @@ jobs:
           ! cargo tree --manifest-path agentsight-capture/Cargo.toml | grep -q 'agent-session'
           test ! -e ext/session/src/process_match.rs
 
+      - name: Validate release metadata updater
+        run: |
+          RELEASE_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' collector/Cargo.toml | head -1)"
+          SESSION_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' ext/session/Cargo.toml | head -1)"
+          python3 script/release/set_versions.py "$RELEASE_VERSION" "$SESSION_VERSION"
+          git diff --exit-code
+
       - name: Build session extension as a Component
         run: cargo build --manifest-path ext/session/Cargo.toml --target wasm32-wasip2
 
