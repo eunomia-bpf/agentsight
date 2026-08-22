@@ -21,6 +21,11 @@ jobs:
           toolchain: stable
           target: wasm32-wasip2
 
+      - name: Enforce extension dependency direction
+        run: |
+          ! cargo tree --manifest-path agentsight-capture/Cargo.toml | grep -q 'agent-session'
+          test ! -e ext/session/src/process_match.rs
+
       - name: Build session extension as a Component
         run: cargo build --manifest-path ext/session/Cargo.toml --target wasm32-wasip2
 
