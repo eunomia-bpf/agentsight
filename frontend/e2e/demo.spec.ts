@@ -24,7 +24,7 @@ test('recorded demo exposes overview, conversation, process, and analysis data',
 
   await page.getByRole('tab', { name: 'Process tree & AI prompts' }).click();
   await expect(page.getByRole('heading', { name: 'Process Tree & AI Prompts' })).toBeVisible();
-  await expect(page.getByText('playwright test e2e/demo.spec.ts')).toBeVisible();
+  await expect(page.getByText('codex', { exact: true }).first()).toBeVisible();
 
   await page.getByRole('tab', { name: 'Analysis' }).click();
   await expect(page.getByRole('heading', { name: 'Token usage' })).toBeVisible();
