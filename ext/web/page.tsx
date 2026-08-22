@@ -14,14 +14,22 @@ import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
 import type { FleetNodeSample } from '@/lib/fleetData';
 import {
   CloudSessionExpiredError,
+  type BillingCheckoutAvailability,
+  type BillingInterval,
+  type CheckoutPlan,
   type CloudIdentity,
   type CloudNode,
   type CloudOrganization,
+  type LoginProvider,
   acceptOrganizationInvite,
+  createBillingCheckout,
+  createBillingPortal,
   createOrganization,
   exchangeCloudCode,
   fetchCloudIdentity,
+  fetchLoginProviders,
   fetchCloudNodes,
+  fetchBillingCheckoutAvailability,
   fetchControllerDirectConfig,
   fetchOrganizations,
   forgetCloudNode,
@@ -30,6 +38,7 @@ import {
   registerControllerNode,
   relayOnline,
   signOutCloud,
+  startAccountLink,
 } from '@/lib/controllerClient';
 import {
   type LocalConnection,
@@ -100,6 +109,11 @@ export default function Home() {
   const [fleetSamples, setFleetSamples] = useState<FleetNodeSample[]>([]);
   const [fleetLoading, setFleetLoading] = useState(false);
   const [fleetError, setFleetError] = useState('');
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState('');
+  const [billingCheckout, setBillingCheckout] = useState<BillingCheckoutAvailability | null>(null);
+  const [billingResult, setBillingResult] = useState<'success' | 'canceled' | null>(null);
+  const [configuredLoginProviders, setConfiguredLoginProviders] = useState<LoginProvider[]>([]);
   const activationGeneration = useRef(0);
   const fleetGeneration = useRef(0);
   const directoryGeneration = useRef(0);
@@ -123,6 +137,10 @@ export default function Home() {
     setFleetSamples([]);
     setFleetLoading(false);
     setFleetError('');
+    setBillingBusy(false);
+    setBillingError('');
+    setBillingCheckout(null);
+    setConfiguredLoginProviders([]);
   }, []);
 
   const handleCloudError = useCallback((cause: unknown, fallback: string) => {
@@ -212,7 +230,10 @@ export default function Home() {
   }, [handleCloudError]);
 
   const loadCloudDirectory = useCallback(async (token: string): Promise<CloudOrganization | null> => {
-    const me = await fetchCloudIdentity(token);
+    const [me, configuredProviders] = await Promise.all([
+      fetchCloudIdentity(token),
+      fetchLoginProviders(),
+    ]);
     let nextOrganizations = await fetchOrganizations(token);
     let selected = preferredOrganization(nextOrganizations);
     const pendingInvite = window.localStorage.getItem(PENDING_INVITE_KEY);
@@ -223,6 +244,7 @@ export default function Home() {
       selected = preferredOrganization(nextOrganizations, joined);
     }
     setIdentity(me);
+    setConfiguredLoginProviders(configuredProviders);
     setOrganizations(nextOrganizations);
     setActiveOrganizationId(selected?.id || null);
     if (selected) window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, selected.id);
@@ -262,6 +284,7 @@ export default function Home() {
     const token = loadCloudSession();
     setFleetLoading(true);
     setFleetError('');
+    setBillingError('');
     setFleetSamples((current) => cloudNodes.map((node) => (
       current.find((sample) => sample.node.id === node.id) || {
         node,
@@ -527,6 +550,19 @@ export default function Home() {
     void signOutCloud(token);
   }, [activeClient, clearCloudState, mode]);
 
+  const linkLoginProvider = useCallback(async (provider: LoginProvider) => {
+    const token = loadCloudSession();
+    if (!token) return;
+    setNodesLoading(true);
+    setNodeError('');
+    try {
+      await startAccountLink(token, provider);
+    } catch (cause) {
+      handleCloudError(cause, `Could not link ${provider}.`);
+      setNodesLoading(false);
+    }
+  }, [handleCloudError]);
+
   const forgetNode = useCallback(async (nodeId: string) => {
     const token = loadCloudSession();
     if (!token) return;
@@ -594,6 +630,48 @@ export default function Home() {
     }
   }, [handleCloudError, switchOrganization]);
 
+  const startBillingCheckout = useCallback(async (
+    plan: CheckoutPlan,
+    interval: BillingInterval,
+  ) => {
+    const token = loadCloudSession();
+    if (!token || !activeOrganization) return;
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      window.location.assign(await createBillingCheckout(
+        token, activeOrganization.id, plan, interval,
+      ));
+    } catch (cause) {
+      if (cause instanceof CloudSessionExpiredError) {
+        handleCloudError(cause, 'Your AgentSight sign-in has expired.');
+      }
+      const code = cause instanceof Error ? cause.message : '';
+      setBillingError(code === 'billing_checkout_in_progress'
+        ? t('billing.checkoutInProgress')
+        : code === 'billing_subscription_already_exists'
+          ? t('billing.subscriptionExists')
+          : code || 'Could not start billing checkout.');
+      setBillingBusy(false);
+    }
+  }, [activeOrganization, handleCloudError, t]);
+
+  const openBillingPortal = useCallback(async () => {
+    const token = loadCloudSession();
+    if (!token || !activeOrganization) return;
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      window.location.assign(await createBillingPortal(token, activeOrganization.id));
+    } catch (cause) {
+      if (cause instanceof CloudSessionExpiredError) {
+        handleCloudError(cause, 'Your AgentSight sign-in has expired.');
+      }
+      setBillingError(cause instanceof Error ? cause.message : 'Could not open billing portal.');
+      setBillingBusy(false);
+    }
+  }, [activeOrganization, handleCloudError]);
+
   useEffect(() => {
     let cancelled = false;
     const initialize = async () => {
@@ -641,7 +719,11 @@ export default function Home() {
           const reason = launch.get('error') || 'sign_in_failed';
           setError(reason.endsWith('_login_not_configured')
             ? 'This sign-in provider is not configured yet.'
-            : 'AgentSight sign-in failed. Please try again.');
+            : reason === 'oauth_account_link_required'
+              ? 'An AgentSight account already uses this email. Sign in with its existing method, then link this provider from Nodes.'
+              : reason === 'oauth_account_already_linked'
+                ? 'This sign-in identity is already linked to another AgentSight account.'
+                : 'AgentSight sign-in failed. Please try again.');
         }
 
         let cloudToken = loadCloudSession();
@@ -702,6 +784,36 @@ export default function Home() {
     void initialize();
     return () => { cancelled = true; };
   }, [activateClient, handleCloudError, loadCloudDirectory, refreshCloudNodes]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get('billing');
+    if (result === 'success' || result === 'canceled') {
+      setBillingResult(result);
+      url.searchParams.delete('billing');
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    setBillingCheckout(null);
+    const token = loadCloudSession();
+    if (!identity || !token || !activeOrganizationId) return;
+    let cancelled = false;
+    void fetchBillingCheckoutAvailability(token, activeOrganizationId)
+      .then((availability) => {
+        if (!cancelled) setBillingCheckout(availability);
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+        if (cause instanceof CloudSessionExpiredError) {
+          handleCloudError(cause, 'Your AgentSight sign-in has expired.');
+          return;
+        }
+        setBillingError(cause instanceof Error ? cause.message : 'Could not load billing availability.');
+      });
+    return () => { cancelled = true; };
+  }, [activeOrganizationId, handleCloudError, identity]);
 
   useEffect(() => {
     if (mode !== 'live' || !activeClient) return;
@@ -805,7 +917,9 @@ export default function Home() {
       onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
       onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
       onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
-      onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
+      onDemo={() => { void enterDemo(); }} onSignOut={signOut}
+      configuredLoginProviders={configuredLoginProviders}
+      linkedLoginProviders={identity.providers || []} onLinkProvider={linkLoginProvider} />
   ) : null;
 
   return (
@@ -825,7 +939,9 @@ export default function Home() {
           onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
           onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
-          onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
+          onDemo={() => { void enterDemo(); }} onSignOut={signOut}
+          configuredLoginProviders={configuredLoginProviders}
+          linkedLoginProviders={identity.providers || []} onLinkProvider={linkLoginProvider} />
       )}
 
       {identity && organizationDialogOpen && (
@@ -920,9 +1036,14 @@ export default function Home() {
           </div>
         ) : identity && mode === 'directory' ? (
           <FleetOverview samples={fleetSamples} loading={fleetLoading} error={fleetError || nodeError}
-            organization={activeOrganization}
-            onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
-            onOpenNode={(nodeId) => { void openNode(nodeId); }} />
+          organization={activeOrganization}
+          billingCheckout={billingCheckout}
+          billingResult={billingResult}
+          billingBusy={billingBusy} billingError={billingError}
+          onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
+          onOpenNode={(nodeId) => { void openNode(nodeId); }}
+          onCheckout={(plan, interval) => { void startBillingCheckout(plan, interval); }}
+          onManageBilling={() => { void openBillingPortal(); }} />
         ) : workspaceVisible ? (
           <div className="space-y-4">
             <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">

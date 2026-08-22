@@ -154,6 +154,12 @@ export interface MockState {
   organizations: unknown[];
   registrations: unknown[];
   directRequests: string[];
+  billingCheckouts: unknown[];
+  billingPortalRequests: number;
+  accountLinks: Array<{ provider: string; code_challenge?: string }>;
+  billingStatus: 'inactive' | 'active';
+  contributorPro: boolean;
+  checkoutAvailable: boolean;
 }
 
 function json(route: Route, body: unknown, status = 200) {
@@ -174,11 +180,19 @@ export async function mockController(page: Page, options: {
   blockMessages?: boolean;
   nodeListDelayMs?: number;
   responseDelayMs?: number;
+  billingStatus?: 'inactive' | 'active';
+  contributorPro?: boolean;
+  checkoutAvailable?: boolean;
+  checkoutUrl?: string;
 } = {}) {
   const state: MockState = {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
     messageAcceptedAt: null,
     blockMessages: options.blockMessages ?? false, organizations: [], registrations: [], directRequests: [],
+    billingCheckouts: [], billingPortalRequests: 0, accountLinks: [],
+    billingStatus: options.billingStatus ?? 'active',
+    contributorPro: options.contributorPro ?? false,
+    checkoutAvailable: options.checkoutAvailable ?? true,
   };
   await mockEmbeddedProbe(page);
   if (options.signedIn) {
@@ -202,6 +216,15 @@ export async function mockController(page: Page, options: {
     if (path === '/api/v1/overview') return json(route, overview);
     return json(route, { error: `Unhandled Direct route: ${request.method()} ${path}` }, 500);
   });
+  await page.route('https://checkout.stripe.com/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<title>Stripe Checkout test</title>',
+  }));
+  await page.route('https://billing.stripe.com/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<title>Stripe Portal test</title>',
+  }));
+  await page.route('https://accounts.google.com/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<title>Google account link test</title>',
+  }));
   await page.route('https://control.agentsight.us/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -221,7 +244,13 @@ export async function mockController(page: Page, options: {
     if (request.headers().authorization !== 'Bearer browser-test-session') {
       return json(route, { error: 'missing_browser_test_authorization' }, 401);
     }
-    if (path === '/v1/me') return json(route, { id: 'user-1', email: 'owner@example.com', name: 'Test Owner', provider: 'github' });
+    if (path === '/v1/me') return json(route, {
+      id: 'user-1', email: 'owner@example.com', name: 'Test Owner', providers: ['github'],
+    });
+    if (path === '/v1/auth/link/google' && request.method() === 'POST') {
+      state.accountLinks.push({ provider: 'google', ...request.postDataJSON() });
+      return json(route, { url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=browser-test' });
+    }
     if (path === '/v1/auth/logout') {
       state.signOuts += 1;
       return json(route, { ok: true });
@@ -236,9 +265,28 @@ export async function mockController(page: Page, options: {
     }
     if (path === '/v1/organizations') return json(route, { organizations: [{
       id: 'org-personal', name: 'Test Owner', kind: 'personal', role: 'owner', plan: 'pro',
-      effectivePlan: 'pro', billingInterval: 'monthly', billingStatus: 'active',
-      currentPeriodEnd: 4_102_444_800, contributorPro: false, createdAt: 1_779_000_000,
+      effectivePlan: 'pro', billingInterval: 'monthly', billingStatus: state.billingStatus,
+      currentPeriodEnd: 4_102_444_800, contributorPro: state.contributorPro, createdAt: 1_779_000_000,
     }] });
+    if (path === '/v1/organizations/org-personal/billing' && request.method() === 'GET') {
+      return json(route, { checkout: {
+        provider: 'stripe', enabled: state.checkoutAvailable,
+        plans: {
+          pro: { monthly: state.checkoutAvailable, annual: state.checkoutAvailable },
+          team: { monthly: false, annual: false },
+        },
+      } });
+    }
+    if (path === '/v1/organizations/org-personal/billing/checkout' && request.method() === 'POST') {
+      state.billingCheckouts.push(request.postDataJSON());
+      return json(route, {
+        url: options.checkoutUrl || 'https://checkout.stripe.com/c/pay/browser-test',
+      });
+    }
+    if (path === '/v1/organizations/org-personal/billing/portal' && request.method() === 'POST') {
+      state.billingPortalRequests += 1;
+      return json(route, { url: 'https://billing.stripe.com/p/session/browser-test' });
+    }
     if (path === '/v1/nodes' && request.method() === 'GET') {
       state.nodeListRequests += 1;
       if (options.nodeListDelayMs) {

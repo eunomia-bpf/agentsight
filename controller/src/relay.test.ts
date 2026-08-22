@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   MAX_PENDING_RELAY_REQUESTS,
+  MAX_PENDING_BILLING_RECONCILIATIONS,
   NodeRelay,
   RELAY_TIMEOUT_MS,
   browserRelayRoute,
@@ -76,6 +77,437 @@ test('relay pending cap holds across concurrently parsed request bodies', async 
     } else {
       Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
     }
+  }
+});
+
+test('billing webhook is durably queued before acknowledgement and reconciled by alarm', async () => {
+  const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
+    configurable: true,
+    value: class WebSocketRequestResponsePairStub {},
+  });
+  let fetchCalls = 0;
+  let fenceChecks = 0;
+  let webhookGeneration = 'checkout_generation_old';
+  globalThis.fetch = async () => {
+    fetchCalls += 1;
+    return Response.json({
+      id: 'sub_test', customer: 'cus_test', status: 'canceled',
+      metadata: {
+        organization_id: 'org_personal_user1', checkout_generation: webhookGeneration,
+      },
+      items: { data: [{ price: { id: 'price_retired' } }] },
+    });
+  };
+  const db = {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => ({
+          kind: 'personal', billing_status: 'active', billing_interval: 'monthly',
+          external_subscription_id: 'sub_test',
+        }),
+        run: async () => ({ success: true, meta: { changes: 1 } }),
+      }),
+    }),
+  } as unknown as D1Database;
+  const stored = new Map<string, unknown>();
+  let alarm: number | null = null;
+  const transaction = {
+    get: async (key: string) => stored.get(key),
+    put: async (key: string, value: unknown) => { stored.set(key, value); },
+    delete: async (key: string) => stored.delete(key),
+    list: async ({ prefix, limit }: { prefix: string; limit: number }) => new Map(
+      Array.from(stored.entries()).filter(([key]) => key.startsWith(prefix)).slice(0, limit),
+    ),
+    getAlarm: async () => alarm,
+    setAlarm: async (value: number) => { alarm = value; },
+  };
+  const ctx = {
+    setWebSocketAutoResponse() {},
+    getWebSockets: () => [],
+    storage: {
+      transaction: async (callback: (value: typeof transaction) => Promise<void>) => callback(transaction),
+      get: async () => {
+        fenceChecks += 1;
+        return undefined;
+      },
+      put: async (key: string, value: unknown) => { stored.set(key, value); },
+      delete: async (key: string) => stored.delete(key),
+      list: async ({ prefix, limit }: { prefix: string; limit: number }) => new Map(
+        Array.from(stored.entries()).filter(([key]) => key.startsWith(prefix)).slice(0, limit),
+      ),
+      setAlarm: async (value: number) => { alarm = value; },
+    },
+  } as unknown as DurableObjectState;
+  const relay = new NodeRelay(ctx, {
+    DB: db,
+    NODE_RELAY: {} as DurableObjectNamespace,
+    APP_ORIGIN: 'https://app.agentsight.us',
+    STRIPE_SECRET_KEY: 'sk_test_example',
+    STRIPE_WEBHOOK_SECRET: 'whsec_example',
+    STRIPE_PRO_MONTHLY_PRICE_ID: 'price_pro_monthly',
+  });
+  const enqueue = () => relay.fetch(new Request('https://relay.internal/billing/enqueue', {
+    method: 'POST',
+    body: JSON.stringify({
+      eventId: 'evt_test', organizationId: 'org_personal_user1', subscriptionId: 'sub_test',
+    }),
+  }));
+
+  try {
+    const responses = await Promise.all([enqueue(), enqueue()]);
+    assert.deepEqual(responses.map((response) => response.status), [202, 202]);
+    assert.equal(fetchCalls, 0);
+    assert.equal(stored.size, 1);
+    assert.ok(alarm !== null);
+    stored.set('billing:checkout:v2', {
+      version: 2,
+      generation: 'checkout_generation_new',
+      input: {
+        organizationId: 'org_personal_user1', organizationKind: 'personal',
+        email: 'owner@example.com', plan: 'pro', interval: 'monthly',
+        externalCustomerId: null, externalSubscriptionId: null,
+      },
+      expiresAt: Date.now() + 60_000,
+      priceId: 'price_pro_monthly',
+      appOrigin: 'https://app.agentsight.us',
+    });
+    await relay.alarm();
+    assert.equal(fetchCalls, 1);
+    assert.equal(fenceChecks, 1);
+    assert.equal(stored.size, 1);
+    assert.ok(stored.has('billing:checkout:v2'));
+
+    webhookGeneration = 'checkout_generation_new';
+    const matching = await relay.fetch(new Request('https://relay.internal/billing/enqueue', {
+      method: 'POST',
+      body: JSON.stringify({
+        eventId: 'evt_matching', organizationId: 'org_personal_user1', subscriptionId: 'sub_test',
+      }),
+    }));
+    assert.equal(matching.status, 202);
+    await relay.alarm();
+    assert.equal(fetchCalls, 2);
+    assert.equal(fenceChecks, 2);
+    assert.equal(stored.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
+    else Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
+  }
+});
+
+test('billing webhook queue coalesces subscriptions and fails closed at its hard cap', async () => {
+  const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
+  Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
+    configurable: true,
+    value: class WebSocketRequestResponsePairStub {},
+  });
+  const stored = new Map<string, unknown>();
+  let alarm: number | null = null;
+  const transaction = {
+    get: async (key: string) => stored.get(key),
+    put: async (key: string, value: unknown) => { stored.set(key, value); },
+    delete: async (key: string) => stored.delete(key),
+    list: async ({ prefix, limit }: { prefix: string; limit: number }) => new Map(
+      Array.from(stored.entries()).filter(([key]) => key.startsWith(prefix)).slice(0, limit),
+    ),
+    getAlarm: async () => alarm,
+    setAlarm: async (value: number) => { alarm = value; },
+  };
+  const ctx = {
+    setWebSocketAutoResponse() {},
+    getWebSockets: () => [],
+    storage: {
+      transaction: async (callback: (value: typeof transaction) => Promise<unknown>) => callback(transaction),
+    },
+  } as unknown as DurableObjectState;
+  const relay = new NodeRelay(ctx, {} as RelayEnv);
+  const enqueue = (index: number, event = index) => relay.fetch(new Request(
+    'https://relay.internal/billing/enqueue', {
+      method: 'POST', body: JSON.stringify({
+        eventId: `evt_${event}`, organizationId: 'org_personal_user1',
+        subscriptionId: `sub_${index}`,
+      }),
+    },
+  ));
+
+  try {
+    for (let index = 0; index < MAX_PENDING_BILLING_RECONCILIATIONS; index += 1) {
+      assert.equal((await enqueue(index)).status, 202);
+    }
+    assert.equal(stored.size, MAX_PENDING_BILLING_RECONCILIATIONS);
+    assert.equal((await enqueue(MAX_PENDING_BILLING_RECONCILIATIONS)).status, 503);
+    assert.equal((await enqueue(0, 999)).status, 202);
+    assert.equal(stored.size, MAX_PENDING_BILLING_RECONCILIATIONS);
+    assert.ok(alarm !== null);
+  } finally {
+    if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
+    else Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
+  }
+});
+
+test('billing alarm bounds each run and schedules the remaining due work', async () => {
+  const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
+    configurable: true,
+    value: class WebSocketRequestResponsePairStub {},
+  });
+  let fetchCalls = 0;
+  globalThis.fetch = async (input) => {
+    fetchCalls += 1;
+    const subscriptionId = new URL(String(input)).pathname.split('/').at(-1);
+    return Response.json({
+      id: subscriptionId, customer: 'cus_test', status: 'active',
+      metadata: { organization_id: 'org_personal_user1' },
+      items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+    });
+  };
+  const stored = new Map<string, unknown>();
+  const due = Date.now() - 1_000;
+  for (let index = 0; index < 21; index += 1) {
+    stored.set(`billing:subscription:sub_${index}`, {
+      eventId: `evt_${index}`,
+      organizationId: 'org_personal_user1',
+      subscriptionId: `sub_${index}`,
+      attempts: 0,
+      nextAttemptAt: due,
+    });
+  }
+  let alarm: number | null = null;
+  const transaction = {
+    get: async (key: string) => stored.get(key),
+    put: async (key: string, value: unknown) => { stored.set(key, value); },
+    delete: async (key: string) => stored.delete(key),
+  };
+  const list = async ({ prefix, limit }: { prefix: string; limit: number }) => new Map(
+    Array.from(stored.entries()).filter(([key]) => key.startsWith(prefix)).slice(0, limit),
+  );
+  const ctx = {
+    setWebSocketAutoResponse() {},
+    getWebSockets: () => [],
+    storage: {
+      transaction: async (callback: (value: typeof transaction) => Promise<unknown>) => callback(transaction),
+      get: async () => undefined,
+      list,
+      setAlarm: async (value: number) => { alarm = value; },
+    },
+  } as unknown as DurableObjectState;
+  const db = {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => ({
+          kind: 'personal', billing_status: 'inactive', billing_interval: null,
+          external_subscription_id: null,
+        }),
+        run: async () => ({ success: true, meta: { changes: 1 } }),
+      }),
+    }),
+  } as unknown as D1Database;
+  const relay = new NodeRelay(ctx, {
+    DB: db,
+    NODE_RELAY: {} as DurableObjectNamespace,
+    APP_ORIGIN: 'https://app.agentsight.us',
+    STRIPE_SECRET_KEY: 'sk_test_example',
+    STRIPE_WEBHOOK_SECRET: 'whsec_example',
+    STRIPE_PRO_MONTHLY_PRICE_ID: 'price_pro_monthly',
+  });
+
+  try {
+    await relay.alarm();
+    assert.equal(fetchCalls, 20);
+    assert.equal(stored.size, 1);
+    assert.ok(alarm !== null && alarm <= Date.now());
+
+    await relay.alarm();
+    assert.equal(fetchCalls, 21);
+    assert.equal(stored.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
+    else Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
+  }
+});
+
+test('billing Checkout reserves one durable generation before calling Stripe', async () => {
+  const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
+    configurable: true,
+    value: class WebSocketRequestResponsePairStub {},
+  });
+  const stored = new Map<string, unknown>();
+  const transaction = {
+    get: async (key: string) => stored.get(key),
+    put: async (key: string, value: unknown) => { stored.set(key, value); },
+    delete: async (key: string) => stored.delete(key),
+  };
+  let transactionQueue: Promise<unknown> = Promise.resolve();
+  let checkoutPosts = 0;
+  let checkoutSessions = 0;
+  const checkoutPrices: string[] = [];
+  const sessionsByIdempotencyKey = new Map<string, {
+    id: string; url: string; expires_at: number;
+  }>();
+  let holdNextCheckout = false;
+  let checkoutStarted!: () => void;
+  const checkoutStart = new Promise<void>((resolve) => { checkoutStarted = resolve; });
+  let releaseCheckout!: () => void;
+  const checkoutRelease = new Promise<void>((resolve) => { releaseCheckout = resolve; });
+  globalThis.fetch = async (input, init) => {
+    if (String(input).includes('/subscriptions/search?')) {
+      return Response.json({ data: [], has_more: false });
+    }
+    if (String(input).includes('/checkout/sessions/cs_test_durable')) {
+      const sessionId = new URL(String(input)).pathname.split('/').at(-1);
+      return Response.json({
+        id: sessionId,
+        client_reference_id: 'org_personal_user1',
+        status: 'expired',
+      });
+    }
+    checkoutPosts += 1;
+    const body = init?.body as URLSearchParams;
+    checkoutPrices.push(body.get('line_items[0][price]') || '');
+    const idempotencyKey = new Headers(init?.headers).get('Idempotency-Key') || '';
+    let session = sessionsByIdempotencyKey.get(idempotencyKey);
+    if (!session) {
+      checkoutSessions += 1;
+      session = {
+        id: `cs_test_durable${checkoutSessions}`,
+        url: `https://checkout.stripe.com/c/pay/durable${checkoutSessions}`,
+        expires_at: Math.floor(Date.now() / 1_000) + 24 * 60 * 60,
+      };
+      sessionsByIdempotencyKey.set(idempotencyKey, session);
+    }
+    if (holdNextCheckout) {
+      holdNextCheckout = false;
+      checkoutStarted();
+      await checkoutRelease;
+    }
+    return Response.json(session);
+  };
+  const ctx = {
+    setWebSocketAutoResponse() {},
+    getWebSockets: () => [],
+    storage: {
+      transaction: (callback: (value: typeof transaction) => Promise<unknown>) => {
+        const result = transactionQueue.then(() => callback(transaction));
+        transactionQueue = result.catch(() => undefined);
+        return result;
+      },
+      get: async (key: string) => stored.get(key),
+      put: async (key: string, value: unknown) => { stored.set(key, value); },
+      delete: async (key: string) => stored.delete(key),
+    },
+  } as unknown as DurableObjectState;
+  const relayEnv: RelayEnv = {
+    DB: {} as D1Database,
+    NODE_RELAY: {} as DurableObjectNamespace,
+    APP_ORIGIN: 'https://app.agentsight.us',
+    STRIPE_SECRET_KEY: 'sk_test_example',
+    STRIPE_WEBHOOK_SECRET: 'whsec_example',
+    STRIPE_PRO_MONTHLY_PRICE_ID: 'price_pro_monthly',
+    STRIPE_PRO_ANNUAL_PRICE_ID: 'price_pro_annual',
+  };
+  const relay = new NodeRelay(ctx, relayEnv);
+  const checkout = (interval: 'monthly' | 'annual') => relay.fetch(new Request(
+    'https://relay.internal/billing/checkout',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        organizationId: 'org_personal_user1', organizationKind: 'personal',
+        email: 'owner@example.com', plan: 'pro', interval,
+        externalCustomerId: null, externalSubscriptionId: null, billingStatus: 'inactive',
+      }),
+    },
+  ));
+
+  try {
+    const responses = await Promise.all([checkout('monthly'), checkout('annual')]);
+    assert.deepEqual(responses.map((response) => response.status).sort(), [200, 409]);
+    assert.equal(checkoutPosts, 1);
+    assert.deepEqual(await responses.find((response) => response.status === 409)?.json(), {
+      error: 'billing_checkout_in_progress',
+    });
+
+    const retry = await checkout('monthly');
+    assert.equal(retry.status, 200);
+    assert.deepEqual(await retry.json(), {
+      url: 'https://checkout.stripe.com/c/pay/durable1',
+    });
+    assert.equal(checkoutPosts, 1);
+    assert.equal(stored.size, 1);
+    assert.deepEqual(checkoutPrices, ['price_pro_monthly']);
+
+    const [checkoutKey, checkoutState] = Array.from(stored.entries())[0] as [
+      string, { expiresAt: number; session?: unknown; priceId: string },
+    ];
+    assert.equal(checkoutState.priceId, 'price_pro_monthly');
+    assert.ok(checkoutState.expiresAt - Date.now() > 23 * 60 * 60 * 1_000);
+    relayEnv.STRIPE_PRO_MONTHLY_PRICE_ID = 'price_pro_monthly_v2';
+    stored.set(checkoutKey, {
+      ...checkoutState, session: undefined, expiresAt: Date.now() - 120_000,
+    });
+    holdNextCheckout = true;
+    const recoveredPromise = checkout('monthly');
+    await checkoutStart;
+    const inFlightState = stored.get(checkoutKey) as { generation: string; expiresAt: number };
+    assert.ok(inFlightState.expiresAt - Date.now() > 23 * 60 * 60 * 1_000);
+    const concurrent = await checkout('monthly');
+    assert.equal(concurrent.status, 200);
+    assert.equal((stored.get(checkoutKey) as { generation: string }).generation,
+      inFlightState.generation);
+    releaseCheckout();
+    const recovered = await recoveredPromise;
+    assert.equal(recovered.status, 200);
+    assert.equal(checkoutPosts, 3);
+    assert.equal(checkoutSessions, 2);
+    assert.equal(checkoutPrices[1], 'price_pro_monthly_v2');
+    assert.equal(checkoutPrices[2], 'price_pro_monthly_v2');
+
+    const recoveredState = stored.get(checkoutKey) as { expiresAt: number };
+    stored.set(checkoutKey, { ...recoveredState, expiresAt: Date.now() - 120_000 });
+    const replacement = await checkout('annual');
+    assert.equal(replacement.status, 200);
+    assert.deepEqual(await replacement.json(), {
+      url: 'https://checkout.stripe.com/c/pay/durable3',
+    });
+    assert.equal(checkoutPosts, 4);
+    assert.equal(checkoutSessions, 3);
+
+    stored.set(checkoutKey, {
+      version: 2,
+      generation: 'checkout_generation_legacy_v2',
+      input: {
+        organizationId: 'org_personal_user1', organizationKind: 'personal',
+        email: 'owner@example.com', plan: 'pro', interval: 'monthly',
+        externalCustomerId: null, externalSubscriptionId: null, billingStatus: 'inactive',
+      },
+      expiresAt: Date.now() + 60_000,
+      priceId: 'price_pro_monthly',
+      appOrigin: 'https://app.agentsight.us',
+    });
+    const legacyPending = await checkout('monthly');
+    assert.equal(legacyPending.status, 409);
+    assert.equal(checkoutPosts, 4);
+
+    stored.set(checkoutKey, {
+      ...(stored.get(checkoutKey) as object), expiresAt: Date.now() - 120_000,
+    });
+    const legacyRecovered = await checkout('monthly');
+    assert.equal(legacyRecovered.status, 200);
+    assert.deepEqual(await legacyRecovered.json(), {
+      url: 'https://checkout.stripe.com/c/pay/durable4',
+    });
+    assert.equal((stored.get(checkoutKey) as { version: number }).version, 3);
+    assert.equal(checkoutSessions, 4);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalPair) Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
+    else Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
   }
 });
 
