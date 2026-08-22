@@ -64,10 +64,24 @@ export function SessionWorkspace({
   const liveVersion = live?.last_message_at ?? null;
   const activityState = sessionActivityState(session, live);
   const recordedCapture = isRecordedCaptureSession(session);
-  const recordedDetail = useMemo(
-    () => recordedCapture ? recordedSessionDetail(snapshot, session) : null,
-    [recordedCapture, session, snapshot],
-  );
+  const recordedDetail = useMemo(() => {
+    if (client && !recordedCapture) return null;
+    if (recordedCapture) return recordedSessionDetail(snapshot, session);
+
+    const ids = new Set([session.id, sessionId]);
+    const pids = new Set((snapshot.tool_calls ?? [])
+      .filter((tool) => tool.session_id != null && ids.has(tool.session_id))
+      .map((tool) => tool.related_pid)
+      .filter((pid): pid is number => typeof pid === 'number'));
+    if (!pids.size) return null;
+
+    return recordedSessionDetail({
+      ...snapshot,
+      audit_events: (snapshot.audit_events ?? []).filter((event) => (
+        typeof event.pid === 'number' && pids.has(event.pid)
+      )),
+    }, session);
+  }, [client, recordedCapture, session, sessionId, snapshot]);
 
   const loadDetail = useCallback(async (quiet = false): Promise<SessionDetail | null> => {
     if (!client || recordedCapture) {
