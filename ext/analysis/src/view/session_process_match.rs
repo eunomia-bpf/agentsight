@@ -96,7 +96,7 @@ pub fn session_path_from_raw_path(path: &Path) -> Option<PathBuf> {
 }
 
 fn session_input(session: &SessionRow) -> Option<agent_session::SessionProcessInput> {
-    let path = session.attributes.get("path")?.as_str()?.trim();
+    let path = session.attributes.get("path")?.as_str()?;
     (!path.is_empty()).then(|| agent_session::SessionProcessInput {
         id: session.id.clone(),
         agent: session.agent_type.clone(),
