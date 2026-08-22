@@ -8,7 +8,6 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 const SESSION_PROCESS_START_SKEW_MS: u64 = 30_000;
-const SOURCE_SESSION_PROCESS_MATCH: &str = "agent_session.process_match";
 const TRACE_EBPF_FILE: &str = "ebpf_file";
 const TRACE_PROC_FD: &str = "proc_fd";
 const TRACE_STICKY_BINDING: &str = "sticky";
@@ -28,7 +27,6 @@ pub struct SessionProcessMatch {
     pub root_pid: u32,
     pub matched_pids: Vec<u32>,
     pub pid_starttime_ticks: u64,
-    pub source: &'static str,
     pub confidence: f32,
     pub evidence: &'static str,
 }
@@ -36,16 +34,7 @@ pub struct SessionProcessMatch {
 #[derive(Debug, Default)]
 pub struct SessionProcessMatches {
     pub by_session_id: HashMap<String, SessionProcessMatch>,
-    pub by_pid: HashMap<u32, String>,
     pub used_root_pids: HashSet<u32>,
-}
-
-impl SessionProcessMatches {
-    pub fn session_for_pid(&self, pid: u32) -> Option<&SessionProcessMatch> {
-        self.by_pid
-            .get(&pid)
-            .and_then(|session_id| self.by_session_id.get(session_id))
-    }
 }
 
 #[derive(Default)]
@@ -69,11 +58,16 @@ impl SessionProcessMatcher {
     ) -> SessionProcessMatches {
         let path_evidence =
             collect_path_evidence(processes, fd_paths_by_process, ebpf_path_by_process);
-        self.retain_live(processes);
+        self.bindings.retain(|pid, binding| {
+            processes.iter().any(|process| {
+                process.tree.root.pid == *pid
+                    && process.tree.root.starttime_ticks == binding.starttime_ticks
+            })
+        });
 
         let mut out = SessionProcessMatches::default();
         for session in sessions {
-            let Some(session_path) = session_path(session) else {
+            let Some(path) = session_path(session) else {
                 continue;
             };
             let Some((process, evidence)) = processes.iter().find_map(|process| {
@@ -83,7 +77,7 @@ impl SessionProcessMatcher {
                 {
                     return None;
                 }
-                self.link_trace(session_path, process, &path_evidence)
+                self.link_trace(path, process, &path_evidence)
                     .map(|evidence| (process, evidence))
             }) else {
                 continue;
@@ -91,53 +85,45 @@ impl SessionProcessMatcher {
             record_match(&mut out, session, process, evidence);
         }
 
-        let mut cwd_candidates = Vec::new();
-        for (session_index, session) in sessions.iter().enumerate() {
-            if out.by_session_id.contains_key(&session.id) {
-                continue;
-            }
-            let Some(session_path) = session_path(session) else {
-                continue;
-            };
-            for (process_index, process) in processes.iter().enumerate() {
-                if out.used_root_pids.contains(&process.tree.root.pid)
-                    || process.agent != session.agent_type
-                    || !self.can_use_cwd_trace(session_path, process, &path_evidence)
-                {
-                    continue;
-                }
-                let Some(distance_ms) = recent_cwd_distance_ms(session, process, now_ms) else {
-                    continue;
-                };
-                cwd_candidates.push((
-                    distance_ms,
-                    std::cmp::Reverse(session_end_ms(session)),
-                    session_index,
-                    process_index,
-                ));
-            }
-        }
+        let mut cwd_candidates = sessions
+            .iter()
+            .enumerate()
+            .filter(|(_, session)| !out.by_session_id.contains_key(&session.id))
+            .flat_map(|(session_index, session)| {
+                let path = session_path(session);
+                processes
+                    .iter()
+                    .enumerate()
+                    .filter_map(move |(process_index, process)| {
+                        let path = path?;
+                        if out.used_root_pids.contains(&process.tree.root.pid)
+                            || process.agent != session.agent_type
+                            || !self.can_use_cwd_trace(path, process, &path_evidence)
+                        {
+                            return None;
+                        }
+                        recent_cwd_distance_ms(session, process, now_ms).map(|distance_ms| {
+                            (
+                                distance_ms,
+                                std::cmp::Reverse(session_end_ms(session)),
+                                session_index,
+                                process_index,
+                            )
+                        })
+                    })
+            })
+            .collect::<Vec<_>>();
         cwd_candidates.sort_unstable();
         for (_, _, session_index, process_index) in cwd_candidates {
             let session = &sessions[session_index];
             let process = &processes[process_index];
-            if out.by_session_id.contains_key(&session.id)
-                || out.used_root_pids.contains(&process.tree.root.pid)
+            if !out.by_session_id.contains_key(&session.id)
+                && !out.used_root_pids.contains(&process.tree.root.pid)
             {
-                continue;
+                record_match(&mut out, session, process, TRACE_RECENT_CWD);
             }
-            record_match(&mut out, session, process, TRACE_RECENT_CWD);
         }
         out
-    }
-
-    fn retain_live(&mut self, processes: &[LiveProcessCandidate]) {
-        self.bindings.retain(|pid, binding| {
-            processes.iter().any(|process| {
-                process.tree.root.pid == *pid
-                    && process.tree.root.starttime_ticks == binding.starttime_ticks
-            })
-        });
     }
 
     fn link_trace(
@@ -218,9 +204,6 @@ fn record_match(
         .map(|key| key.pid)
         .collect::<Vec<_>>();
     out.used_root_pids.insert(process.tree.root.pid);
-    for pid in &matched_pids {
-        out.by_pid.insert(*pid, session.id.clone());
-    }
     out.by_session_id.insert(
         session.id.clone(),
         SessionProcessMatch {
@@ -228,7 +211,6 @@ fn record_match(
             root_pid: process.tree.root.pid,
             matched_pids,
             pid_starttime_ticks: process.tree.root.starttime_ticks,
-            source: SOURCE_SESSION_PROCESS_MATCH,
             confidence: confidence_for_evidence(evidence),
             evidence,
         },
@@ -240,28 +222,28 @@ fn collect_path_evidence(
     fd_paths_by_process: &HashMap<ProcessKey, BTreeSet<PathBuf>>,
     observed_path_by_process: &HashMap<ProcessKey, PathBuf>,
 ) -> HashMap<u32, BTreeMap<PathBuf, &'static str>> {
-    let mut out = HashMap::new();
-    for process in processes {
-        let mut evidence = BTreeMap::new();
-        for key in &process.tree.members {
-            if let Some(paths) = fd_paths_by_process.get(key) {
-                for path in paths {
-                    if let Some(session_path) = session_path_from_raw_path(path) {
-                        evidence.entry(session_path).or_insert(TRACE_PROC_FD);
+    processes
+        .iter()
+        .filter_map(|process| {
+            let mut evidence = BTreeMap::new();
+            for key in &process.tree.members {
+                if let Some(paths) = fd_paths_by_process.get(key) {
+                    for path in paths {
+                        if let Some(path) = session_path_from_raw_path(path) {
+                            evidence.entry(path).or_insert(TRACE_PROC_FD);
+                        }
                     }
                 }
+                if let Some(path) = observed_path_by_process
+                    .get(key)
+                    .and_then(|path| session_path_from_raw_path(path))
+                {
+                    evidence.insert(path, TRACE_EBPF_FILE);
+                }
             }
-            if let Some(path) = observed_path_by_process.get(key)
-                && let Some(session_path) = session_path_from_raw_path(path)
-            {
-                evidence.insert(session_path, TRACE_EBPF_FILE);
-            }
-        }
-        if !evidence.is_empty() {
-            out.insert(process.tree.root.pid, evidence);
-        }
-    }
-    out
+            (!evidence.is_empty()).then_some((process.tree.root.pid, evidence))
+        })
+        .collect()
 }
 
 fn session_is_fresh_enough_for_process(
@@ -269,10 +251,9 @@ fn session_is_fresh_enough_for_process(
     process: &LiveProcessCandidate,
     now_ms: u64,
 ) -> bool {
-    let Some(process_start_ms) = process_start_ms(process, now_ms) else {
-        return true;
-    };
-    session_end_ms(session).saturating_add(SESSION_PROCESS_START_SKEW_MS) >= process_start_ms
+    process_start_ms(process, now_ms).is_none_or(|process_start_ms| {
+        session_end_ms(session).saturating_add(SESSION_PROCESS_START_SKEW_MS) >= process_start_ms
+    })
 }
 
 fn recent_cwd_distance_ms(
@@ -332,13 +313,14 @@ mod tests {
             std::env::temp_dir().join(format!("agentsight-cwd-test-{}", std::process::id()));
         std::fs::create_dir_all(&raw).unwrap();
         let cwd = raw.canonicalize().unwrap();
+        let cwd_text = cwd.to_string_lossy().into_owned();
         let session = SessionRow {
             id: "session".to_string(),
             agent_type: "codex".to_string(),
             start_timestamp_ms: 1_000,
             end_timestamp_ms: Some(10_000),
             attributes: json!({
-                "cwd": cwd,
+                "cwd": cwd_text,
                 "path": cwd.join(".codex/sessions/2026/07/12/session.jsonl")
             }),
             ..Default::default()
