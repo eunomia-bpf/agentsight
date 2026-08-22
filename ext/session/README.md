@@ -14,11 +14,12 @@ let sessions = agent_session::SessionCache::new()
 
 - Transcript/session discovery and parsing for local coding-agent logs.
 - Token, tool, file, prompt, cwd, timing, and plan normalization.
+- Process-tree to session correlation from host-supplied process/evidence data.
 - A `wasm32-wasip2` Component Model entrypoint for host-supplied transcript content.
 
-Process discovery and session-to-process correlation intentionally live outside
-this portable parser crate. AgentSight performs that analysis after combining
-native process evidence with this session IR.
+Native process discovery (`/proc`, sysinfo, eBPF evidence) stays outside this
+portable crate. AgentSight analysis adapts those host facts into the matcher and
+then materializes views/storage/export data.
 
 `agent-session` intentionally does not export OpenTelemetry directly.
 Applications such as AgentSight can map the IR to SQLite, OTEL, reports, or any
