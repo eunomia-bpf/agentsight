@@ -12,12 +12,10 @@ abstraction.
 
 Current extensions:
 
-- `session`: portable agent-session transcript discovery, parsing, and session
-  IR; exports a `wasm32-wasip2` Component Model entrypoint for one host-supplied
-  transcript through WIT.
-- `analysis`: post-capture correlation, materialized views, storage, and sinks;
-  owns process-to-session correlation by combining native process evidence with
-  the portable session IR.
+- `session`: portable transcript discovery/parsing, session IR, and host-fed
+  process correlation; exports a `wasm32-wasip2` Component Model parser entrypoint.
+- `analysis`: adapts native capture facts to session semantics, then owns
+  materialized views, storage, and sinks.
 - `pprof`: semantic agent profiling.
 - `vis`: repository-evolution visualization.
 - `web`: built-in product presentation components; the trusted frontend shell
