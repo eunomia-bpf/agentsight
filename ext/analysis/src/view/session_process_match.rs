@@ -87,34 +87,32 @@ impl SessionProcessMatcher {
             record_match(&mut out, session, process, evidence);
         }
 
-        let mut cwd_candidates = sessions
-            .iter()
-            .enumerate()
-            .filter(|(_, session)| !out.by_session_id.contains_key(&session.id))
-            .flat_map(|(session_index, session)| {
-                let path = session_path(session);
-                processes
-                    .iter()
-                    .enumerate()
-                    .filter_map(move |(process_index, process)| {
-                        let path = path?;
-                        if out.used_root_pids.contains(&process.tree.root.pid)
-                            || process.agent != session.agent_type
-                            || !self.can_use_cwd_trace(path, process, &path_evidence)
-                        {
-                            return None;
-                        }
-                        recent_cwd_distance_ms(session, process, now_ms).map(|distance_ms| {
-                            (
-                                distance_ms,
-                                std::cmp::Reverse(session_end_ms(session)),
-                                session_index,
-                                process_index,
-                            )
-                        })
-                    })
-            })
-            .collect::<Vec<_>>();
+        let mut cwd_candidates = Vec::new();
+        for (session_index, session) in sessions.iter().enumerate() {
+            if out.by_session_id.contains_key(&session.id) {
+                continue;
+            }
+            let Some(path) = session_path(session) else {
+                continue;
+            };
+            for (process_index, process) in processes.iter().enumerate() {
+                if out.used_root_pids.contains(&process.tree.root.pid)
+                    || process.agent != session.agent_type
+                    || !self.can_use_cwd_trace(path, process, &path_evidence)
+                {
+                    continue;
+                }
+                let Some(distance_ms) = recent_cwd_distance_ms(session, process, now_ms) else {
+                    continue;
+                };
+                cwd_candidates.push((
+                    distance_ms,
+                    std::cmp::Reverse(session_end_ms(session)),
+                    session_index,
+                    process_index,
+                ));
+            }
+        }
         cwd_candidates.sort_unstable();
         for (_, _, session_index, process_index) in cwd_candidates {
             let session = &sessions[session_index];
@@ -226,7 +224,7 @@ pub fn session_is_running(session: &AgentSession) -> bool {
         end_timestamp_ms: session.end_timestamp_ms,
         attributes: serde_json::json!({
             "path": session.path.to_string_lossy(),
-            "cwd": session.cwd,
+            "cwd": session.cwd.as_deref(),
         }),
         ..Default::default()
     };
