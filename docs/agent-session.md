@@ -9,15 +9,20 @@ session IR for applications such as AgentSight.
 - Discover and parse local Claude Code, Codex, and Gemini CLI session files.
 - Normalize model usage, token totals, tool calls, file references, prompts,
   cwd, timestamps, and session identifiers.
-- Match live process trees to sessions using real path evidence, sticky
-  bindings, and recent cwd fallback.
-- Expose PID-to-session lookup through `SessionProcessMatches::session_for_pid`.
+- Export the same transcript parser as a `wasm32-wasip2` Component Model
+  entrypoint when the host supplies transcript content.
+
+AgentSight combines this portable session IR with native process evidence in
+`agentsight-analysis`. Process-tree discovery, PID correlation, sticky bindings,
+and recent-cwd fallback are deliberately analysis responsibilities rather than
+part of the portable parser.
 
 ## Non-goals
 
 - No OpenTelemetry exporter in this crate. AgentSight owns OTEL and other
   product sinks.
-- No UI, report rendering, database schema, or eBPF capture logic.
+- No UI, report rendering, database schema, eBPF capture, or process-correlation
+  logic.
 - No dependency on AgentSight collector internals.
 
 ## OTel Alignment
