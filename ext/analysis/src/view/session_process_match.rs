@@ -73,7 +73,10 @@ pub fn session_is_running(session: &agent_session::AgentSession) -> bool {
         agent_type: session.agent_type.clone(),
         start_timestamp_ms: session.start_timestamp_ms.unwrap_or_default(),
         end_timestamp_ms: session.end_timestamp_ms,
-        attributes: serde_json::json!({"path": session.path, "cwd": session.cwd.as_deref()}),
+        attributes: serde_json::json!({
+            "path": session.path.to_string_lossy(),
+            "cwd": session.cwd.as_deref()
+        }),
         ..Default::default()
     };
     SessionProcessMatcher::default()
@@ -100,7 +103,12 @@ fn session_input(session: &SessionRow) -> Option<agent_session::SessionProcessIn
         path: PathBuf::from(path),
         start_timestamp_ms: Some(session.start_timestamp_ms),
         end_timestamp_ms: session.end_timestamp_ms,
-        cwd: session.attributes.get("cwd").and_then(Value::as_str).map(str::to_owned),
+        cwd: session
+            .attributes
+            .get("cwd")
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned),
     })
 }
 
