@@ -1,0 +1,84 @@
+{
+  "mode": "demo",
+  "total_tokens": 7600,
+  "failures": [],
+  "notes": [
+    "Recorded demo data; values are representative and internally consistent."
+  ],
+  "rows": [
+    {
+      "session_id": "codex-demo-2026-08-21",
+      "session": "codex:demo-worktree",
+      "agent": "codex",
+      "pid": 4242,
+      "model": "gpt-5",
+      "age_s": 1500,
+      "cpu_percent": 18.6,
+      "rss_mb": 284,
+      "processes": 3,
+      "tokens": 5400,
+      "tools": 5,
+      "execs": 2,
+      "failures": 1,
+      "files": 3,
+      "network": 2,
+      "trace": "agent-native+proc",
+      "command": "Make the AgentSight demo show the complete agent workflow",
+      "workspace": "/workspace/agentsight",
+      "last_message_at": "2026-08-22T03:55:00Z",
+      "process_details": [
+        {
+          "pid": 4242,
+          "ppid": 1,
+          "start_timestamp_ms": 1787370300000,
+          "comm": "codex",
+          "command": "codex --workspace /workspace/agentsight",
+          "cwd": "/workspace/agentsight",
+          "cpu_percent": 9.4,
+          "rss_mb": 216
+        },
+        {
+          "pid": 4251,
+          "ppid": 4242,
+          "start_timestamp_ms": 1787370760000,
+          "comm": "node",
+          "command": "playwright test e2e/demo.spec.ts",
+          "cwd": "/workspace/agentsight/frontend",
+          "cpu_percent": 5.8,
+          "rss_mb": 46
+        },
+        {
+          "pid": 4252,
+          "ppid": 4251,
+          "start_timestamp_ms": 1787370770000,
+          "comm": "chromium",
+          "command": "chromium --headless",
+          "cwd": "/workspace/agentsight/frontend",
+          "cpu_percent": 3.4,
+          "rss_mb": 22
+        }
+      ],
+      "plan": [
+        { "step": "Inspect the demo data path", "status": "completed" },
+        { "step": "Wire snapshot and live overview data", "status": "completed" },
+        { "step": "Run browser regression coverage", "status": "in_progress" },
+        { "step": "Ship the demo fix", "status": "pending" }
+      ],
+      "subscription": {
+        "provider": "codex",
+        "observed_at": "2026-08-22T03:55:00Z",
+        "plan_type": "pro",
+        "primary": {
+          "used_percent": 37,
+          "window_minutes": 300,
+          "resets_at": 1787385600
+        },
+        "secondary": {
+          "used_percent": 18,
+          "window_minutes": 10080,
+          "resets_at": 1787976000
+        }
+      }
+    }
+  ]
+}
