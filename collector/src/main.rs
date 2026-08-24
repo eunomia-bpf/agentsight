@@ -47,6 +47,7 @@ use cmd_perf_tui::run_live_top_tui;
 use cmd_trace::{TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled};
 use output::TopOptions;
 use output::{print_record_session_db_error, print_report_local_sessions_warning};
+use server::container_bridge::run_stdio_bridge;
 use sources::session_db::{latest_session_db, run_db_list};
 
 static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
@@ -222,7 +223,13 @@ enum Commands {
         /// Browser-reachable Node base URL (defaults to http://LISTEN:PORT).
         #[arg(long)]
         endpoint: Option<String>,
+        /// Docker container whose local AgentSight bridge should be included.
+        #[arg(long = "docker-container", value_name = "NAME")]
+        docker_containers: Vec<String>,
     },
+    /// Internal JSONL session bridge used through docker exec.
+    #[command(hide = true)]
+    Bridge,
     /// Show live agent sessions.
     Top {
         /// Process PID filter, similar to top -p
@@ -410,6 +417,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db,
             app_url,
             endpoint,
+            docker_containers,
         } => {
             run_bind(
                 &cli.listen,
@@ -419,9 +427,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 configured_db_path(db),
                 app_url,
                 endpoint.as_deref(),
+                docker_containers,
             )
             .await?
         }
+        Commands::Bridge => run_stdio_bridge().await?,
         Commands::Report { db, local, sub } => run_report(db, *local, sub, &cli.listen).await?,
         Commands::Monitor { command } => match command {
             None => run_monitor().await?,
@@ -675,6 +685,10 @@ mod tests {
             "https://console.example/ui/",
             "--endpoint",
             "https://node.example:7444",
+            "--docker-container",
+            "ebpfos-dev",
+            "--docker-container",
+            "research-agent",
         ])
         .unwrap();
         assert_eq!(cli.listen, "0.0.0.0");
@@ -686,12 +700,14 @@ mod tests {
                 db,
                 app_url,
                 endpoint,
+                docker_containers,
             } => {
                 assert!(qr && no_open);
                 assert_eq!(server_port, 7444);
                 assert_eq!(db.as_deref(), Some("capture.db"));
                 assert_eq!(app_url, "https://console.example/ui/");
                 assert_eq!(endpoint.as_deref(), Some("https://node.example:7444"));
+                assert_eq!(docker_containers, ["ebpfos-dev", "research-agent"]);
             }
             _ => panic!("expected bind command"),
         }

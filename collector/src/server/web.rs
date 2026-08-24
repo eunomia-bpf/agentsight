@@ -7,6 +7,7 @@ use crate::server::assets::FrontendAssets;
 use crate::server::capability::{
     CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE, SESSION_READ,
 };
+use crate::server::container_bridge::{ContainerBridgeError, ContainerBridges};
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
@@ -22,6 +23,7 @@ use hyper::{Method, Request, Response, StatusCode, body::Bytes};
 use hyper_util::rt::TokioIo;
 use serde::Serialize;
 use serde_json::Value;
+use std::collections::HashSet;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
@@ -105,6 +107,7 @@ pub struct WebServer {
     db_path: Option<String>,
     live_host: bool,
     direct_auth: Option<DirectAuth>,
+    container_bridges: Option<ContainerBridges>,
 }
 
 impl WebServer {
@@ -122,6 +125,7 @@ impl WebServer {
             db_path,
             live_host: false,
             direct_auth: None,
+            container_bridges: None,
         })
     }
 
@@ -146,6 +150,17 @@ impl WebServer {
     ) -> Self {
         self.direct_auth = Some(DirectAuth::new(access_token, node, allowed_origin));
         self
+    }
+
+    pub fn with_docker_containers(
+        mut self,
+        containers: &[String],
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let bridges = ContainerBridges::new(containers).map_err(std::io::Error::other)?;
+        if !bridges.is_empty() {
+            self.container_bridges = Some(bridges);
+        }
+        Ok(self)
     }
 
     pub async fn start(
@@ -182,6 +197,7 @@ impl WebServer {
             let db_path = self.db_path.clone();
             let live_host = self.live_host;
             let direct_auth = self.direct_auth.clone();
+            let container_bridges = self.container_bridges.clone();
 
             tokio::spawn(async move {
                 let io = TokioIo::new(stream);
@@ -196,6 +212,7 @@ impl WebServer {
                         db_path.clone(),
                         live_host,
                         direct_auth.clone(),
+                        container_bridges.clone(),
                     )
                 });
 
@@ -217,6 +234,7 @@ async fn handle_request(
     db_path: Option<String>,
     live_host: bool,
     direct_auth: Option<DirectAuth>,
+    container_bridges: Option<ContainerBridges>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let method = req.method().clone();
     let path = req.uri().path().to_string();
@@ -268,6 +286,7 @@ async fn handle_request(
                             "overview": live_host,
                             "session_detail": live_host,
                             "session_messages": direct_auth.is_some() && live_host,
+                            "container_sessions": container_bridges.is_some(),
                         },
                         "node": node,
                     }),
@@ -297,7 +316,14 @@ async fn handle_request(
                     "evidence.read capability required",
                 )
             } else {
-                serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+                serve_snapshot_api(
+                    view,
+                    agent_native_sessions,
+                    container_bridges,
+                    db_path,
+                    query.as_deref(),
+                )
+                .await?
             }
         }
         (Method::GET, "/api/v1/overview") => {
@@ -339,7 +365,7 @@ async fn handle_request(
                     "saved captures do not expose native session messages",
                 )
             } else {
-                serve_session_api(agent_native_sessions, session_id).await?
+                serve_session_api(agent_native_sessions, container_bridges, session_id).await?
             }
         }
         (Method::POST, _) if session_message_id.is_some() => {
@@ -359,7 +385,8 @@ async fn handle_request(
             } else if !live_host {
                 json_error(StatusCode::CONFLICT, "saved captures are read-only")
             } else {
-                serve_session_message_api(req, agent_native_sessions, session_id).await?
+                serve_session_message_api(req, agent_native_sessions, container_bridges, session_id)
+                    .await?
             }
         }
         (Method::GET, _) => serve_asset(assets, &path).await?,
@@ -487,18 +514,28 @@ fn is_frontend_route(path: &str) -> bool {
 async fn serve_snapshot_api(
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    container_bridges: Option<ContainerBridges>,
     db_path: Option<String>,
     query: Option<&str>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let audit_limit = query_param_usize(query, "audit_limit").unwrap_or(10_000);
+    let container_sessions = if db_path.is_none() {
+        match container_bridges {
+            Some(bridges) => bridges.list_sessions(25).await,
+            None => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
 
     let result = tokio::task::spawn_blocking(
         move || -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-            let snapshot = snapshot_from_sources(
+            let snapshot = snapshot_from_sources_with_extra(
                 &view,
                 &agent_native_sessions,
                 db_path.as_deref(),
                 audit_limit,
+                &container_sessions,
             )?;
             Ok(serde_json::to_value(snapshot)?)
         },
@@ -561,37 +598,20 @@ async fn serve_overview_api(
 
 async fn serve_session_api(
     sessions: Arc<Mutex<SessionCache>>,
+    container_bridges: Option<ContainerBridges>,
     session_id: &str,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
-    let session_id = session_id.to_string();
-    let result = tokio::task::spawn_blocking(move || {
-        let mut cache = sessions
-            .lock()
-            .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
-        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(
-            &mut cache,
-            &session_id,
-        ))
-    })
-    .await;
-
-    match result {
-        Ok(Ok(Some(session))) => Ok(json_response(StatusCode::OK, &session)),
-        Ok(Ok(None)) => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-        Ok(Err(error)) => Ok(json_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("failed to load session: {error}"),
-        )),
-        Err(error) => Ok(json_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("session query task failed: {error}"),
-        )),
+    match resolve_session(sessions, container_bridges.as_ref(), session_id).await {
+        Ok(Some(resolved)) => Ok(json_response(StatusCode::OK, resolved.session())),
+        Ok(None) => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
+        Err(response) => Ok(*response),
     }
 }
 
 async fn serve_session_message_api(
     req: Request<hyper::body::Incoming>,
     sessions: Arc<Mutex<SessionCache>>,
+    container_bridges: Option<ContainerBridges>,
     session_id: &str,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let body = match read_limited_body(req, MAX_SESSION_MESSAGE_BODY_BYTES).await {
@@ -619,58 +639,131 @@ async fn serve_session_message_api(
         }
     };
     let message = match request.validate() {
-        Ok(message) => message,
+        Ok(message) => message.to_string(),
         Err(error) => return Ok(json_error(StatusCode::BAD_REQUEST, error)),
     };
 
-    let session_id = session_id.to_string();
-    let session = {
-        let sessions = Arc::clone(&sessions);
-        let session_id = session_id.clone();
-        match tokio::task::spawn_blocking(move || {
-            let mut cache = sessions
-                .lock()
-                .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
-            Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(
-                &mut cache,
-                &session_id,
-            ))
-        })
-        .await
-        {
-            Ok(Ok(Some(session))) => session,
-            Ok(Ok(None)) => return Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-            Ok(Err(error)) => {
-                return Ok(json_error(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("failed to load session: {error}"),
-                ));
-            }
-            Err(error) => {
-                return Ok(json_error(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("session query task failed: {error}"),
-                ));
-            }
-        }
+    let resolved = match resolve_session(sessions, container_bridges.as_ref(), session_id).await {
+        Ok(Some(resolved)) => resolved,
+        Ok(None) => return Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
+        Err(response) => return Ok(*response),
     };
+    match resolved {
+        ResolvedSession::Local(session) => {
+            match crate::server::session_runtime::submit_message(&session, &message).await {
+                Ok(result) => Ok(session_message_response(
+                    &session.session_id,
+                    &session.agent_type,
+                    result.transport,
+                )),
+                Err(crate::server::session_runtime::SubmitError::Conflict(error)) => {
+                    Ok(json_error(StatusCode::CONFLICT, &error))
+                }
+                Err(crate::server::session_runtime::SubmitError::Failed(error)) => {
+                    Ok(json_error(StatusCode::BAD_GATEWAY, &error))
+                }
+            }
+        }
+        ResolvedSession::Container { container, session } => match container_bridges
+            .as_ref()
+            .expect("container session requires configured bridges")
+            .send_message(&container, session_id, &message)
+            .await
+        {
+            Ok((agent_type, transport)) => Ok(session_message_response(
+                &session.session_id,
+                &agent_type,
+                &transport,
+            )),
+            Err(error) => Ok(container_bridge_error_response(error)),
+        },
+    }
+}
 
-    match launch_session_message(&session, message).await {
-        Ok(result) => Ok(json_response(
-            StatusCode::ACCEPTED,
-            &serde_json::json!({
-                "session_id": session.session_id,
-                "agent_type": session.agent_type,
-                "status": "submitted",
-                "transport": result.transport,
-            }),
-        )),
-        Err(crate::server::session_runtime::SubmitError::Conflict(error)) => {
-            Ok(json_error(StatusCode::CONFLICT, &error))
+enum ResolvedSession {
+    Local(agent_session::AgentSession),
+    Container {
+        container: String,
+        session: agent_session::AgentSession,
+    },
+}
+
+impl ResolvedSession {
+    fn session(&self) -> &agent_session::AgentSession {
+        match self {
+            Self::Local(session) | Self::Container { session, .. } => session,
         }
-        Err(crate::server::session_runtime::SubmitError::Failed(error)) => {
-            Ok(json_error(StatusCode::BAD_GATEWAY, &error))
+    }
+}
+
+async fn resolve_session(
+    sessions: Arc<Mutex<SessionCache>>,
+    container_bridges: Option<&ContainerBridges>,
+    session_id: &str,
+) -> Result<Option<ResolvedSession>, Box<Response<Full<Bytes>>>> {
+    let local_id = session_id.to_string();
+    let local = tokio::task::spawn_blocking(move || {
+        sessions
+            .lock()
+            .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))
+            .map(|mut cache| agent_native_sessions::find_session(&mut cache, &local_id))
+    })
+    .await
+    .map_err(|error| {
+        Box::new(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("session query task failed: {error}"),
+        ))
+    })?
+    .map_err(|error| {
+        Box::new(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("failed to load session: {error}"),
+        ))
+    })?;
+    let remote = match container_bridges {
+        Some(bridges) => bridges
+            .get_session(session_id)
+            .await
+            .map_err(|error| Box::new(container_bridge_error_response(error)))?,
+        None => None,
+    };
+    match (local, remote) {
+        (Some(_), Some((container, _))) => Err(Box::new(json_error(
+            StatusCode::CONFLICT,
+            &format!(
+                "session {session_id} exists both locally and in Docker container {container}"
+            ),
+        ))),
+        (Some(session), None) => Ok(Some(ResolvedSession::Local(session))),
+        (None, Some((container, session))) => {
+            Ok(Some(ResolvedSession::Container { container, session }))
         }
+        (None, None) => Ok(None),
+    }
+}
+
+fn session_message_response(
+    session_id: &str,
+    agent_type: &str,
+    transport: &str,
+) -> Response<Full<Bytes>> {
+    json_response(
+        StatusCode::ACCEPTED,
+        &serde_json::json!({
+            "session_id": session_id,
+            "agent_type": agent_type,
+            "status": "submitted",
+            "transport": transport,
+        }),
+    )
+}
+
+fn container_bridge_error_response(error: ContainerBridgeError) -> Response<Full<Bytes>> {
+    match error {
+        ContainerBridgeError::NotFound(message) => json_error(StatusCode::NOT_FOUND, &message),
+        ContainerBridgeError::Conflict(message) => json_error(StatusCode::CONFLICT, &message),
+        ContainerBridgeError::Failed(message) => json_error(StatusCode::BAD_GATEWAY, &message),
     }
 }
 
@@ -695,36 +788,29 @@ where
     }
 }
 
-fn find_native_session(
-    cache: &mut SessionCache,
-    session_id: &str,
-) -> Option<agent_session::AgentSession> {
-    let indexed = agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
-        .into_iter()
-        .find(|session| session.session_id == session_id)?;
-    Some(agent_native_sessions::hydrate_session(cache, indexed))
-}
-
-async fn launch_session_message(
-    session: &agent_session::AgentSession,
-    message: &str,
-) -> Result<crate::server::session_runtime::SubmitResult, crate::server::session_runtime::SubmitError>
-{
-    crate::server::session_runtime::submit_message(session, message).await
-}
-
+#[cfg(test)]
 fn snapshot_from_sources(
     view: &SharedMaterializedView,
     agent_native_sessions: &Arc<Mutex<SessionCache>>,
     db_path: Option<&str>,
     audit_limit: usize,
 ) -> Result<Snapshot, Box<dyn std::error::Error + Send + Sync>> {
+    snapshot_from_sources_with_extra(view, agent_native_sessions, db_path, audit_limit, &[])
+}
+
+fn snapshot_from_sources_with_extra(
+    view: &SharedMaterializedView,
+    agent_native_sessions: &Arc<Mutex<SessionCache>>,
+    db_path: Option<&str>,
+    audit_limit: usize,
+    extra_sessions: &[agent_session::AgentSession],
+) -> Result<Snapshot, Box<dyn std::error::Error + Send + Sync>> {
     if let Some(db_path) = db_path {
         let view = sqlite_source::load_view_with_observed_session_prompts(db_path)?;
         return Ok(view.export_snapshot(SnapshotOptions { audit_limit }));
     }
 
-    let agent_native_rows = {
+    let mut agent_native_rows = {
         let mut session_cache = agent_native_sessions
             .lock()
             .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
@@ -736,6 +822,16 @@ fn snapshot_from_sources(
             Duration::from_secs(2),
         )
     };
+    let mut session_ids = agent_native_rows
+        .iter()
+        .map(|session| session.session_id.clone())
+        .collect::<HashSet<_>>();
+    agent_native_rows.extend(
+        extra_sessions
+            .iter()
+            .filter(|session| session_ids.insert(session.session_id.clone()))
+            .cloned(),
+    );
     let mut merged = view
         .lock()
         .map_err(|_| std::io::Error::other("live view lock poisoned"))?
@@ -1098,7 +1194,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_uses_agent_native_indexed_codex_sessions() {
+    fn snapshot_deduplicates_local_and_container_session_ids() {
         let _guard = ENV_LOCK.lock().unwrap();
         let old_home = std::env::var_os("HOME");
         let old_sudo_user = std::env::var_os("SUDO_USER");
@@ -1113,7 +1209,26 @@ mod tests {
 
             let live_view = MaterializedView::shared_bounded();
             let sessions = Arc::new(Mutex::new(SessionCache::new()));
-            let snapshot = snapshot_from_sources(&live_view, &sessions, None, 100).unwrap();
+            let container_session = agent_native_sessions::parse_content_for_test(
+                agent_session::AGENT_CODEX,
+                &temp.path().join("container-session.jsonl"),
+                std::time::UNIX_EPOCH,
+                concat!(
+                    r#"{"type":"session_meta","payload":{"id":"019f49ca-54e7-7a91-82e7-a52b53cfd456","cwd":"/container"}}"#,
+                    "\n",
+                    r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"duplicate container session"}]}}"#,
+                    "\n",
+                ),
+            )
+            .unwrap();
+            let snapshot = snapshot_from_sources_with_extra(
+                &live_view,
+                &sessions,
+                None,
+                100,
+                &[container_session],
+            )
+            .unwrap();
 
             assert_eq!(snapshot.summary.total_tokens, 33);
             assert_eq!(snapshot.sessions.len(), 1);
