@@ -12,6 +12,7 @@ use agent_session::AgentSession;
 use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashSet;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
@@ -196,16 +197,20 @@ pub struct ContainerBridges {
 
 impl ContainerBridges {
     pub fn new(containers: &[String]) -> Result<Self, String> {
-        let bridges = containers
-            .iter()
-            .map(|container| {
-                validate_container_name(container)?;
-                Ok(Arc::new(BridgeHandle {
-                    container: container.clone(),
-                    state: Mutex::new(DockerBridge::default()),
-                }))
-            })
-            .collect::<Result<Vec<_>, String>>()?;
+        let mut seen = HashSet::new();
+        let mut bridges = Vec::with_capacity(containers.len());
+        for container in containers {
+            validate_container_name(container)?;
+            if !seen.insert(container.as_str()) {
+                return Err(format!(
+                    "Docker container configured more than once: {container}"
+                ));
+            }
+            bridges.push(Arc::new(BridgeHandle {
+                container: container.clone(),
+                state: Mutex::new(DockerBridge::default()),
+            }));
+        }
         Ok(Self {
             bridges: Arc::new(bridges),
         })
@@ -736,6 +741,17 @@ mod tests {
         for invalid in ["", "--privileged", "name/child", "name child"] {
             assert!(validate_container_name(invalid).is_err());
         }
+    }
+
+    #[test]
+    fn duplicate_container_names_are_rejected() {
+        let error = ContainerBridges::new(&["agent-dev".into(), "agent-dev".into()])
+            .err()
+            .expect("duplicate containers must fail configuration");
+        assert_eq!(
+            error,
+            "Docker container configured more than once: agent-dev"
+        );
     }
 
     #[test]
