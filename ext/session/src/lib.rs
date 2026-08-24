@@ -9,11 +9,11 @@
 //! database storage, eBPF collection, and OpenTelemetry export belong in
 //! extensions that consume this crate.
 
+#[cfg(target_arch = "wasm32")]
+mod component;
 mod parser;
 mod process_match;
 mod types;
-#[cfg(target_arch = "wasm32")]
-mod component;
 
 pub const AGENT_CLAUDE: &str = "claude";
 pub const AGENT_CODEX: &str = "codex";
@@ -37,8 +37,9 @@ pub use parser::{
     count_session_dirs_in_home, discover_session_files, discover_session_files_in_dir,
     discover_session_files_in_home, fixture_session_path, is_codex_cli_entrypoint,
     normalize_session_log_path, parse_session_content, parse_session_file, parse_session_path,
-    path_component_strings, path_group, semantic_task_label, session_candidate_from_path,
-    session_log_path_from_str, short_hash, tool_category, truncate_clean,
+    path_component_strings, path_group, refresh_session_candidate, semantic_task_label,
+    session_candidate_from_path, session_log_path_from_str, short_hash, tool_category,
+    truncate_clean,
 };
 
 pub use process_match::{
