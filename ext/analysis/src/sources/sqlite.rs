@@ -145,9 +145,23 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
         let Some(text) = extract_prompt_text(&row.request) else {
             continue;
         };
-        let is_agent_native = row.request.get("prompt_source").and_then(Value::as_str)
-            == Some(crate::model::AGENT_NATIVE_SOURCE);
-        let prompt_source = if is_agent_native { "local" } else { "ssl" };
+        // Request payloads are captured from untrusted applications and may contain
+        // fields that resemble AgentSight metadata. Only the internally assigned
+        // call kind can mark a row as originating from an agent-native session.
+        let is_agent_native = row.call_kind.as_deref() == Some("agent_native_prompt");
+        let is_observed_exec = row.call_kind.as_deref() == Some("observed_exec_prompt");
+        let prompt_source = if is_agent_native || is_observed_exec {
+            "local"
+        } else {
+            "ssl"
+        };
+        let (view_source, confidence) = if is_agent_native {
+            (crate::model::AGENT_NATIVE_SOURCE.to_string(), Some(0.95))
+        } else if is_observed_exec {
+            (row.view_source.clone(), row.confidence)
+        } else {
+            ("sqlite".to_string(), Some(0.5))
+        };
         prompts.push(AuditEventRow {
             id: format!("audit-{}-request", row.id),
             timestamp_ms: row.start_timestamp_ms,
@@ -167,6 +181,8 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
                 "provider": row.provider,
                 "path": row.path,
             }),
+            view_source,
+            confidence,
         });
     }
     prompts
@@ -271,7 +287,7 @@ fn local_prompt_llm_call_row(row: &AuditEventRow) -> Option<LlmCallRow> {
         comm: row.comm.clone(),
         provider: None,
         model: row.subject.clone().or_else(|| row.comm.clone()),
-        call_kind: Some("agent_native_prompt".to_string()),
+        call_kind: Some("observed_exec_prompt".to_string()),
         status: row.status.clone().unwrap_or_else(|| "observed".to_string()),
         error_type: None,
         finish_reason: None,
@@ -287,6 +303,8 @@ fn local_prompt_llm_call_row(row: &AuditEventRow) -> Option<LlmCallRow> {
             "target": row.target.as_deref(),
         }),
         response: Value::Null,
+        view_source: row.view_source.clone(),
+        confidence: row.confidence,
     })
 }
 
@@ -301,7 +319,7 @@ fn prompt_text_from_details(details: &Value) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::ViewSink;
+    use crate::model::{AGENT_NATIVE_SOURCE, ViewSink};
     use serde_json::json;
 
     #[test]
@@ -357,6 +375,49 @@ mod tests {
     }
 
     #[test]
+    fn captured_db_prompt_reconstruction_marks_sqlite_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("captured.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .llm_call(&ssl_call_row("claude-opus-4-6", "Captured prompt"))
+            .unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "sqlite");
+        assert_eq!(prompts[0].confidence, Some(0.5));
+    }
+
+    #[test]
+    fn captured_prompt_payload_cannot_forge_agent_native_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("captured-reserved-key.db");
+        let mut captured = ssl_call_row("claude-opus-4-6", "Captured prompt");
+        captured.request["prompt_source"] = Value::String(AGENT_NATIVE_SOURCE.to_string());
+        let mut store = SqliteStore::open(&db).unwrap();
+        store.llm_call(&captured).unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "sqlite");
+        assert_eq!(prompts[0].confidence, Some(0.5));
+        assert_eq!(
+            prompts[0]
+                .details
+                .get("prompt_source")
+                .and_then(Value::as_str),
+            Some("ssl")
+        );
+    }
+
+    #[test]
     fn observed_codex_exec_prompt_reprojects_as_llm_call() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("codex.db");
@@ -383,6 +444,101 @@ mod tests {
         assert_eq!(
             rows[0].request.get("prompt").and_then(Value::as_str),
             Some("agentsight local codex prompt")
+        );
+        let prompts = view.audit_rows(Some("llm"), 10);
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "unknown");
+        assert_eq!(prompts[0].confidence, None);
+    }
+
+    #[test]
+    fn captured_exec_prompt_loader_preserves_view_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("captured-exec.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .audit_event(&AuditEventRow {
+                id: "captured-exec".to_string(),
+                timestamp_ms: 1_000,
+                audit_type: "process".to_string(),
+                pid: Some(42),
+                comm: Some("codex".to_string()),
+                subject: None,
+                action: Some("exec".to_string()),
+                target: Some("/usr/bin/codex".to_string()),
+                status: Some("observed".to_string()),
+                summary: None,
+                details: json!({
+                    "full_command": concat!(
+                        "/usr/bin/codex exec --skip-git-repo-check ",
+                        "agentsight captured provenance prompt"
+                    ),
+                }),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
+            })
+            .unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "view");
+        assert_eq!(prompts[0].confidence, Some(0.75));
+    }
+
+    #[test]
+    fn captured_exec_prompt_preserves_provenance_after_llm_call_round_trip() {
+        let temp = tempfile::tempdir().unwrap();
+        let source_db = temp.path().join("captured-exec-source.db");
+        let mut source_store = SqliteStore::open(&source_db).unwrap();
+        source_store
+            .audit_event(&AuditEventRow {
+                id: "captured-exec-round-trip".to_string(),
+                timestamp_ms: 1_000,
+                audit_type: "process".to_string(),
+                pid: Some(42),
+                comm: Some("codex".to_string()),
+                subject: None,
+                action: Some("exec".to_string()),
+                target: Some("/usr/bin/codex".to_string()),
+                status: Some("observed".to_string()),
+                summary: None,
+                details: json!({
+                    "full_command": concat!(
+                        "/usr/bin/codex exec --skip-git-repo-check ",
+                        "agentsight round trip provenance prompt"
+                    ),
+                }),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
+            })
+            .unwrap();
+        drop(source_store);
+
+        let source_view = load_view_with_observed_session_prompts(&source_db).unwrap();
+        let calls = source_view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].call_kind.as_deref(), Some("observed_exec_prompt"));
+
+        let round_trip_db = temp.path().join("captured-exec-round-trip.db");
+        let mut round_trip_store = SqliteStore::open(&round_trip_db).unwrap();
+        round_trip_store.llm_call(&calls[0]).unwrap();
+        drop(round_trip_store);
+
+        let round_trip_view = load_view_with_observed_session_prompts(&round_trip_db).unwrap();
+        let prompts = round_trip_view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "view");
+        assert_eq!(prompts[0].confidence, Some(0.75));
+        assert_eq!(
+            prompts[0]
+                .details
+                .get("prompt_source")
+                .and_then(Value::as_str),
+            Some("local")
         );
     }
 
@@ -415,6 +571,8 @@ mod tests {
                         "-c model=gpt agentsight local codex prompt"
                     ),
                 }),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
             })
             .unwrap();
         drop(store);
@@ -459,6 +617,43 @@ mod tests {
             Some("agentsight inferred codex home prompt")
         );
         assert_eq!(snapshot.sessions.len(), 1);
+        let prompts = view.audit_rows(Some("llm"), 10);
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, AGENT_NATIVE_SOURCE);
+        assert_eq!(prompts[0].confidence, Some(0.95));
+    }
+
+    #[test]
+    fn mixed_db_and_agent_native_prompts_keep_provenance_distinct() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(temp.path(), "agentsight mixed local prompt");
+        let db = temp.path().join("mixed.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .llm_call(&ssl_call_row("claude-opus-4-6", "Captured prompt"))
+            .unwrap();
+        insert_exec_event(
+            &store,
+            current_epoch_ms(),
+            "/usr/bin/codex exec --skip-git-repo-check agentsight mixed local prompt",
+        );
+        insert_file_event(&store, current_epoch_ms() + 100, &state_path);
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 2);
+        assert!(
+            prompts
+                .iter()
+                .any(|row| row.view_source == "sqlite" && row.confidence == Some(0.5))
+        );
+        assert!(
+            prompts.iter().any(|row| {
+                row.view_source == AGENT_NATIVE_SOURCE && row.confidence == Some(0.95)
+            })
+        );
     }
 
     #[test]
@@ -510,6 +705,8 @@ mod tests {
                 ]
             }),
             response: Value::Null,
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 
@@ -538,6 +735,8 @@ mod tests {
                 "text_content": text,
                 "prompt_source": "local"
             }),
+            view_source: crate::model::AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
         }
     }
 

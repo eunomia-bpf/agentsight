@@ -109,6 +109,19 @@ Their totals are available through `summary` and `token_summary`.
 | `status` | string | Yes | Usually categorical metadata. |
 | `summary` | string | Yes | Yes; source-derived event summary. |
 | `details` | any JSON value | No | **Yes; arbitrary source event details.** |
+| `view_source` | string | No | No; identifies captured, reconstructed, agent-native, or legacy-unknown provenance. |
+| `confidence` | number | Yes | No; source-specific confidence in the row correlation or reconstruction. |
+
+`view_source` describes the lineage of each row, not the identity of the logical
+operation. Its values are `view` for rows emitted directly from captured events,
+`sqlite` for rows reconstructed from normalized persisted rows,
+`agent_native_session` for rows parsed from native session files, and `unknown`
+for legacy or otherwise unclassified evidence. One logical LLM call can therefore
+have a directly captured `call` row and a reconstructed `request` row with different
+sources. `confidence` is likewise row-specific: captured LLM rows reflect request/response
+correlation confidence, other captured event types carry canonical-event confidence, and
+reconstructed rows reflect extraction and lineage confidence. It must not be compared
+across sources as a global probability.
 
 ## `resource_samples[]`
 
@@ -171,4 +184,6 @@ sensitive by default and do not publish them without review. In particular:
   retention and access controls.
 
 The sample in [`docs/sample-snapshot.json`](sample-snapshot.json) is an
-example payload, not an additional compatibility contract.
+example payload, not an additional compatibility contract. It predates the additive
+audit provenance fields, so consumers should treat missing audit `view_source` and
+`confidence` values as `unknown` and `null`, respectively.

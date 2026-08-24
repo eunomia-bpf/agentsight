@@ -39,6 +39,8 @@ struct ObservedCodexPrompt {
     native_exec: bool,
     comm: Option<String>,
     target: Option<String>,
+    view_source: String,
+    confidence: Option<f32>,
 }
 
 pub fn snapshot(
@@ -859,16 +861,18 @@ fn llm_row_for_session(
         total_tokens: usage.total_tokens,
         request,
         response: Value::Null,
+        view_source: AGENT_NATIVE_SOURCE.to_string(),
+        confidence: Some(0.95),
     }
 }
 
 pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
-    let mut rows = Vec::new();
+    let mut rows: Vec<AuditEventRow> = Vec::new();
     let mut seen = HashSet::new();
     let observed_exec_prompts = observed_codex_exec_prompts(audit_rows);
     let mut seen_exec_prompts: Vec<ObservedCodexPrompt> = Vec::new();
     for observed in observed_exec_prompts {
-        if seen_exec_prompts.iter().any(|seen| {
+        if let Some(index) = seen_exec_prompts.iter().position(|seen| {
             seen.prompt == observed.prompt
                 && timestamps_close(
                     seen.timestamp_ms,
@@ -877,29 +881,19 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 )
                 && (!seen.native_exec || !observed.native_exec)
         }) {
+            if prompt_provenance_is_stronger(&observed, &seen_exec_prompts[index]) {
+                let dedupe_native_exec =
+                    seen_exec_prompts[index].native_exec && observed.native_exec;
+                seen_exec_prompts[index] = observed.clone();
+                // Keep wrapper/native grouping sticky even when the stronger full
+                // observation is native, so a later native row cannot split the group.
+                seen_exec_prompts[index].native_exec = dedupe_native_exec;
+                rows[index] = observed_exec_prompt_row(observed);
+            }
             continue;
         }
         seen_exec_prompts.push(observed.clone());
-        rows.push(AuditEventRow {
-            id: format!(
-                "audit-codex-exec-prompt-{}-{}",
-                observed.timestamp_ms,
-                observed.pid.unwrap_or(0)
-            ),
-            timestamp_ms: observed.timestamp_ms,
-            audit_type: "llm".to_string(),
-            pid: observed.pid,
-            comm: observed.comm.or_else(|| Some("codex".to_string())),
-            subject: None,
-            action: Some("request".to_string()),
-            target: observed.target,
-            status: Some("observed".to_string()),
-            summary: Some(truncate_text(&observed.prompt, 160)),
-            details: serde_json::json!({
-                "text_content": observed.prompt,
-                "prompt_source": "local",
-            }),
-        });
+        rows.push(observed_exec_prompt_row(observed));
     }
     for row in audit_rows {
         if row.audit_type == "process" && row.action.as_deref() == Some("exec") {
@@ -947,9 +941,55 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 "conversation_id": session.conversation_id.as_deref(),
                 "agent_type": session.agent_type,
             }),
+            view_source: AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
         });
     }
     rows
+}
+
+fn observed_exec_prompt_row(observed: ObservedCodexPrompt) -> AuditEventRow {
+    let summary = truncate_text(&observed.prompt, 160);
+    AuditEventRow {
+        id: format!(
+            "audit-codex-exec-prompt-{}-{}",
+            observed.timestamp_ms,
+            observed.pid.unwrap_or(0)
+        ),
+        timestamp_ms: observed.timestamp_ms,
+        audit_type: "llm".to_string(),
+        pid: observed.pid,
+        comm: observed.comm.or_else(|| Some("codex".to_string())),
+        subject: None,
+        action: Some("request".to_string()),
+        target: observed.target,
+        status: Some("observed".to_string()),
+        summary: Some(summary),
+        details: serde_json::json!({
+            "text_content": observed.prompt,
+            "prompt_source": "local",
+        }),
+        view_source: observed.view_source,
+        confidence: observed.confidence,
+    }
+}
+
+fn prompt_provenance_is_stronger(
+    candidate: &ObservedCodexPrompt,
+    current: &ObservedCodexPrompt,
+) -> bool {
+    let source_rank = |source: &str| match source {
+        "agent_native_session" => 4,
+        "view" => 3,
+        "sqlite" => 2,
+        "unknown" => 1,
+        _ => 0,
+    };
+    let candidate_rank = source_rank(&candidate.view_source);
+    let current_rank = source_rank(&current.view_source);
+    candidate_rank > current_rank
+        || (candidate_rank == current_rank
+            && candidate.confidence.unwrap_or(-1.0) > current.confidence.unwrap_or(-1.0))
 }
 
 pub fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) -> Vec<LocalSession> {
@@ -1035,6 +1075,8 @@ fn observed_codex_exec_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedCode
                 native_exec: looks_like_native_codex_exec(row),
                 comm: row.comm.clone(),
                 target: row.target.clone(),
+                view_source: row.view_source.clone(),
+                confidence: row.confidence,
             })
         })
         .collect::<Vec<_>>();
@@ -2068,6 +2110,11 @@ mod tests {
         let projected = observed_session_prompt_rows(&rows);
         assert_eq!(projected[0].comm.as_deref(), Some("node"));
         assert_eq!(projected[0].target.as_deref(), Some("/usr/bin/node"));
+        assert!(
+            projected
+                .iter()
+                .all(|row| row.view_source == "view" && row.confidence == Some(0.75))
+        );
         let prompts = projected
             .into_iter()
             .map(|row| row.summary)
@@ -2085,6 +2132,65 @@ mod tests {
                 Some("agentsight should parse once".to_string()),
             ]
         );
+    }
+
+    #[test]
+    fn codex_exec_prompt_dedupe_keeps_stronger_provenance() {
+        let mut legacy_wrapper = exec_row(
+            "legacy-wrapper",
+            1_000,
+            "node",
+            "/usr/bin/node /opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        legacy_wrapper.view_source = "unknown".to_string();
+        legacy_wrapper.confidence = None;
+        let captured_native = exec_row(
+            "captured-native",
+            1_001,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        let repeated_native = exec_row(
+            "repeated-native",
+            1_002,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+
+        let projected =
+            observed_session_prompt_rows(&[legacy_wrapper, captured_native, repeated_native]);
+
+        assert_eq!(projected.len(), 1);
+        assert_eq!(projected[0].comm.as_deref(), Some("codex"));
+        assert_eq!(projected[0].view_source, "view");
+        assert_eq!(projected[0].confidence, Some(0.75));
+    }
+
+    #[test]
+    fn codex_exec_prompt_dedupe_does_not_promote_unrecognized_provenance() {
+        let mut legacy_wrapper = exec_row(
+            "legacy-wrapper",
+            1_000,
+            "node",
+            "/usr/bin/node /opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        legacy_wrapper.view_source = "unknown".to_string();
+        legacy_wrapper.confidence = Some(0.01);
+        let mut unrecognized_native = exec_row(
+            "unrecognized-native",
+            1_001,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        unrecognized_native.view_source = "vieww".to_string();
+        unrecognized_native.confidence = Some(0.99);
+
+        let projected = observed_session_prompt_rows(&[legacy_wrapper, unrecognized_native]);
+
+        assert_eq!(projected.len(), 1);
+        assert_eq!(projected[0].comm.as_deref(), Some("node"));
+        assert_eq!(projected[0].view_source, "unknown");
+        assert_eq!(projected[0].confidence, Some(0.01));
     }
 
     #[test]
@@ -2107,6 +2213,8 @@ mod tests {
                 native_exec: true,
                 comm: Some("codex".to_string()),
                 target: Some("/usr/bin/codex".to_string()),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
             }]
         ));
         assert!(!session_is_in_observed_window(
@@ -2128,6 +2236,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: serde_json::json!({ "full_command": full_command }),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 
@@ -2144,6 +2254,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: serde_json::json!({ "filepath": path.to_string_lossy() }),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

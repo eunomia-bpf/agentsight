@@ -191,6 +191,7 @@ impl MaterializedView {
             status_code,
             req.body_json.as_ref(),
             response_body.as_ref(),
+            confidence,
         );
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
@@ -222,6 +223,7 @@ impl MaterializedView {
             },
             "LLM call",
             response_body.as_ref(),
+            confidence,
         )?;
         self.emit_llm_call(call_row)
     }
@@ -245,6 +247,7 @@ impl MaterializedView {
             None,
             req.body_json.as_ref(),
             None,
+            0.75,
         );
         emit_llm_audit(
             self,
@@ -258,6 +261,7 @@ impl MaterializedView {
             "orphan_request",
             "LLM request",
             req.body_json.as_ref(),
+            0.75,
         )?;
         self.emit_llm_call(call_row)
     }
@@ -289,6 +293,7 @@ impl MaterializedView {
             resp.status_code,
             None,
             response_body.as_ref(),
+            0.35,
         );
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
@@ -316,6 +321,7 @@ impl MaterializedView {
             "orphan_response",
             "LLM response",
             response_body.as_ref(),
+            0.35,
         )?;
         self.emit_llm_call(call_row)
     }
@@ -581,6 +587,8 @@ impl MaterializedView {
             status: Some(process_audit_status(action, &event.attributes).to_string()),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
+            view_source: "view".to_string(),
+            confidence: event.confidence,
         })?;
         if let Some(row) = self
             .process_node_id(event, action)
@@ -628,6 +636,8 @@ impl MaterializedView {
             status: Some("observed".to_string()),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
+            view_source: "view".to_string(),
+            confidence: event.confidence,
         })
     }
 
@@ -650,6 +660,8 @@ impl MaterializedView {
             status: Some("observed".to_string()),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
+            view_source: "view".to_string(),
+            confidence: event.confidence,
         })
     }
 }
@@ -667,6 +679,7 @@ fn emit_llm_audit(
     status: &str,
     summary: &str,
     details: Option<&Value>,
+    confidence: f32,
 ) -> ViewResult<()> {
     view.emit_audit_event(AuditEventRow {
         id: format!("audit-{llm_call_id}-{action}"),
@@ -680,6 +693,8 @@ fn emit_llm_audit(
         status: Some(status.to_string()),
         summary: Some(summary.to_string()),
         details: details.cloned().unwrap_or_else(|| serde_json::json!({})),
+        view_source: "view".to_string(),
+        confidence: Some(confidence),
     })
 }
 
@@ -892,6 +907,7 @@ fn llm_call_row(
     status_code: Option<u16>,
     request_body: Option<&Value>,
     response_body: Option<&Value>,
+    confidence: f32,
 ) -> LlmCallRow {
     let status = llm_call_status(end_timestamp_ms, status_code);
     let error_type = status_code
@@ -925,6 +941,8 @@ fn llm_call_row(
         total_tokens: 0,
         request: request_body.cloned().unwrap_or(Value::Null),
         response: response_body.cloned().unwrap_or(Value::Null),
+        view_source: "view".to_string(),
+        confidence: Some(confidence),
     }
 }
 
@@ -1104,14 +1122,90 @@ mod tests {
         view.ingest_event(&resp).expect("ingest response");
 
         let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 });
-        let llm_actions = snapshot
+        let llm_audits = snapshot
             .audit_events
             .iter()
             .filter(|row| row.audit_type == "llm")
+            .collect::<Vec<_>>();
+        let llm_actions = llm_audits
+            .iter()
             .filter_map(|row| row.action.as_deref())
             .collect::<Vec<_>>();
         assert!(llm_actions.contains(&"request"));
         assert!(llm_actions.contains(&"call"));
+        assert!(
+            llm_audits
+                .iter()
+                .all(|row| row.view_source == "view" && row.confidence == Some(0.75))
+        );
+    }
+
+    #[test]
+    fn llm_call_keeps_exact_request_id_match_confidence() {
+        let mut view = MaterializedView::new();
+        let req = Event::new_with_timestamp(
+            1_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "request_id": "req-exact",
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/messages",
+                "headers": { "host": "api.anthropic.com" },
+                "body": "{\"model\":\"claude-sonnet\"}"
+            }),
+        );
+        let resp = Event::new_with_timestamp(
+            2_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "request_id": "req-exact",
+                "message_type": "response",
+                "status_code": 200,
+                "headers": { "host": "api.anthropic.com" },
+                "body": "{\"usage\":{\"input_tokens\":1,\"output_tokens\":2}}"
+            }),
+        );
+
+        view.ingest_event(&req).expect("ingest request");
+        view.ingest_event(&resp).expect("ingest response");
+
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].view_source, "view");
+        assert_eq!(calls[0].confidence, Some(0.95));
+    }
+
+    #[test]
+    fn orphan_llm_response_keeps_low_confidence() {
+        let mut view = MaterializedView::new();
+        let resp = Event::new_with_timestamp(
+            2_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "request_id": "missing-request",
+                "message_type": "response",
+                "status_code": 200,
+                "headers": { "host": "api.anthropic.com" },
+                "body": "{\"model\":\"claude-sonnet\",\"usage\":{\"input_tokens\":1,\"output_tokens\":2}}"
+            }),
+        );
+
+        view.ingest_event(&resp).expect("ingest orphan response");
+
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].view_source, "view");
+        assert_eq!(calls[0].confidence, Some(0.35));
     }
 
     #[test]

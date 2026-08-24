@@ -1102,6 +1102,8 @@ mod tests {
                 ]
             }),
             response: serde_json::json!({}),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

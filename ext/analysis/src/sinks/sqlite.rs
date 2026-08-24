@@ -45,6 +45,7 @@ impl SqliteStore {
         self.conn.pragma_update(None, "foreign_keys", "ON")?;
         self.conn.execute_batch(SCHEMA)?;
         self.ensure_llm_call_columns()?;
+        self.ensure_audit_event_columns()?;
         Ok(())
     }
 
@@ -56,10 +57,27 @@ impl SqliteStore {
             ("status", "TEXT NOT NULL DEFAULT 'observed'"),
             ("error_type", "TEXT"),
             ("finish_reason", "TEXT"),
+            ("view_source", "TEXT NOT NULL DEFAULT 'unknown'"),
+            ("confidence", "REAL"),
         ] {
             if !self.has_column("llm_calls", column) {
                 self.conn.execute(
                     &format!("ALTER TABLE llm_calls ADD COLUMN {column} {ty}"),
+                    [],
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    fn ensure_audit_event_columns(&self) -> ViewResult<()> {
+        for (column, ty) in [
+            ("view_source", "TEXT NOT NULL DEFAULT 'unknown'"),
+            ("confidence", "REAL"),
+        ] {
+            if !self.has_column("audit_events", column) {
+                self.conn.execute(
+                    &format!("ALTER TABLE audit_events ADD COLUMN {column} {ty}"),
                     [],
                 )?;
             }
@@ -135,8 +153,8 @@ impl SqliteStore {
                 call.status_code.map(|v| v as i64),
                 call.request.to_string(),
                 call.response.to_string(),
-                "live_view",
-                1.0f32,
+                call.view_source,
+                call.confidence,
             ],
         )?;
         Ok(())
@@ -174,8 +192,8 @@ impl SqliteStore {
         self.conn.execute(
             "INSERT OR REPLACE INTO audit_events (
                 id, timestamp_ms, audit_type, pid, comm, subject,
-                action, target, status, summary, details_json
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                action, target, status, summary, details_json, view_source, confidence
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 audit.id,
                 audit.timestamp_ms as i64,
@@ -188,6 +206,8 @@ impl SqliteStore {
                 audit.status.as_deref(),
                 audit.summary.as_deref(),
                 audit.details.to_string(),
+                audit.view_source,
+                audit.confidence,
             ],
         )?;
         Ok(())
@@ -279,6 +299,8 @@ impl SqliteStore {
             ("status", "'observed' AS status"),
             ("error_type", "NULL AS error_type"),
             ("finish_reason", "NULL AS finish_reason"),
+            ("view_source", "'unknown' AS view_source"),
+            ("confidence", "NULL AS confidence"),
         ];
         let optional_select = optional_cols
             .iter()
@@ -431,12 +453,23 @@ impl SqliteStore {
     }
 
     pub fn all_audit_event_rows(&self) -> ViewResult<Vec<AuditEventRow>> {
-        let mut stmt = self.conn.prepare(
+        let view_source_col = if self.has_column("audit_events", "view_source") {
+            "view_source"
+        } else {
+            "'unknown' AS view_source"
+        };
+        let confidence_col = if self.has_column("audit_events", "confidence") {
+            "confidence"
+        } else {
+            "NULL AS confidence"
+        };
+        let sql = format!(
             "SELECT id, timestamp_ms, audit_type, pid, comm, subject, action,
-                    target, status, summary, details_json
+                    target, status, summary, details_json, {view_source_col}, {confidence_col}
              FROM audit_events
-             ORDER BY timestamp_ms, id",
-        )?;
+             ORDER BY timestamp_ms, id"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
         let rows = stmt.query_map([], read_audit_event_row)?;
         collect_rows(rows)
     }
@@ -514,8 +547,8 @@ impl ViewSink for SqliteStore {
 }
 
 fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
-    let request_json: String = row.get(16)?;
-    let response_json: String = row.get(17)?;
+    let request_json: String = row.get(18)?;
+    let response_json: String = row.get(19)?;
     Ok(LlmCallRow {
         id: row.get(0)?,
         session_id: row.get(1)?,
@@ -526,15 +559,19 @@ fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
             .unwrap_or_else(|| "observed".to_string()),
         error_type: row.get(5)?,
         finish_reason: row.get(6)?,
-        start_timestamp_ms: row.get::<_, i64>(7)? as u64,
-        end_timestamp_ms: row.get::<_, Option<i64>>(8)?.map(|v| v as u64),
-        pid: row.get::<_, Option<i64>>(9)?.map(|v| v as u32),
-        comm: row.get(10)?,
-        provider: row.get(11)?,
-        model: row.get(12)?,
-        host: row.get(13)?,
-        path: row.get(14)?,
-        status_code: row.get::<_, Option<i64>>(15)?.map(|v| v as u16),
+        view_source: row
+            .get::<_, Option<String>>(7)?
+            .unwrap_or_else(|| "unknown".to_string()),
+        confidence: row.get(8)?,
+        start_timestamp_ms: row.get::<_, i64>(9)? as u64,
+        end_timestamp_ms: row.get::<_, Option<i64>>(10)?.map(|v| v as u64),
+        pid: row.get::<_, Option<i64>>(11)?.map(|v| v as u32),
+        comm: row.get(12)?,
+        provider: row.get(13)?,
+        model: row.get(14)?,
+        host: row.get(15)?,
+        path: row.get(16)?,
+        status_code: row.get::<_, Option<i64>>(17)?.map(|v| v as u16),
         input_tokens: 0,
         output_tokens: 0,
         total_tokens: 0,
@@ -557,6 +594,10 @@ fn read_audit_event_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditEventR
         status: row.get(8)?,
         summary: row.get(9)?,
         details: parse_json_value(&details_json),
+        view_source: row
+            .get::<_, Option<String>>(11)?
+            .unwrap_or_else(|| "unknown".to_string()),
+        confidence: row.get(12)?,
     })
 }
 
@@ -657,7 +698,9 @@ CREATE TABLE IF NOT EXISTS audit_events (
   target TEXT,
   status TEXT,
   summary TEXT,
-  details_json TEXT NOT NULL DEFAULT '{}'
+  details_json TEXT NOT NULL DEFAULT '{}',
+  view_source TEXT NOT NULL DEFAULT 'unknown',
+  confidence REAL
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_type_time ON audit_events(audit_type, timestamp_ms);
@@ -719,6 +762,34 @@ CREATE TABLE IF NOT EXISTS resource_samples (
 mod tests {
     use super::*;
 
+    fn create_legacy_audit_db(path: &Path) {
+        let conn = Connection::open(path).unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE audit_events (
+              id TEXT PRIMARY KEY,
+              timestamp_ms INTEGER NOT NULL,
+              audit_type TEXT NOT NULL,
+              pid INTEGER,
+              comm TEXT,
+              subject TEXT,
+              action TEXT,
+              target TEXT,
+              status TEXT,
+              summary TEXT,
+              details_json TEXT NOT NULL DEFAULT '{}'
+            );
+            INSERT INTO audit_events (
+              id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
+            ) VALUES (
+              'legacy-audit', 1000, 'file', 42, 'agent', 'write', '/tmp/example',
+              'observed', '{}'
+            );
+            "#,
+        )
+        .unwrap();
+    }
+
     #[test]
     fn open_migrates_legacy_llm_calls_schema() {
         let temp = tempfile::tempdir().unwrap();
@@ -739,18 +810,14 @@ mod tests {
                   path TEXT,
                   status_code INTEGER,
                   request_body_json TEXT,
-                  response_body_json TEXT,
-                  view_source TEXT,
-                  confidence REAL
+                  response_body_json TEXT
                 );
                 INSERT INTO llm_calls (
                   id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
-                  host, path, status_code, request_body_json, response_body_json,
-                  view_source, confidence
+                  host, path, status_code, request_body_json, response_body_json
                 ) VALUES (
                   'legacy-call', 1000, 1100, 42, 'agent', 'openai', 'gpt-test',
-                  'api.openai.com', '/v1/chat/completions', 200, '{}', '{}',
-                  'view', 0.75
+                  'api.openai.com', '/v1/chat/completions', 200, '{}', '{}'
                 );
                 "#,
             )
@@ -765,6 +832,8 @@ mod tests {
             "status",
             "error_type",
             "finish_reason",
+            "view_source",
+            "confidence",
         ] {
             assert!(store.has_column("llm_calls", column), "{column}");
         }
@@ -775,5 +844,64 @@ mod tests {
         assert_eq!(calls[0].status, "observed");
         assert_eq!(calls[0].session_id, None);
         assert_eq!(calls[0].conversation_id, None);
+        assert_eq!(calls[0].view_source, "unknown");
+        assert_eq!(calls[0].confidence, None);
+    }
+
+    #[test]
+    fn readonly_legacy_audit_rows_have_unknown_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("legacy-audit-readonly.db");
+        create_legacy_audit_db(&db);
+
+        let store = SqliteStore::open_readonly(&db).unwrap();
+        let rows = store.all_audit_event_rows().unwrap();
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].view_source, "unknown");
+        assert_eq!(rows[0].confidence, None);
+    }
+
+    #[test]
+    fn open_migrates_legacy_audit_provenance_columns() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("legacy-audit-migrate.db");
+        create_legacy_audit_db(&db);
+
+        let store = SqliteStore::open(&db).unwrap();
+
+        assert!(store.has_column("audit_events", "view_source"));
+        assert!(store.has_column("audit_events", "confidence"));
+        let rows = store.all_audit_event_rows().unwrap();
+        assert_eq!(rows[0].view_source, "unknown");
+        assert_eq!(rows[0].confidence, None);
+    }
+
+    #[test]
+    fn audit_event_round_trips_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("audit-provenance.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .audit_event(&AuditEventRow {
+                id: "audit-provenance".to_string(),
+                timestamp_ms: 1_000,
+                audit_type: "network".to_string(),
+                pid: Some(42),
+                comm: Some("agent".to_string()),
+                subject: None,
+                action: Some("connect".to_string()),
+                target: Some("api.example.test:443".to_string()),
+                status: Some("observed".to_string()),
+                summary: None,
+                details: serde_json::json!({}),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
+            })
+            .unwrap();
+
+        let rows = store.all_audit_event_rows().unwrap();
+        assert_eq!(rows[0].view_source, "view");
+        assert_eq!(rows[0].confidence, Some(0.75));
     }
 }
