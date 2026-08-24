@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-//! Portable session IR, parsers, discovery, and process matching for local AI
-//! coding-agent transcripts.
+//! Portable session IR, parsers, and process correlation for local AI coding-agent transcripts.
 //!
-//! The crate currently normalizes Claude Code, Codex, and Gemini CLI sessions.
-//! It intentionally stops at session data and process/session correlation; UI,
-//! database storage, eBPF collection, and OpenTelemetry export belong in
-//! extensions that consume this crate.
+//! The crate normalizes Claude Code, Codex, and Gemini CLI sessions and keeps
+//! the correlation algorithm portable: callers supply process trees/evidence,
+//! while native process discovery, UI, storage, and telemetry export remain
+//! AgentSight host/analysis responsibilities.
 
 mod parser;
 mod process_match;

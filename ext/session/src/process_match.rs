@@ -98,7 +98,12 @@ impl SessionProcessMatcher {
     ) -> SessionProcessMatches {
         let path_evidence =
             collect_path_evidence(processes, fd_paths_by_process, observed_path_by_process);
-        self.retain_live(processes);
+        self.bindings.retain(|pid, binding| {
+            processes.iter().any(|process| {
+                process.tree.root.pid == *pid
+                    && process.tree.root.starttime_ticks == binding.starttime_ticks
+            })
+        });
 
         let mut out = SessionProcessMatches::default();
         for session in sessions {
@@ -152,15 +157,6 @@ impl SessionProcessMatcher {
             record_match(&mut out, session, process, TRACE_RECENT_CWD);
         }
         out
-    }
-
-    fn retain_live(&mut self, processes: &[LiveProcessCandidate]) {
-        self.bindings.retain(|pid, binding| {
-            processes.iter().any(|process| {
-                process.tree.root.pid == *pid
-                    && process.tree.root.starttime_ticks == binding.starttime_ticks
-            })
-        });
     }
 
     fn link_trace(
