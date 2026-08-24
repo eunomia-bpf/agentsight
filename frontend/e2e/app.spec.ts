@@ -26,9 +26,12 @@ test('anonymous entry offers both sign-in providers, language switching, and the
   await expect(page.getByRole('heading', { name: '打开你的 AgentSight 数据' })).toBeVisible();
   await expect(page.getByRole('button', { name: '使用 GitHub 继续' })).toBeVisible();
   await expect(page.getByRole('button', { name: '使用 Google 继续' })).toBeVisible();
-  await page.getByRole('button', { name: '进入演示' }).click();
-  await expect(page.getByText('录制演示').first()).toBeVisible();
-  await expect(page.getByRole('heading', { name: '当前机器上的 Agent' })).toBeVisible();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'EN', exact: true }).click();
+  await expect(dialog.getByRole('heading', { name: 'Open your AgentSight data' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Enter demo' }).click();
+  await expect(page.getByText('Recorded demo').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Agents on this machine' })).toBeVisible();
 });
 
 test('signed-in user opens a relay Node and sees machine value before session detail', async ({ page }) => {

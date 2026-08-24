@@ -483,12 +483,20 @@ export default function Home() {
     setSyncing(true);
     setError('');
     try {
-      const response = await fetch(`${basePath}/sample-snapshot.json`, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`${response.status}`);
-      const nextSnapshot = await response.json() as AgentSightSnapshot;
+      const [snapshotResponse, overviewResponse] = await Promise.all([
+        fetch(`${basePath}/sample-snapshot.json`, { cache: 'no-store' }),
+        fetch(`${basePath}/sample-overview.json`, { cache: 'no-store' }),
+      ]);
+      if (!snapshotResponse.ok || !overviewResponse.ok) {
+        throw new Error(`${snapshotResponse.status}/${overviewResponse.status}`);
+      }
+      const [nextSnapshot, nextOverview] = await Promise.all([
+        snapshotResponse.json() as Promise<AgentSightSnapshot>,
+        overviewResponse.json() as Promise<LiveOverview>,
+      ]);
       if (activationGeneration.current !== generation) return;
       setSnapshot(nextSnapshot);
-      setOverview(null);
+      setOverview(nextOverview);
       setActiveClient(null);
       setSelectedSessionId(null);
       setMode('demo');
