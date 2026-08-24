@@ -773,6 +773,8 @@ fn llm_row_for_session(
         total_tokens: usage.total_tokens,
         request,
         response: Value::Null,
+        view_source: AGENT_NATIVE_SOURCE.to_string(),
+        confidence: Some(0.95),
     }
 }
 
@@ -889,6 +891,7 @@ fn prompt_provenance_is_stronger(
     current: &ObservedCodexPrompt,
 ) -> bool {
     let source_rank = |source: &str| match source {
+        "agent_native_session" => 4,
         "view" => 3,
         "sqlite" => 2,
         "unknown" => 1,

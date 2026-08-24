@@ -149,11 +149,18 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
         // fields that resemble AgentSight metadata. Only the internally assigned
         // call kind can mark a row as originating from an agent-native session.
         let is_agent_native = row.call_kind.as_deref() == Some("agent_native_prompt");
-        let prompt_source = if is_agent_native { "local" } else { "ssl" };
-        let (view_source, confidence) = if is_agent_native {
-            (crate::model::AGENT_NATIVE_SOURCE, 0.95)
+        let is_observed_exec = row.call_kind.as_deref() == Some("observed_exec_prompt");
+        let prompt_source = if is_agent_native || is_observed_exec {
+            "local"
         } else {
-            ("sqlite", 0.5)
+            "ssl"
+        };
+        let (view_source, confidence) = if is_agent_native {
+            (crate::model::AGENT_NATIVE_SOURCE.to_string(), Some(0.95))
+        } else if is_observed_exec {
+            (row.view_source.clone(), row.confidence)
+        } else {
+            ("sqlite".to_string(), Some(0.5))
         };
         prompts.push(AuditEventRow {
             id: format!("audit-{}-request", row.id),
@@ -174,8 +181,8 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
                 "provider": row.provider,
                 "path": row.path,
             }),
-            view_source: view_source.to_string(),
-            confidence: Some(confidence),
+            view_source,
+            confidence,
         });
     }
     prompts
@@ -280,7 +287,7 @@ fn local_prompt_llm_call_row(row: &AuditEventRow) -> Option<LlmCallRow> {
         comm: row.comm.clone(),
         provider: None,
         model: row.subject.clone().or_else(|| row.comm.clone()),
-        call_kind: Some("agent_native_prompt".to_string()),
+        call_kind: Some("observed_exec_prompt".to_string()),
         status: row.status.clone().unwrap_or_else(|| "observed".to_string()),
         error_type: None,
         finish_reason: None,
@@ -296,6 +303,8 @@ fn local_prompt_llm_call_row(row: &AuditEventRow) -> Option<LlmCallRow> {
             "target": row.target.as_deref(),
         }),
         response: Value::Null,
+        view_source: row.view_source.clone(),
+        confidence: row.confidence,
     })
 }
 
@@ -480,6 +489,60 @@ mod tests {
     }
 
     #[test]
+    fn captured_exec_prompt_preserves_provenance_after_llm_call_round_trip() {
+        let temp = tempfile::tempdir().unwrap();
+        let source_db = temp.path().join("captured-exec-source.db");
+        let mut source_store = SqliteStore::open(&source_db).unwrap();
+        source_store
+            .audit_event(&AuditEventRow {
+                id: "captured-exec-round-trip".to_string(),
+                timestamp_ms: 1_000,
+                audit_type: "process".to_string(),
+                pid: Some(42),
+                comm: Some("codex".to_string()),
+                subject: None,
+                action: Some("exec".to_string()),
+                target: Some("/usr/bin/codex".to_string()),
+                status: Some("observed".to_string()),
+                summary: None,
+                details: json!({
+                    "full_command": concat!(
+                        "/usr/bin/codex exec --skip-git-repo-check ",
+                        "agentsight round trip provenance prompt"
+                    ),
+                }),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
+            })
+            .unwrap();
+        drop(source_store);
+
+        let source_view = load_view_with_observed_session_prompts(&source_db).unwrap();
+        let calls = source_view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].call_kind.as_deref(), Some("observed_exec_prompt"));
+
+        let round_trip_db = temp.path().join("captured-exec-round-trip.db");
+        let mut round_trip_store = SqliteStore::open(&round_trip_db).unwrap();
+        round_trip_store.llm_call(&calls[0]).unwrap();
+        drop(round_trip_store);
+
+        let round_trip_view = load_view_with_observed_session_prompts(&round_trip_db).unwrap();
+        let prompts = round_trip_view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "view");
+        assert_eq!(prompts[0].confidence, Some(0.75));
+        assert_eq!(
+            prompts[0]
+                .details
+                .get("prompt_source")
+                .and_then(Value::as_str),
+            Some("local")
+        );
+    }
+
+    #[test]
     fn codex_exec_prompt_dedupes_against_ssl_row_without_local_model() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("codex.db");
@@ -642,6 +705,8 @@ mod tests {
                 ]
             }),
             response: Value::Null,
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

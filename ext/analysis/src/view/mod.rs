@@ -828,6 +828,8 @@ mod tests {
             total_tokens: 0,
             request: json!({}),
             response: json!({}),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

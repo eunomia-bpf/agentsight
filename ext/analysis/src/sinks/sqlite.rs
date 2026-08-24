@@ -57,6 +57,8 @@ impl SqliteStore {
             ("status", "TEXT NOT NULL DEFAULT 'observed'"),
             ("error_type", "TEXT"),
             ("finish_reason", "TEXT"),
+            ("view_source", "TEXT NOT NULL DEFAULT 'unknown'"),
+            ("confidence", "REAL"),
         ] {
             if !self.has_column("llm_calls", column) {
                 self.conn.execute(
@@ -151,8 +153,8 @@ impl SqliteStore {
                 call.status_code.map(|v| v as i64),
                 call.request.to_string(),
                 call.response.to_string(),
-                "live_view",
-                1.0f32,
+                call.view_source,
+                call.confidence,
             ],
         )?;
         Ok(())
@@ -297,6 +299,8 @@ impl SqliteStore {
             ("status", "'observed' AS status"),
             ("error_type", "NULL AS error_type"),
             ("finish_reason", "NULL AS finish_reason"),
+            ("view_source", "'unknown' AS view_source"),
+            ("confidence", "NULL AS confidence"),
         ];
         let optional_select = optional_cols
             .iter()
@@ -543,8 +547,8 @@ impl ViewSink for SqliteStore {
 }
 
 fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
-    let request_json: String = row.get(16)?;
-    let response_json: String = row.get(17)?;
+    let request_json: String = row.get(18)?;
+    let response_json: String = row.get(19)?;
     Ok(LlmCallRow {
         id: row.get(0)?,
         session_id: row.get(1)?,
@@ -555,15 +559,19 @@ fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
             .unwrap_or_else(|| "observed".to_string()),
         error_type: row.get(5)?,
         finish_reason: row.get(6)?,
-        start_timestamp_ms: row.get::<_, i64>(7)? as u64,
-        end_timestamp_ms: row.get::<_, Option<i64>>(8)?.map(|v| v as u64),
-        pid: row.get::<_, Option<i64>>(9)?.map(|v| v as u32),
-        comm: row.get(10)?,
-        provider: row.get(11)?,
-        model: row.get(12)?,
-        host: row.get(13)?,
-        path: row.get(14)?,
-        status_code: row.get::<_, Option<i64>>(15)?.map(|v| v as u16),
+        view_source: row
+            .get::<_, Option<String>>(7)?
+            .unwrap_or_else(|| "unknown".to_string()),
+        confidence: row.get(8)?,
+        start_timestamp_ms: row.get::<_, i64>(9)? as u64,
+        end_timestamp_ms: row.get::<_, Option<i64>>(10)?.map(|v| v as u64),
+        pid: row.get::<_, Option<i64>>(11)?.map(|v| v as u32),
+        comm: row.get(12)?,
+        provider: row.get(13)?,
+        model: row.get(14)?,
+        host: row.get(15)?,
+        path: row.get(16)?,
+        status_code: row.get::<_, Option<i64>>(17)?.map(|v| v as u16),
         input_tokens: 0,
         output_tokens: 0,
         total_tokens: 0,
@@ -802,18 +810,14 @@ mod tests {
                   path TEXT,
                   status_code INTEGER,
                   request_body_json TEXT,
-                  response_body_json TEXT,
-                  view_source TEXT,
-                  confidence REAL
+                  response_body_json TEXT
                 );
                 INSERT INTO llm_calls (
                   id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
-                  host, path, status_code, request_body_json, response_body_json,
-                  view_source, confidence
+                  host, path, status_code, request_body_json, response_body_json
                 ) VALUES (
                   'legacy-call', 1000, 1100, 42, 'agent', 'openai', 'gpt-test',
-                  'api.openai.com', '/v1/chat/completions', 200, '{}', '{}',
-                  'view', 0.75
+                  'api.openai.com', '/v1/chat/completions', 200, '{}', '{}'
                 );
                 "#,
             )
@@ -828,6 +832,8 @@ mod tests {
             "status",
             "error_type",
             "finish_reason",
+            "view_source",
+            "confidence",
         ] {
             assert!(store.has_column("llm_calls", column), "{column}");
         }
@@ -838,6 +844,8 @@ mod tests {
         assert_eq!(calls[0].status, "observed");
         assert_eq!(calls[0].session_id, None);
         assert_eq!(calls[0].conversation_id, None);
+        assert_eq!(calls[0].view_source, "unknown");
+        assert_eq!(calls[0].confidence, None);
     }
 
     #[test]

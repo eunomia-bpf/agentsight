@@ -421,6 +421,8 @@ mod tests {
             total_tokens: 0,
             request,
             response: Value::Null,
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

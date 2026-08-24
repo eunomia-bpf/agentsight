@@ -63,6 +63,10 @@ pub struct LlmCallRow {
     pub total_tokens: i64,
     pub request: Value,
     pub response: Value,
+    #[serde(default = "default_audit_view_source")]
+    pub view_source: String,
+    #[serde(default)]
+    pub confidence: Option<f32>,
 }
 
 #[derive(Debug, Clone, Copy)]

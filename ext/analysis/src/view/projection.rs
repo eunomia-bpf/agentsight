@@ -937,6 +937,8 @@ fn llm_call_row(
         total_tokens: 0,
         request: request_body.cloned().unwrap_or(Value::Null),
         response: response_body.cloned().unwrap_or(Value::Null),
+        view_source: "view".to_string(),
+        confidence: Some(0.75),
     }
 }
 
