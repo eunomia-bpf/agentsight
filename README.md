@@ -38,7 +38,7 @@ agentsight top
 ```
 
 <div align="center">
-  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/ext/vis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
   <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across the ACTplane repository</em></p>
 </div>
 
@@ -79,8 +79,12 @@ AgentSight captures critical interactions that application-level tools miss:
 
 ### Prerequisites
 
-- **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended)
-- **sudo access**: optional for `top`; eBPF is enabled automatically when sudo is already available
+- **Windows, macOS, or Linux**: `top`, `bind`, `vis`, and `report` can use
+  agent-native session files without eBPF
+- **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended) for `record` and
+  the eBPF-backed debug commands
+- **sudo access on Linux**: optional for `top`; eBPF is enabled automatically
+  when sudo is already available
 
 For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
@@ -102,6 +106,13 @@ you want to record a specific command or inspect saved sessions.
 
 GitHub releases provide `agentsight-x86_64` and `agentsight-aarch64` for Linux.
 The unsuffixed `agentsight` asset remains an x86_64 compatibility alias.
+Native Windows builds are exercised by the Windows CI workflow; until a Windows
+release asset is published, download its `agentsight-windows-x86_64` artifact or
+build the collector crate from source.
+
+For Linux and Windows installation, background monitoring, Node binding,
+automatic startup, upgrades, and removal, see
+[Installation and Automatic Startup](docs/installation.md).
 
 #### Docker
 
@@ -154,7 +165,7 @@ Use `agentpprof` when you want a no-sudo pprof/folded-stack/SVG summary of
 local Codex or Claude session history:
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- \
+cargo run --manifest-path ext/pprof/Cargo.toml -- \
   --project-root . \
   --view tokens \
   -o agent.pb.gz
@@ -171,7 +182,7 @@ prompt tag, model, and token kind.
   <p><em>Offline token profile generated from real local bpf-benchmark coding-agent sessions</em></p>
 </div>
 
-See [agentpprof/README.md](agentpprof/README.md) for CLI details and the
+See [ext/pprof/README.md](ext/pprof/README.md) for CLI details and the
 [agentpprof profiling guide](docs/agentpprof.md#example-flamegraphs) for
 flamegraph examples, rendering, view selection, and deterministic tagging rules.
 

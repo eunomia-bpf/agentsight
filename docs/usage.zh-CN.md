@@ -125,11 +125,21 @@ sudo ./agentsight debug trace --ssl true --process false --server --http-filter 
 agentsight bind
 ```
 
-该命令默认在 `127.0.0.1:7395` 启动 API，打开带认证信息的连接链接，并在前台持续运行；
-退出命令后访问密钥失效，网页即无法继续读取。当前目录存在 `agentsight-*.db` 时默认读取最新一个，
-否则读取本机 agent session index；也可以用 `--db <capture.db>` 明确指定一次保存的捕获。
-随机 bearer 只放在 URL fragment 中，SPA 读取后立即从地址栏清除，并且只在本次命令
-进程内有效。Chrome 可能会请求允许该网页访问本地或私有网络。
+该命令默认在 `127.0.0.1:7395` 启动 API，打开带认证信息的连接链接，并在前台持续运行。
+不传 `--db` 时读取实时进程和本机 agent session index；使用 `--db <capture.db>` 才会明确读取
+一次保存的捕获。首屏是机器级实时 `top`：统一显示运行中/已停止
+的智能体、观测 Token 用量、数据源报告的订阅容量、Agent Plan、CPU 和 RSS。点击 session 后
+可展开对话、进程树与 AI 提示或分析视图。分析视图统一呈现 Token/模型用量、工具/文件/网络影响、
+失败、Session 资源和交互式时间线，并保留点击单个事件查看详情的能力；不再提供独立的 raw event
+或性能面板。会话详情在有界文本预算内保留最新 1,000 条提示、2,000 条回复和 2,000 条工具事件。
+Node 访问密钥保存在操作系统的 AgentSight
+配置目录并跨重启复用；连接链接只通过 URL fragment 把密钥交给浏览器，SPA 读取后立即从
+地址栏清除。Chrome 可能会请求允许该网页访问本地或私有网络。
+
+登录后，组织首页默认为“全部机器”。浏览器通过 Direct 或 Relay 向每个可达 Node 查询有界概览，
+只在浏览器内存中聚合机器状态、活动 Agent、已报告 Token、CPU/RSS、Agent Plan 和数据源报告的
+订阅窗口；可用机器选择器在多机总览和单个 Node 之间切换。AgentSight Cloud 只保存机器目录和
+访问策略，不会把聚合后的 evidence 复制进 D1。
 
 使用 `agentsight bind --no-open` 可手动复制链接，使用 `agentsight bind --qr` 可打印
 同一个链接的二维码。Local 只是自动发现的默认路径，并不是另一套协议：可以用
@@ -144,10 +154,11 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
 ```
 
 监听 `0.0.0.0` 或 `::` 时必须显式提供 `--endpoint`。非 loopback Node 应使用浏览器信任的
-HTTPS；私有网络本身不会绕过浏览器 mixed-content 规则。任何持有 fragment 的人都能在
-Node 进程运行期间使用该 bearer。Direct
-模式不会把 session 内容上传到 AgentSight 控制面；可选登录只在控制面保存身份、会话和
-Node 元数据。自托管登录还需要把 SPA 的 `NEXT_PUBLIC_CONTROL_PLANE_URL` 指向配套
+HTTPS；私有网络本身不会绕过浏览器 mixed-content 规则。应把访问密钥视为长期凭据：任何
+持有者都能在 Node 可达时调用 Node API。Direct 请求不经过 AgentSight Cloud；启用
+Controller Relay 时，选中的请求和响应会经过 Cloud runtime，但不会持久化到 D1。登录会在
+控制面保存账号、组织和 Node 协调数据。自托管登录还需要把 SPA 的
+`NEXT_PUBLIC_CONTROL_PLANE_URL` 指向配套
 Worker，并把 Worker 的 `APP_ORIGIN` 设为该 SPA origin。
 
 ### 对比总结

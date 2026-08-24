@@ -1,0 +1,27 @@
+[package]
+name = "agent-session"
+version = "0.5.9"
+edition = "2024"
+rust-version = "1.87"
+description = "Portable session IR, parsers, discovery, and process matching for local AI coding-agent transcripts."
+license = "MIT"
+repository = "https://github.com/eunomia-bpf/agentsight"
+homepage = "https://github.com/eunomia-bpf/agentsight/tree/master/ext/session"
+documentation = "https://docs.rs/agent-session"
+readme = "README.md"
+keywords = ["ai-agent", "codex", "claude", "gemini", "transcript"]
+categories = ["development-tools", "parser-implementations"]
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+chrono = "0.4"
+dirs = "6"
+hex = "0.4"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+sha2 = "0.10"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wit-bindgen = "0.57.1"

@@ -1,0 +1,25 @@
+[package]
+name = "agentsight-capture"
+version = "1.0.26"
+edition = "2024"
+rust-version = "1.87"
+description = "Compatibility facade for the AgentSight capture and analysis pipeline."
+license = "MIT"
+repository = "https://github.com/eunomia-bpf/agentsight"
+homepage = "https://github.com/eunomia-bpf/agentsight"
+readme = "README.md"
+keywords = ["ebpf", "ai-agent", "observability", "tracing", "linux"]
+categories = ["development-tools::debugging", "os::linux-apis"]
+include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
+
+[features]
+test-support = ["agentsight-analysis/test-support"]
+
+[dependencies]
+agentsight-analysis = { version = "1.0.26", path = "../../ext/analysis" }
+
+[dev-dependencies]
+async-trait = "0.1"
+futures = "0.3"
+serde_json = "1.0.140"
+tokio = { version = "1.0", features = ["full"] }

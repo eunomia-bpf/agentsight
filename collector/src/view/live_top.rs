@@ -2,7 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::model::{AuditCounters, SessionRow, Snapshot};
-use crate::output::{AgentTopOutput, AgentTopRow, TopOptions};
+use crate::output::{AgentProcessRow, AgentTopOutput, AgentTopRow, TopOptions};
 use crate::sources::agent_native as agent_native_sessions;
 use crate::sources::proc::{self as procfs, ProcSnapshot as LiveSample};
 use crate::view::process_select;
@@ -225,6 +225,13 @@ impl LiveView {
             if options.pid.is_some() && live.is_none() {
                 continue;
             }
+            let plan = session
+                .attributes
+                .get("plan")
+                .cloned()
+                .and_then(|value| serde_json::from_value(value).ok())
+                .unwrap_or_default();
+            let subscription = session.attributes.get("subscription").cloned();
             let command = session_attr(session, "prompt_preview")
                 .map(ToString::to_string)
                 .or_else(|| live.as_ref().map(|(row, _)| row.command.clone()))
@@ -277,6 +284,7 @@ impl LiveView {
                 })
                 .unwrap_or_default();
             rows.push(AgentTopRow {
+                session_id: session_attr(session, "session_id").map(ToString::to_string),
                 session: session_attr(session, "display_id")
                     .unwrap_or(session.id.as_str())
                     .to_string(),
@@ -311,6 +319,12 @@ impl LiveView {
                 last_message_at: session_attr(session, "last_message_at").map(ToString::to_string),
                 tool_breakdown,
                 file_breakdown,
+                process_details: live
+                    .as_ref()
+                    .map(|(row, _)| row.process_details.clone())
+                    .unwrap_or_default(),
+                plan,
+                subscription,
             });
         }
 
@@ -329,11 +343,15 @@ impl LiveView {
         }
 
         let local_summary = &session_snapshot.summary;
-        let local_total_tokens = local_summary.total_tokens;
         let capture_summary = capture.map(|capture| &capture.snapshot.summary);
-        let capture_total_tokens = capture
-            .map(|capture| capture.snapshot.summary.total_tokens)
-            .unwrap_or_default();
+        let local_has_counters = local_summary.view_events > 0
+            || local_summary.llm_calls > 0
+            || local_summary.total_tokens > 0;
+        let overview_summary = if local_has_counters {
+            local_summary
+        } else {
+            capture_summary.unwrap_or(local_summary)
+        };
         let has_agent_native = rows.iter().any(|row| row.evidence().agent_native);
         let has_proc = rows.iter().any(|row| row.evidence().proc);
         let has_ebpf = rows.iter().any(|row| row.evidence().ebpf);
@@ -343,6 +361,12 @@ impl LiveView {
         let mut notes = Vec::new();
         if has_agent_native {
             notes.push("agent-native sessions are the primary token/tool source".to_string());
+            if capture_summary.is_some() {
+                notes.push(
+                    "overview totals prefer agent-native counters and use live capture only as a fallback to avoid duplicate accounting"
+                        .to_string(),
+                );
+            }
         }
         if has_proc {
             notes.push(
@@ -354,7 +378,7 @@ impl LiveView {
         }
         if has_ebpf {
             notes.push(
-                "ebpf evidence is live process capture; SSL payload details still require record/stat"
+                "ebpf evidence is live process capture; SSL payload details still require record"
                     .to_string(),
             );
         }
@@ -419,15 +443,9 @@ impl LiveView {
         AgentTopOutput {
             mode: "live sessions",
             duration_s: 0.0,
-            view_events: local_summary.view_events
-                + capture_summary
-                    .map(|summary| summary.view_events)
-                    .unwrap_or_default(),
-            llm_calls: local_summary.llm_calls
-                + capture_summary
-                    .map(|summary| summary.llm_calls)
-                    .unwrap_or_default(),
-            total_tokens: local_total_tokens + capture_total_tokens,
+            view_events: overview_summary.view_events,
+            llm_calls: overview_summary.llm_calls,
+            total_tokens: overview_summary.total_tokens,
             rows,
             sections,
             failures,
@@ -635,6 +653,7 @@ fn live_process_rows(
             .unwrap_or_else(|| "agent".to_string());
 
         rows.push(AgentTopRow {
+            session_id: None,
             session: format!("proc:{root_pid}"),
             agent,
             pid: Some(root_pid),
@@ -660,6 +679,27 @@ fn live_process_rows(
             last_message_at: None,
             tool_breakdown: Vec::new(),
             file_breakdown: Vec::new(),
+            process_details: family
+                .iter()
+                .filter_map(|pid| sample.procs.get(pid))
+                .map(|proc_info| AgentProcessRow {
+                    pid: proc_info.pid,
+                    ppid: proc_info.ppid,
+                    start_timestamp_ms: procfs::process_start_timestamp_ms(
+                        proc_info.starttime_ticks,
+                    ),
+                    comm: proc_info.comm.clone(),
+                    command: proc_info.command.clone(),
+                    cwd: proc_info
+                        .cwd
+                        .as_ref()
+                        .map(|path| path.to_string_lossy().to_string()),
+                    cpu_percent: procfs::process_cpu_percent(proc_info, previous, sample),
+                    rss_mb: proc_info.rss_mb,
+                })
+                .collect(),
+            plan: Vec::new(),
+            subscription: None,
         });
     }
 
@@ -727,6 +767,11 @@ mod tests {
                 "display_id": "claude:cwd",
                 "cwd": "/work",
                 "last_message_at": "2026-07-12T10:00:00Z",
+                "subscription": {
+                    "provider": "claude",
+                    "observed_at": "2026-07-12T10:00:00Z",
+                    "primary": { "used_percent": 25 }
+                },
             }),
             ..Default::default()
         };
@@ -762,6 +807,14 @@ mod tests {
         assert_eq!(top.rows[0].pid, Some(42));
         assert_eq!(top.rows[0].trace, "agent-native+proc+cwd_recent");
         assert_eq!(top.rows[0].tokens, Some(42));
+        assert_eq!(
+            top.rows[0]
+                .subscription
+                .as_ref()
+                .and_then(|value| value.pointer("/primary/used_percent"))
+                .and_then(serde_json::Value::as_i64),
+            Some(25)
+        );
         assert_eq!(
             top.rows[0].last_message_at.as_deref(),
             Some("2026-07-12T10:00:00Z")
@@ -920,6 +973,87 @@ mod tests {
             .find(|(title, _, _)| *title == "Network")
             .unwrap();
         assert_eq!(network.2, vec![("api.example.test:443".to_string(), 1)]);
+    }
+
+    #[test]
+    fn live_overview_does_not_add_capture_totals_to_agent_native_totals() {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let sample = LiveSample::default();
+        let mut local = Snapshot::empty("agent-native");
+        local.summary.view_events = 12;
+        local.summary.llm_calls = 4;
+        local.summary.total_tokens = 100;
+        let mut captured = Snapshot::empty("capture");
+        captured.summary.view_events = 5;
+        captured.summary.llm_calls = 2;
+        captured.summary.total_tokens = 40;
+        let capture = LiveCaptureSnapshot::new(captured, 0);
+
+        let mut live_view = LiveView::default();
+        let top = live_view.build_top(&sample, Some(&capture), &local, &options);
+
+        assert_eq!(top.view_events, 12);
+        assert_eq!(top.llm_calls, 4);
+        assert_eq!(top.total_tokens, 100);
+    }
+
+    #[test]
+    fn live_overview_uses_capture_totals_when_native_counters_are_empty() {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let sample = LiveSample::default();
+        let mut captured = Snapshot::empty("capture");
+        captured.summary.view_events = 5;
+        captured.summary.llm_calls = 2;
+        captured.summary.total_tokens = 40;
+        let capture = LiveCaptureSnapshot::new(captured, 0);
+
+        let mut live_view = LiveView::default();
+        let top = live_view.build_top(
+            &sample,
+            Some(&capture),
+            &Snapshot::empty("agent-native"),
+            &options,
+        );
+
+        assert_eq!(top.view_events, 5);
+        assert_eq!(top.llm_calls, 2);
+        assert_eq!(top.total_tokens, 40);
+    }
+
+    #[test]
+    fn live_overview_does_not_mix_native_and_capture_counter_sources() {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let sample = LiveSample::default();
+        let mut local = Snapshot::empty("agent-native");
+        local.summary.view_events = 12;
+        local.summary.llm_calls = 4;
+        let mut captured = Snapshot::empty("capture");
+        captured.summary.view_events = 5;
+        captured.summary.llm_calls = 2;
+        captured.summary.total_tokens = 40;
+        let capture = LiveCaptureSnapshot::new(captured, 0);
+
+        let mut live_view = LiveView::default();
+        let top = live_view.build_top(&sample, Some(&capture), &local, &options);
+
+        assert_eq!(top.view_events, 12);
+        assert_eq!(top.llm_calls, 4);
+        assert_eq!(top.total_tokens, 0);
     }
 
     #[test]

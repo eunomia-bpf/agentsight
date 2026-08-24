@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-// The trace/record path now uses the TraceConfig struct instead of ~28
-// positional args. The remaining offenders are the raw `ssl`/`stdio`/`system`
-// CLI handlers and HTTPEvent::new; collapsing those is a follow-up, so the lint
-// stays allowed crate-wide until then.
 #![allow(clippy::too_many_arguments)]
 
 use clap::{Parser, Subcommand};
 use std::collections::VecDeque;
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex, OnceLock,
@@ -44,14 +40,11 @@ use cli_db::{
     run_token_query,
 };
 use cmd_bind::run_bind;
-use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
 use cmd_perf_live::{run_live_top_query, start_live_ebpf_capture};
 use cmd_perf_tui::run_live_top_tui;
-use cmd_trace::{
-    OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
-};
+use cmd_trace::{TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled};
 use output::TopOptions;
 use output::{print_record_session_db_error, print_report_local_sessions_warning};
 use sources::session_db::{latest_session_db, run_db_list};
@@ -64,20 +57,22 @@ struct TuiDiagnosticWriter;
 
 impl Write for TuiDiagnosticWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let text = String::from_utf8_lossy(buf);
-        for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        for line in String::from_utf8_lossy(buf)
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+        {
             push_tui_diagnostic(line);
         }
         Ok(buf.len())
     }
-
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }
 
 fn push_tui_diagnostic(message: &str) {
-    const MAX_TUI_DIAGNOSTICS: usize = 8;
+    const MAX: usize = 8;
     let diagnostics = TUI_DIAGNOSTICS.get_or_init(|| Mutex::new(VecDeque::new()));
     let Ok(mut diagnostics) = diagnostics.lock() else {
         return;
@@ -86,7 +81,7 @@ fn push_tui_diagnostic(message: &str) {
         return;
     }
     diagnostics.push_back(message.to_string());
-    while diagnostics.len() > MAX_TUI_DIAGNOSTICS {
+    while diagnostics.len() > MAX {
         diagnostics.pop_front();
     }
 }
@@ -98,15 +93,9 @@ pub(crate) fn recent_tui_diagnostics(limit: usize) -> Vec<String> {
     let Ok(diagnostics) = diagnostics.lock() else {
         return Vec::new();
     };
-    diagnostics
-        .iter()
-        .rev()
-        .take(limit)
-        .cloned()
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect()
+    let mut out: Vec<_> = diagnostics.iter().rev().take(limit).cloned().collect();
+    out.reverse();
+    out
 }
 
 fn shutdown_notify() -> Arc<Notify> {
@@ -120,7 +109,7 @@ pub(crate) fn shutdown_requested() -> bool {
 }
 
 fn interactive_terminal_available() -> bool {
-    unsafe { libc::isatty(libc::STDIN_FILENO) == 1 && libc::isatty(libc::STDOUT_FILENO) == 1 }
+    std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
 }
 
 fn top_uses_tui(plain: bool, interactive: bool) -> bool {
@@ -128,13 +117,7 @@ fn top_uses_tui(plain: bool, interactive: bool) -> bool {
 }
 
 fn command_uses_top_tui(cli: &Cli) -> bool {
-    matches!(
-        &cli.command,
-        Commands::Top {
-            plain,
-            ..
-        } if top_uses_tui(*plain, interactive_terminal_available())
-    )
+    matches!(&cli.command, Commands::Top { plain, .. } if top_uses_tui(*plain, interactive_terminal_available()))
 }
 
 fn init_logging(suppress_terminal_output: bool) {
@@ -150,30 +133,35 @@ fn init_logging(suppress_terminal_output: bool) {
     let _ = builder.try_init();
 }
 
+#[cfg(unix)]
 async fn setup_signal_handler(suppress_terminal_output: bool) {
     let mut sigint = signal::unix::signal(signal::unix::SignalKind::interrupt())
         .expect("Failed to install SIGINT handler");
     let mut sigterm = signal::unix::signal(signal::unix::SignalKind::terminate())
         .expect("Failed to install SIGTERM handler");
-
     tokio::spawn(async move {
-        tokio::select! {
-            _ = sigint.recv() => {}
-            _ = sigterm.recv() => {}
-        }
-        if !suppress_terminal_output {
-            println!("\n\nReceived shutdown signal, shutting down...");
-
-            // Print HTTP filter metrics using the global function
-            print_global_http_filter_metrics();
-
-            // Print SSL filter metrics using the global function
-            print_global_ssl_filter_metrics();
-        }
-
-        SHUTDOWN_REQUESTED.store(true, Ordering::Relaxed);
-        shutdown_notify().notify_waiters();
+        tokio::select! { _ = sigint.recv() => {}, _ = sigterm.recv() => {} }
+        notify_shutdown(suppress_terminal_output);
     });
+}
+
+#[cfg(not(unix))]
+async fn setup_signal_handler(suppress_terminal_output: bool) {
+    tokio::spawn(async move {
+        if signal::ctrl_c().await.is_ok() {
+            notify_shutdown(suppress_terminal_output);
+        }
+    });
+}
+
+fn notify_shutdown(suppress_terminal_output: bool) {
+    if !suppress_terminal_output {
+        println!("\n\nReceived shutdown signal, shutting down...");
+        print_global_http_filter_metrics();
+        print_global_ssl_filter_metrics();
+    }
+    SHUTDOWN_REQUESTED.store(true, Ordering::Relaxed);
+    shutdown_notify().notify_waiters();
 }
 
 #[derive(Parser)]
@@ -223,9 +211,9 @@ enum Commands {
         #[arg(long)]
         no_open: bool,
         /// Local API port used while this device is bound.
-        #[arg(long, default_value = "7395")]
+        #[arg(long, default_value_t = 7395)]
         server_port: u16,
-        /// SQLite capture to serve (defaults to the latest agentsight-*.db).
+        /// SQLite capture to serve instead of live agent sessions.
         #[arg(long)]
         db: Option<String>,
         /// Static AgentSight app to open (official hosted app by default).
@@ -250,10 +238,10 @@ enum Commands {
         #[arg(long, default_value = "all")]
         view: String,
         /// Refresh interval in seconds
-        #[arg(short = 'i', long, default_value = "2")]
+        #[arg(short = 'i', long, default_value_t = 2)]
         interval: u64,
         /// Rows per section
-        #[arg(short = 'n', long, default_value = "10")]
+        #[arg(short = 'n', long, default_value_t = 10)]
         limit: usize,
         /// Number of refreshes before exiting
         #[arg(long)]
@@ -289,7 +277,7 @@ enum Commands {
         #[arg(long)]
         no_server: bool,
         /// Server port for the web UI
-        #[arg(long, default_value = "7395")]
+        #[arg(long, default_value_t = 7395)]
         server_port: u16,
         /// Optional command to launch and trace. Use -c/--comm or -p/--pid instead to attach.
         #[arg(last = true)]
@@ -308,8 +296,7 @@ enum Commands {
         sub: Option<ReportCommands>,
     },
     /// Low-level debugging tools: print raw streams and optionally serve a live view
-    #[command(subcommand)]
-    Debug(DebugCommands),
+    Debug(cmd_debug::DebugCli),
 }
 
 #[derive(Subcommand)]
@@ -344,7 +331,7 @@ enum ReportCommands {
         #[arg(long)]
         audit_type: Option<String>,
         /// Maximum rows
-        #[arg(long, default_value = "100")]
+        #[arg(long, default_value_t = 100)]
         limit: usize,
         /// Emit JSON output
         #[arg(long)]
@@ -356,7 +343,7 @@ enum ReportCommands {
         #[arg(long)]
         db: Option<String>,
         /// Maximum rows
-        #[arg(long, default_value = "20")]
+        #[arg(long, default_value_t = 20)]
         limit: usize,
         /// Emit full request/response JSON
         #[arg(long)]
@@ -371,7 +358,7 @@ enum ReportCommands {
         #[arg(short, long)]
         output: String,
         /// Maximum audit events to include
-        #[arg(long, default_value = "10000")]
+        #[arg(long, default_value_t = 10_000)]
         audit_limit: usize,
     },
     /// Serve the web UI for a saved SQLite session or local agent sessions
@@ -380,7 +367,7 @@ enum ReportCommands {
         #[arg(long)]
         db: Option<String>,
         /// Server port for the web UI
-        #[arg(long, default_value = "7395")]
+        #[arg(long, default_value_t = 7395)]
         server_port: u16,
     },
     /// List session databases
@@ -393,211 +380,10 @@ enum MonitorCommands {
     InstallService,
 }
 
-#[derive(Subcommand)]
-enum DebugCommands {
-    /// Print SSL traffic as raw/analyzed JSON
-    Ssl {
-        /// Enable SSE processing for SSL traffic
-        #[arg(long)]
-        sse_merge: bool,
-        /// Enable HTTP parsing (automatically enables SSE merge first)
-        #[arg(long)]
-        http_parser: bool,
-        /// Include raw SSL data in HTTP parser events
-        #[arg(long)]
-        http_raw_data: bool,
-        /// HTTP filter patterns to exclude events (can be used multiple times)
-        #[arg(long)]
-        http_filter: Vec<String>,
-        /// Disable authorization header removal from HTTP traffic
-        #[arg(long)]
-        disable_auth_removal: bool,
-        /// SSL filter patterns to exclude events (can be used multiple times)
-        #[arg(long)]
-        ssl_filter: Vec<String>,
-        /// Suppress console output
-        #[arg(short, long)]
-        quiet: bool,
-        /// Start web server on port 7395
-        #[arg(long)]
-        server: bool,
-        /// Server port (used with --server)
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
-        #[arg(long)]
-        binary_path: Option<String>,
-        /// Additional arguments to pass to the SSL binary
-        #[arg(last = true)]
-        args: Vec<String>,
-    },
-    /// Print process runner events
-    Process {
-        /// Suppress console output
-        #[arg(short, long)]
-        quiet: bool,
-        /// Start web server on port 7395
-        #[arg(long)]
-        server: bool,
-        /// Server port (used with --server)
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-        /// Additional arguments to pass to the process binary
-        #[arg(last = true)]
-        args: Vec<String>,
-    },
-    /// Print local stdio payloads from a target process
-    Stdio {
-        /// Target PID (required)
-        #[arg(short = 'p', long)]
-        pid: u32,
-        /// Filter by UID
-        #[arg(short = 'u', long)]
-        uid: Option<u32>,
-        /// Filter by command name
-        #[arg(short = 'c', long)]
-        comm: Option<String>,
-        /// Capture all FDs instead of only stdin/stdout/stderr
-        #[arg(long)]
-        all_fds: bool,
-        /// Maximum bytes captured per event
-        #[arg(long, default_value = "8192")]
-        max_bytes: u32,
-        /// Suppress console output
-        #[arg(short, long)]
-        quiet: bool,
-        /// Start web server on port 7395
-        #[arg(long)]
-        server: bool,
-        /// Server port (used with --server)
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-    },
-    /// Combined SSL and Process monitoring with configurable options
-    Trace {
-        /// Enable SSL monitoring
-        #[arg(long, action = clap::ArgAction::Set, default_value = "true")]
-        ssl: bool,
-        /// SSL filter by UID
-        #[arg(long)]
-        ssl_uid: Option<u32>,
-        /// SSL filter patterns (for analyzer-level filtering)
-        #[arg(long)]
-        ssl_filter: Vec<String>,
-        /// Show SSL handshake events
-        #[arg(long)]
-        ssl_handshake: bool,
-        /// Enable HTTP parsing for SSL
-        #[arg(long, action = clap::ArgAction::Set, default_value = "true")]
-        ssl_http: bool,
-        /// Include raw SSL data in HTTP parser events
-        #[arg(long)]
-        ssl_raw_data: bool,
-        /// Enable process monitoring
-        #[arg(long, action = clap::ArgAction::Set, default_value = "true")]
-        process: bool,
-        /// Enable stdio payload monitoring (requires --pid)
-        #[arg(long, requires = "pid")]
-        stdio: bool,
-        /// Stdio filter by UID
-        #[arg(long)]
-        stdio_uid: Option<u32>,
-        /// Stdio filter by command name
-        #[arg(long)]
-        stdio_comm: Option<String>,
-        /// Capture all FDs for stdio monitoring instead of only 0/1/2
-        #[arg(long)]
-        stdio_all_fds: bool,
-        /// Maximum bytes captured per stdio event
-        #[arg(long, default_value = "8192")]
-        stdio_max_bytes: u32,
-        /// Process command filter (comma-separated list)
-        #[arg(short = 'c', long)]
-        comm: Option<String>,
-        /// Process PID filter
-        #[arg(short = 'p', long)]
-        pid: Option<u32>,
-        /// Process duration filter (minimum duration in ms)
-        #[arg(long)]
-        duration: Option<u32>,
-        /// Process filtering mode (0=all, 1=proc, 2=filter)
-        #[arg(long)]
-        mode: Option<u32>,
-        /// Enable system resource monitoring (CPU and memory)
-        #[arg(long)]
-        system: bool,
-        /// System monitoring interval in seconds
-        #[arg(long, default_value = "2")]
-        system_interval: u64,
-        /// HTTP filters (applied to SSL runner after HTTP parsing)
-        #[arg(long)]
-        http_filter: Vec<String>,
-        /// Disable authorization header removal from HTTP traffic
-        #[arg(long)]
-        disable_auth_removal: bool,
-        /// Export GenAI spans to an OpenTelemetry Collector via OTLP/HTTP
-        #[arg(long)]
-        otel: bool,
-        /// OTLP/HTTP endpoint for --otel (default: $OTEL_EXPORTER_OTLP_ENDPOINT or http://localhost:4318)
-        #[arg(long)]
-        otel_endpoint: Option<String>,
-        /// Include prompt/completion content in exported GenAI spans (opt-in; off by default for privacy)
-        #[arg(long)]
-        otel_capture_content: bool,
-        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
-        #[arg(long)]
-        binary_path: Option<String>,
-        /// SQLite database path for view snapshots
-        #[arg(long)]
-        db: Option<String>,
-        /// Suppress console output
-        #[arg(short, long)]
-        quiet: bool,
-        /// Start web server on port 7395
-        #[arg(long)]
-        server: bool,
-        /// Server port (used with --server)
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-    },
-    /// Monitor system resources (CPU and memory)
-    System {
-        /// Monitoring interval in seconds
-        #[arg(short = 'i', long, default_value = "2")]
-        interval: u64,
-        /// Process PID to monitor
-        #[arg(short = 'p', long)]
-        pid: Option<u32>,
-        /// Process command name to monitor
-        #[arg(short = 'c', long)]
-        comm: Option<String>,
-        /// Exclude children processes from aggregation
-        #[arg(long)]
-        no_children: bool,
-        /// CPU usage threshold for alerts (%)
-        #[arg(long)]
-        cpu_threshold: Option<f64>,
-        /// Memory usage threshold for alerts (MB)
-        #[arg(long)]
-        memory_threshold: Option<u64>,
-        /// Suppress console output
-        #[arg(short, long)]
-        quiet: bool,
-        /// Start web server on port 7395
-        #[arg(long)]
-        server: bool,
-        /// Server port (used with --server)
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-    },
-}
-
 #[tokio::main]
 async fn main() {
-    // Print errors as a clean one-line `Error: <message>` (Display) and exit 1,
-    // instead of the default `-> Result` behavior which prints them via Debug.
     if let Err(e) = run().await {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }
@@ -606,9 +392,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
     let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
-
-    // Long-running monitors coordinate graceful shutdown. `vis` is a synchronous
-    // batch export, so retaining the OS default makes Ctrl-C interrupt Chromium too.
     if !matches!(&cli.command, Commands::Vis { .. }) {
         setup_signal_handler(suppress_terminal_output).await;
     }
@@ -628,67 +411,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             app_url,
             endpoint,
         } => {
-            let db_path = configured_db_path(db).or_else(latest_session_db);
             run_bind(
                 &cli.listen,
                 *server_port,
                 *no_open,
                 *qr,
-                db_path,
+                configured_db_path(db),
                 app_url,
                 endpoint.as_deref(),
             )
             .await?
         }
-        Commands::Report { db, local, sub } => match sub {
-            None | Some(ReportCommands::Summary { .. }) => {
-                let (db_ref, local_ref) = match sub {
-                    Some(ReportCommands::Summary { db: d, local: l }) => (d, l),
-                    _ => (db, local),
-                };
-                let resolved = report_db_or_local(db_ref, *local_ref);
-                run_db_summary(resolved.as_deref())?;
-            }
-            Some(ReportCommands::Token {
-                db: d,
-                group_by,
-                json,
-            }) => {
-                let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = report_db_or_local(&effective, *local);
-                run_token_query(db.as_deref(), group_by, *json)?;
-            }
-            Some(ReportCommands::Audit {
-                db: d,
-                audit_type,
-                limit,
-                json,
-            }) => {
-                let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = report_db_or_local(&effective, *local);
-                run_audit_query(db.as_deref(), audit_type.as_deref(), *limit, *json)?;
-            }
-            Some(ReportCommands::Prompts { db: d, limit, json }) => {
-                let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = report_db_or_local(&effective, *local);
-                run_prompts_query(db.as_deref(), *limit, *json)?;
-            }
-            Some(ReportCommands::Export {
-                db: d,
-                output,
-                audit_limit,
-            }) => {
-                let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = report_db_or_local(&effective, *local);
-                run_export(db.as_deref(), output, *audit_limit)?;
-            }
-            Some(ReportCommands::Serve { db: d, server_port }) => {
-                let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = report_db_or_local(&effective, *local);
-                run_report_serve(db.as_deref(), &cli.listen, *server_port).await?;
-            }
-            Some(ReportCommands::List) => run_db_list()?,
-        },
+        Commands::Report { db, local, sub } => run_report(db, *local, sub, &cli.listen).await?,
         Commands::Monitor { command } => match command {
             None => run_monitor().await?,
             Some(MonitorCommands::InstallService) => install_monitor_service()?,
@@ -704,7 +438,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             once,
             plain,
         } => {
-            let count = if *once { Some(1) } else { *count };
             let options = TopOptions {
                 pid: *pid,
                 comm: comm.clone(),
@@ -712,6 +445,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 view: view.clone(),
             };
             let capture = start_live_ebpf_capture(&options).await;
+            let count = if *once { Some(1) } else { *count };
             let result = if top_uses_tui(*plain, interactive_terminal_available()) {
                 run_live_top_tui(Some(&capture), *interval, *limit, count, &options)
             } else {
@@ -720,13 +454,84 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             capture.stop();
             result?;
         }
-        // All remaining commands need the binary extractor.
         _ => {
             let binary_extractor = BinaryExtractor::new().await?;
             run_with_extractor(&cli, &binary_extractor).await?;
         }
     }
+    Ok(())
+}
 
+async fn run_report(
+    db: &Option<String>,
+    local: bool,
+    sub: &Option<ReportCommands>,
+    listen: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    match sub {
+        None | Some(ReportCommands::Summary { .. }) => {
+            let (db, local) = match sub {
+                Some(ReportCommands::Summary { db, local }) => (db, *local),
+                _ => (db, local),
+            };
+            run_db_summary(report_db_or_local(db, local).as_deref())?;
+        }
+        Some(ReportCommands::Token {
+            db: own,
+            group_by,
+            json,
+        }) => {
+            let db = own.as_ref().or(db.as_ref()).cloned();
+            run_token_query(report_db_or_local(&db, local).as_deref(), group_by, *json)?;
+        }
+        Some(ReportCommands::Audit {
+            db: own,
+            audit_type,
+            limit,
+            json,
+        }) => {
+            let db = own.as_ref().or(db.as_ref()).cloned();
+            run_audit_query(
+                report_db_or_local(&db, local).as_deref(),
+                audit_type.as_deref(),
+                *limit,
+                *json,
+            )?;
+        }
+        Some(ReportCommands::Prompts {
+            db: own,
+            limit,
+            json,
+        }) => {
+            let db = own.as_ref().or(db.as_ref()).cloned();
+            run_prompts_query(report_db_or_local(&db, local).as_deref(), *limit, *json)?;
+        }
+        Some(ReportCommands::Export {
+            db: own,
+            output,
+            audit_limit,
+        }) => {
+            let db = own.as_ref().or(db.as_ref()).cloned();
+            run_export(
+                report_db_or_local(&db, local).as_deref(),
+                output,
+                *audit_limit,
+            )?;
+        }
+        Some(ReportCommands::Serve {
+            db: own,
+            server_port,
+        }) => {
+            let db = own.as_ref().or(db.as_ref()).cloned();
+            run_report_serve(
+                report_db_or_local(&db, local).as_deref(),
+                listen,
+                *server_port,
+            )
+            .await?;
+        }
+        Some(ReportCommands::List) => run_db_list()?,
+    }
     Ok(())
 }
 
@@ -736,11 +541,10 @@ async fn run_report_serve(
     server_port: u16,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let view = view::MaterializedView::shared_bounded();
-    let _server_handle =
+    let _server =
         start_web_server_if_enabled(true, listen, server_port, view, db.map(str::to_string))
             .await
             .map_err(|e| std::io::Error::other(e.to_string()))?;
-
     shutdown_notify().notified().await;
     Ok(())
 }
@@ -794,200 +598,39 @@ async fn run_with_extractor(
                 return Ok(());
             }
             if comm.is_none() && pid.is_none() {
-                return Err(
-                    "record requires either a command (`agentsight record -- claude`) or an attach target (`-c <comm>` / `-p <pid>`)"
-                        .into(),
-                );
+                return Err("record requires either a command (`agentsight record -- claude`) or an attach target (`-c <comm>` / `-p <pid>`)".into());
             }
-            let db_path = match configured_db_path(db) {
-                Some(path) => Some(path),
-                None => match default_session_db_path() {
-                    Ok(path) => Some(path),
-                    Err(e) => {
-                        print_record_session_db_error(e);
-                        None
-                    }
+            let db_path = configured_db_path(db).or_else(|| match default_session_db_path() {
+                Ok(path) => Some(path),
+                Err(e) => {
+                    print_record_session_db_error(e);
+                    None
+                }
+            });
+            let summary_db = db_path.clone();
+            run_trace(
+                binary_extractor,
+                TraceConfig {
+                    pid: *pid,
+                    comm: comm.clone(),
+                    stdio: pid.is_some(),
+                    binary_path: binary_path.clone(),
+                    db_path,
+                    server: !*no_server,
+                    server_listen: Some(cli.listen.clone()),
+                    server_port: *server_port,
+                    ..TraceConfig::for_record()
                 },
-            };
-            let db_path_for_summary = db_path.clone();
-            let cfg = TraceConfig {
-                pid: *pid,
-                comm: comm.clone(),
-                stdio: pid.is_some(),
-                binary_path: binary_path.clone(),
-                db_path,
-                server: !*no_server,
-                server_listen: Some(cli.listen.clone()),
-                server_port: *server_port,
-                ..TraceConfig::for_record()
-            };
-            run_trace(binary_extractor, cfg)
-                .await
-                .map_err(convert_runner_error)?;
-            if let Some(ref db) = db_path_for_summary {
+            )
+            .await
+            .map_err(convert_runner_error)?;
+            if let Some(db) = summary_db.as_deref() {
                 print_session_summary(db);
             }
         }
-        Commands::Debug(cmd) => match cmd {
-            DebugCommands::Ssl {
-                sse_merge,
-                http_parser,
-                http_raw_data,
-                http_filter,
-                disable_auth_removal,
-                ssl_filter,
-                quiet,
-                server,
-                server_port,
-                binary_path,
-                args,
-            } => run_raw_ssl(
-                binary_extractor,
-                *sse_merge,
-                *http_parser,
-                *http_raw_data,
-                http_filter,
-                *disable_auth_removal,
-                ssl_filter,
-                *quiet,
-                *server,
-                &cli.listen,
-                *server_port,
-                binary_path.as_deref(),
-                args,
-            )
+        Commands::Debug(debug) => cmd_debug::run(debug, binary_extractor, &cli.listen)
             .await
             .map_err(convert_runner_error)?,
-            DebugCommands::Process {
-                quiet,
-                server,
-                server_port,
-                args,
-            } => run_raw_process(
-                binary_extractor,
-                *quiet,
-                *server,
-                &cli.listen,
-                *server_port,
-                args,
-            )
-            .await
-            .map_err(convert_runner_error)?,
-            DebugCommands::Stdio {
-                pid,
-                uid,
-                comm,
-                all_fds,
-                max_bytes,
-                quiet,
-                server,
-                server_port,
-            } => run_raw_stdio(
-                binary_extractor,
-                *pid,
-                *uid,
-                comm.as_deref(),
-                *all_fds,
-                *max_bytes,
-                *quiet,
-                *server,
-                &cli.listen,
-                *server_port,
-            )
-            .await
-            .map_err(convert_runner_error)?,
-            DebugCommands::Trace {
-                ssl,
-                ssl_uid,
-                pid,
-                comm,
-                ssl_filter,
-                ssl_handshake,
-                ssl_http,
-                ssl_raw_data,
-                process,
-                stdio,
-                stdio_uid,
-                stdio_comm,
-                stdio_all_fds,
-                stdio_max_bytes,
-                duration,
-                mode,
-                system,
-                system_interval,
-                http_filter,
-                disable_auth_removal,
-                otel,
-                otel_endpoint,
-                otel_capture_content,
-                binary_path,
-                db,
-                quiet,
-                server,
-                server_port,
-            } => {
-                let cfg = TraceConfig {
-                    ssl: *ssl,
-                    pid: *pid,
-                    ssl_uid: *ssl_uid,
-                    comm: comm.clone(),
-                    ssl_filter: ssl_filter.clone(),
-                    ssl_handshake: *ssl_handshake,
-                    ssl_http: *ssl_http,
-                    ssl_raw_data: *ssl_raw_data,
-                    process: *process,
-                    stdio: *stdio,
-                    stdio_uid: *stdio_uid,
-                    stdio_comm: stdio_comm.clone(),
-                    stdio_all_fds: *stdio_all_fds,
-                    stdio_max_bytes: *stdio_max_bytes,
-                    duration: *duration,
-                    mode: *mode,
-                    system: *system,
-                    system_interval: *system_interval,
-                    http_filter: http_filter.clone(),
-                    disable_auth_removal: *disable_auth_removal,
-                    otel: otel.then(|| OtelConfig {
-                        endpoint: otel_endpoint.clone(),
-                        capture_content: *otel_capture_content,
-                    }),
-                    binary_path: binary_path.clone(),
-                    db_path: configured_db_path(db),
-                    quiet: *quiet,
-                    server: *server,
-                    server_listen: Some(cli.listen.clone()),
-                    server_port: *server_port,
-                    ..Default::default()
-                };
-                run_trace(binary_extractor, cfg)
-                    .await
-                    .map_err(convert_runner_error)?
-            }
-            DebugCommands::System {
-                interval,
-                pid,
-                comm,
-                no_children,
-                cpu_threshold,
-                memory_threshold,
-                quiet,
-                server,
-                server_port,
-            } => run_system(
-                *interval,
-                *pid,
-                comm.as_deref(),
-                !*no_children,
-                *cpu_threshold,
-                *memory_threshold,
-                *quiet,
-                *server,
-                &cli.listen,
-                *server_port,
-            )
-            .await
-            .map_err(convert_runner_error)?,
-        },
         _ => unreachable!("handled in run()"),
     }
     Ok(())
@@ -1044,8 +687,7 @@ mod tests {
                 app_url,
                 endpoint,
             } => {
-                assert!(qr);
-                assert!(no_open);
+                assert!(qr && no_open);
                 assert_eq!(server_port, 7444);
                 assert_eq!(db.as_deref(), Some("capture.db"));
                 assert_eq!(app_url, "https://console.example/ui/");

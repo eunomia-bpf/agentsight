@@ -4,7 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prepare:extensions": "node scripts/prepare-extension-deps.mjs",
+    "prebuild": "npm run prepare:extensions",
     "build": "next build",
+    "pretest:workers": "npm run prepare:extensions",
+    "test:workers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/build-id.test.mjs src/lib/controllerOrigin.test.mjs ../ext/web/lib/fleetData.test.mjs src/lib/nodeOpening.test.mjs ../ext/web/utils/sessionData.test.mjs",
+    "test:e2e": "playwright test",
     "start": "next start",
     "lint": "next lint"
   },
@@ -16,6 +21,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

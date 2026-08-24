@@ -1,9 +1,9 @@
 [package]
-name = "agentsight-capture"
-version = "1.0.6"
+name = "agentsight-capture-core"
+version = "1.0.26"
 edition = "2024"
 rust-version = "1.87"
-description = "Reusable capture and analysis pipeline for AgentSight."
+description = "Native cross-platform capture substrate for AgentSight."
 license = "MIT"
 repository = "https://github.com/eunomia-bpf/agentsight"
 homepage = "https://github.com/eunomia-bpf/agentsight"
@@ -26,16 +26,12 @@ include = [
 test-support = []
 
 [dependencies]
+agent-session = { version = "0.5.9", path = "../ext/session" }
 async-stream = "0.3"
 async-trait = "0.1"
-agent-session = { version = "0.4.45", path = "../agent-session" }
 chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 hex = "0.4"
-hpack = "0.3"
-flate2 = "1.0"
-brotli = "7.0"
-zstd = "0.13"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 tempfile = "3.10"
@@ -45,9 +41,4 @@ log = "0.4"
 dirs = "6"
 libc = "0.2"
 sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
-chunked_transfer = "1.5"
 num_cpus = "1.16"
-rusqlite = { version = "0.32", features = ["bundled"] }
-hyper = { version = "1.0", features = ["full"] }
-hyper-util = { version = "0.1", features = ["full"] }
-http-body-util = "0.1"

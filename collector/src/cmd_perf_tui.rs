@@ -596,6 +596,7 @@ mod tests {
             llm_calls: 0,
             total_tokens: 15,
             rows: vec![AgentTopRow {
+                session_id: Some("test".to_string()),
                 session: "codex:test".to_string(),
                 agent: "codex".to_string(),
                 pid: Some(42),
@@ -617,6 +618,9 @@ mod tests {
                 last_message_at: None,
                 tool_breakdown: Vec::new(),
                 file_breakdown: Vec::new(),
+                process_details: Vec::new(),
+                plan: Vec::new(),
+                subscription: None,
             }],
             sections: Vec::new(),
             failures: Vec::new(),

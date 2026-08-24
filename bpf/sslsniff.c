@@ -262,7 +262,10 @@ static struct boringssl_offsets find_boringssl_offsets(const char *binary_path) 
 		goto out;
 	}
 
-	/* Check if SSL_do_handshake is at expected relative position */
+	/* SSL_do_handshake is only needed when --handshake was requested. New Bun
+	 * builds can change or inline that function while keeping the SSL_read and
+	 * SSL_write entry points stable, so its absence must not disable ordinary
+	 * request/response capture. */
 	if (read_off >= READ_HANDSHAKE_DELTA) {
 		size_t expected_hs = read_off - READ_HANDSHAKE_DELTA;
 		if (memcmp(data + expected_hs, handshake_pat, sizeof(handshake_pat)) == 0) {
@@ -272,12 +275,13 @@ static struct boringssl_offsets find_boringssl_offsets(const char *binary_path) 
 	if (result.ssl_do_handshake == 0) {
 		/* Fallback: search independently */
 		size_t hs_off = find_pattern(data, file_size, handshake_pat, sizeof(handshake_pat));
-		if (hs_off == (size_t)-1) {
+		if (hs_off != (size_t)-1) {
+			result.ssl_do_handshake = hs_off;
+		} else if (env.handshake) {
 			if (verbose)
 				fprintf(stderr, "BoringSSL: SSL_do_handshake pattern not found\n");
 			goto out;
 		}
-		result.ssl_do_handshake = hs_off;
 	}
 
 	result.ssl_read = read_off;

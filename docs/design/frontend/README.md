@@ -185,7 +185,7 @@ npm run test:coverage     # Generate coverage report
 ### **Integration Tests**
 ```bash
 npm run test:integration  # Run integration tests
-npm run test:e2e          # Run Cypress end-to-end tests
+npm run test:e2e          # Run Playwright end-to-end tests
 ```
 
 ### **Performance Tests**
@@ -294,4 +294,4 @@ CMD ["node", "server.js"]
 
 - **[AgentSight Collector](../collector/)** - eBPF-based data collection backend
 - **[AgentSight Docs](../docs/)** - Comprehensive documentation
-- **[AgentSight Examples](../examples/)** - Usage examples and tutorials 
+- **[AgentSight Examples](../examples/)** - Usage examples and tutorials

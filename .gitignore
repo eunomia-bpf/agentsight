@@ -1,7 +1,16 @@
 .direnv
+.env
+.env.*
+!.env.example
 /build
 output
 target/
+/agentsight-capture/Cargo.lock
+/agentsight-protocol/Cargo.lock
+/compat/agentsight-capture/Cargo.lock
+/ext/analysis/Cargo.lock
+/ext/runtime/Cargo.lock
+/ext/session/Cargo.lock
 ecapture
 res.txt
 save.log
@@ -22,9 +31,8 @@ record.log.*
 /.capture/
 # Local-only real snapshot used for UI dev (not committed; sensitive)
 frontend/public/sample-snapshot.json
-# Log files
-*.log
-
+# Generated Rust/WASM browser bindings
+frontend/src/generated/
 # Log files
 *.log
 docs/blog
