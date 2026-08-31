@@ -24,7 +24,7 @@ import {
   sessionWorkspace,
 } from '@/utils/sessionData';
 
-function count(value: number | null | undefined): string {
+export function count(value: number | null | undefined): string {
   const number = value ?? 0;
   if (Math.abs(number) >= 1_000_000_000) return `${(number / 1_000_000_000).toFixed(1)}B`;
   if (Math.abs(number) >= 1_000_000) return `${(number / 1_000_000).toFixed(1)}M`;
@@ -308,7 +308,7 @@ export function NodeOverview({
   );
 }
 
-function Stat({ label, value, hint, tone = 'slate' }: {
+export function Stat({ label, value, hint, tone = 'slate' }: {
   label: string; value: string; hint: string; tone?: 'slate' | 'emerald';
 }) {
   return (
@@ -323,7 +323,7 @@ function Stat({ label, value, hint, tone = 'slate' }: {
   );
 }
 
-function State({ state }: { state: 'running' | 'recent' | 'stopped' }) {
+export function State({ state }: { state: 'running' | 'recent' | 'stopped' }) {
   const { t } = useTranslation();
   const running = state === 'running';
   const recent = state === 'recent';

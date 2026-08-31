@@ -13,18 +13,13 @@ type Message = { ts: number; kind: 'user' | 'assistant'; text: string };
 
 function messages(detail: SessionDetail | null): Message[] {
   if (!detail?.events) return [];
-  return [
-    ...(detail.events.prompts ?? []).map((item) => ({
+  return ([['user', detail.events.prompts], ['assistant', detail.events.llm_responses]] as const)
+    .flatMap(([kind, items]) => (items ?? []).map((item) => ({
       ts: item.ts_ms ?? 0,
-      kind: 'user' as const,
+      kind,
       text: item.text || item.preview || '',
-    })),
-    ...(detail.events.llm_responses ?? []).map((item) => ({
-      ts: item.ts_ms ?? 0,
-      kind: 'assistant' as const,
-      text: item.text || item.preview || '',
-    })),
-  ].filter((item) => item.text).sort((a, b) => a.ts - b.ts);
+    })))
+    .filter((item) => item.text).sort((a, b) => a.ts - b.ts);
 }
 
 export function SessionConsole({
@@ -106,11 +101,10 @@ export function SessionConsole({
           stickToBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
         }}
         className="h-[45dvh] min-h-40 space-y-3 overflow-y-auto overscroll-contain p-3 sm:h-[60dvh] sm:max-h-[680px] sm:p-5">
-        {loading && conversation.length === 0 && !detailError && (
-          <p className="py-16 text-center text-sm text-slate-400">{t('sessions.loading')}</p>
-        )}
-        {!loading && !detailError && conversation.length === 0 && (
-          <p className="py-16 text-center text-sm text-slate-400">{t('sessions.noConversation')}</p>
+        {!detailError && conversation.length === 0 && (
+          <p className="py-16 text-center text-sm text-slate-400">
+            {t(loading ? 'sessions.loading' : 'sessions.noConversation')}
+          </p>
         )}
         {detailError && (
           <div className="mx-auto max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

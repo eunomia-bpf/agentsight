@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { SessionConsole } from '@/components/SessionConsole';
+import { State } from '@/components/NodeOverview';
 import { type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, SnapshotSession } from '@/types/event';
@@ -161,15 +162,7 @@ export function SessionWorkspace({
               <h1 className="text-xl font-semibold capitalize tracking-tight text-slate-950">
                 {session.agent_type}
               </h1>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium ${
-                running ? 'bg-emerald-50 text-emerald-700'
-                  : activityState === 'recent' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${
-                  running ? 'bg-emerald-500' : activityState === 'recent' ? 'bg-amber-500' : 'bg-slate-400'
-                }`} />
-                {t(`overview.${activityState}`)}
-              </span>
+              <State state={activityState} />
               {session.model && <span className="text-xs text-slate-400">{session.model}</span>}
             </div>
             <p className="mt-2 max-w-3xl truncate text-sm font-medium text-slate-700">

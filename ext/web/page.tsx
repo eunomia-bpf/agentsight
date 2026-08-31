@@ -661,34 +661,23 @@ export default function Home() {
   useEffect(() => {
     if (mode !== 'live' || !activeClient) return;
     let cancelled = false;
-    let overviewRefreshing = false;
-    let snapshotRefreshing = false;
-    const refreshOverview = async () => {
-      if (overviewRefreshing || document.visibilityState === 'hidden') return;
-      overviewRefreshing = true;
-      try {
-        const next = await activeClient.overview();
-        if (!cancelled) setOverview(next);
-      } catch {
-        // Retain the last good top sample; manual refresh reports Node errors.
-      } finally {
-        overviewRefreshing = false;
-      }
+    const poll = <T,>(read: () => Promise<T>, update: (value: T) => void, interval: number) => {
+      let refreshing = false;
+      return window.setInterval(async () => {
+        if (refreshing || document.visibilityState === 'hidden') return;
+        refreshing = true;
+        try {
+          const next = await read();
+          if (!cancelled) update(next);
+        } catch {
+          // Keep the last good sample; manual refresh reports Node errors.
+        } finally {
+          refreshing = false;
+        }
+      }, interval);
     };
-    const refreshSnapshot = async () => {
-      if (snapshotRefreshing || document.visibilityState === 'hidden') return;
-      snapshotRefreshing = true;
-      try {
-        const next = await activeClient.snapshot();
-        if (!cancelled) setSnapshot(next);
-      } catch {
-        // Keep the current session index until the next bounded refresh.
-      } finally {
-        snapshotRefreshing = false;
-      }
-    };
-    const overviewTimer = window.setInterval(() => { void refreshOverview(); }, 3_000);
-    const snapshotTimer = window.setInterval(() => { void refreshSnapshot(); }, 30_000);
+    const overviewTimer = poll(() => activeClient.overview(), setOverview, 3_000);
+    const snapshotTimer = poll(() => activeClient.snapshot(), setSnapshot, 30_000);
     return () => {
       cancelled = true;
       window.clearInterval(overviewTimer);
@@ -722,15 +711,10 @@ export default function Home() {
     return () => { window.removeEventListener('hashchange', handleLaunchFragment); };
   }, []);
 
-  const openSession = (sessionId: string) => {
+  const openSession = (sessionId: string | null) => {
     setSelectedSessionId(sessionId);
-    window.history.replaceState(null, '', `${basePath}/?session=${encodeURIComponent(sessionId)}`);
-    window.scrollTo(0, 0);
-  };
-
-  const closeSession = () => {
-    setSelectedSessionId(null);
-    window.history.replaceState(null, '', `${basePath}/`);
+    const query = sessionId === null ? '' : `?session=${encodeURIComponent(sessionId)}`;
+    window.history.replaceState(null, '', `${basePath}/${query}`);
     window.scrollTo(0, 0);
   };
 
@@ -898,7 +882,7 @@ export default function Home() {
             {snapshot ? (
               selectedSession ? (
                 <SessionWorkspace key={`${activeClient?.nodeId}:${selectedSession.id}`} snapshot={snapshot} overview={overview} session={selectedSession}
-                  client={activeClient} onBack={closeSession} />
+                  client={activeClient} onBack={() => openSession(null)} />
               ) : (
                 <NodeOverview snapshot={snapshot} overview={overview} organization={activeOrganization}
                   onOpenSession={openSession} />
