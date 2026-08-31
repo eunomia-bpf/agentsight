@@ -4,8 +4,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ProcessTreeView } from '@/components/ProcessTreeView';
-import { SessionAnalysis } from '@/components/SessionAnalysis';
+import dynamic from 'next/dynamic';
 import { SessionConsole } from '@/components/SessionConsole';
 import { type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
@@ -26,6 +25,8 @@ import {
 } from '@/utils/sessionData';
 
 type SessionTab = 'conversation' | 'process' | 'analysis';
+const ProcessTreeView = dynamic(() => import('@/components/ProcessTreeView').then((module) => module.ProcessTreeView));
+const SessionAnalysis = dynamic(() => import('@/components/SessionAnalysis').then((module) => module.SessionAnalysis));
 
 function compact(value: number | null | undefined): string {
   const number = value ?? 0;
@@ -127,14 +128,8 @@ export function SessionWorkspace({
     session.agent_type, session.model, session.start_timestamp_ms, sessionId, t]);
 
   useEffect(() => {
-    activeRequest.current = 0;
-    setDetail(null);
-    setDetailError('');
-    setTab('conversation');
-  }, [sessionId]);
-
-  useEffect(() => {
     void loadDetail();
+    return () => { activeRequest.current = 0; };
   }, [client, loadDetail, sessionId]);
 
   useEffect(() => {
@@ -145,7 +140,7 @@ export function SessionWorkspace({
     () => sessionSnapshot(snapshot, session, live, detail, overview),
     [detail, live, overview, session, snapshot],
   );
-  const events = useMemo(() => displayEventsFromSnapshot(scopedSnapshot), [scopedSnapshot]);
+  const events = useMemo(() => tab === 'analysis' ? displayEventsFromSnapshot(scopedSnapshot) : [], [scopedSnapshot, tab]);
   const plan = sessionPlan(session, detail, live);
   const currentPlan = plan.find((step) => step.status === 'in_progress');
   const peakCpu = (scopedSnapshot.resource_samples ?? [])
@@ -184,7 +179,7 @@ export function SessionWorkspace({
               {sessionWorkspace(session) || live?.workspace || rawSessionId(session)}
             </p>
           </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid shrink-0 grid-cols-4 gap-2">
             <Metric label={t('overview.tokens')} value={compact(session.total_tokens)} />
             <Metric label={running ? t('sessionDetail.cpuNow') : t('sessionDetail.cpuPeak')}
               value={running ? `${live!.cpu_percent.toFixed(1)}%` : peakCpu ? `${peakCpu.toFixed(1)}%` : '—'} />
@@ -250,9 +245,9 @@ export function SessionWorkspace({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-24 rounded-lg bg-slate-50 px-3 py-2">
+    <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-2 sm:min-w-24 sm:px-3">
       <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="mt-0.5 font-semibold tabular-nums text-slate-900">{value}</div>
+      <div className="mt-0.5 break-words text-sm font-semibold tabular-nums text-slate-900">{value}</div>
     </div>
   );
 }

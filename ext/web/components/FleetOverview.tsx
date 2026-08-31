@@ -56,7 +56,7 @@ export function FleetOverview({
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Stat label={t('fleet.machines')} value={`${totals.online}/${totals.machines}`}
           hint={t('fleet.onlineHint')} />
         <Stat label={t('overview.running')} value={String(totals.running)} hint={t('fleet.runningHint')} />

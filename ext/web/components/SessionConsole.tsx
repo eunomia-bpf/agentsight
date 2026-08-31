@@ -3,7 +3,7 @@
 
 'use client';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { NodeRequestError, type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import type { SnapshotSession } from '@/types/event';
 import { useTranslation } from '@/i18n';
@@ -50,21 +50,14 @@ export function SessionConsole({
   const conversationRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
   const refreshGeneration = useRef(0);
-  const conversation = messages(detail);
+  const conversation = useMemo(() => messages(detail), [detail]);
 
   useEffect(() => {
     const element = conversationRef.current;
     if (element && stickToBottom.current) element.scrollTop = element.scrollHeight;
   }, [conversation.length, detail]);
 
-  useEffect(() => {
-    refreshGeneration.current += 1;
-    setMessage('');
-    setBusy(false);
-    setError('');
-    setWriteBlocked('');
-    stickToBottom.current = true;
-  }, [session.id]);
+  useEffect(() => () => { refreshGeneration.current += 1; }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -76,6 +69,7 @@ export function SessionConsole({
     setError('');
     try {
       await client.submitMessage(rawSessionId(session), text);
+      if (refreshGeneration.current !== generation) return;
       setMessage('');
       setBusy(false);
       stickToBottom.current = true;
@@ -111,7 +105,7 @@ export function SessionConsole({
           const element = event.currentTarget;
           stickToBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
         }}
-        className="max-h-[680px] min-h-[460px] space-y-3 overflow-y-auto p-5">
+        className="h-[45dvh] min-h-40 space-y-3 overflow-y-auto overscroll-contain p-3 sm:h-[60dvh] sm:max-h-[680px] sm:p-5">
         {loading && conversation.length === 0 && !detailError && (
           <p className="py-16 text-center text-sm text-slate-400">{t('sessions.loading')}</p>
         )}
@@ -125,7 +119,7 @@ export function SessionConsole({
         )}
         {conversation.map((item, index) => (
           <div key={`${item.ts}-${index}`} className={`flex ${item.kind === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 ${
+            <div className={`min-w-0 max-w-[88%] whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl px-4 py-3 text-sm leading-6 ${
               item.kind === 'user'
                 ? 'rounded-br-md bg-slate-950 text-white'
                 : 'rounded-bl-md bg-slate-100 text-slate-800'
@@ -148,12 +142,13 @@ export function SessionConsole({
             placeholder={canSend ? t('sessions.followUp') : t('sessions.readOnly')}
             disabled={!canSend || busy}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey && canSend && !busy) {
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing
+                  && event.keyCode !== 229 && canSend && !busy) {
                 event.preventDefault();
                 event.currentTarget.form?.requestSubmit();
               }
             }}
-            className="min-h-14 flex-1 resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 disabled:bg-slate-50" />
+            className="min-h-14 min-w-0 flex-1 resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-base sm:text-sm outline-none focus:border-slate-500 disabled:bg-slate-50" />
           <button type="submit" disabled={!canSend || !message.trim() || busy}
             className="self-end rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
             {busy ? t('sessions.sending') : t('sessions.send')}
