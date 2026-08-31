@@ -191,11 +191,11 @@ export function SessionWorkspace({
         </div>
 
         {plan.length > 0 && (
-          <div className="mt-5 border-t border-slate-100 pt-4">
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+          <details className="mt-3 border-t border-slate-100 pt-3">
+            <summary className="cursor-pointer text-[11px] font-medium uppercase tracking-wide text-slate-400">
               {t('sessionDetail.plan')}
-            </div>
-            <div className="flex flex-wrap gap-2">
+            </summary>
+            <div className="mt-2 flex flex-wrap gap-2">
               {plan.map((step, index) => (
                 <span key={`${step.step}-${index}`} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs ${
                   step.status === 'completed'
@@ -212,7 +212,7 @@ export function SessionWorkspace({
                 </span>
               ))}
             </div>
-          </div>
+          </details>
         )}
       </section>
 
@@ -221,7 +221,7 @@ export function SessionWorkspace({
         {(['conversation', 'process', 'analysis'] as SessionTab[]).map((item) => (
           <button key={item} type="button" role="tab" aria-selected={tab === item}
             aria-controls={`session-panel-${item}`} onClick={() => setTab(item)}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`min-w-0 flex-1 rounded-lg px-2 py-2 text-xs font-medium transition sm:flex-none sm:whitespace-nowrap sm:px-4 sm:text-sm ${
               tab === item ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
             }`}>
             {t(`sessionDetail.${item}`)}
