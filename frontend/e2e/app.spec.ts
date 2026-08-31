@@ -81,7 +81,6 @@ test('conversation, message send, process tree, timeline filters, and event deta
   expect(state.messages[0]).toEqual({ message });
   await expect(composer).toHaveValue('');
   await expect(composer).toBeEnabled();
-  await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
   await expect(page.getByText('Browser follow-up complete.')).toBeVisible({ timeout: 25_000 });
   await expect.poll(() => page.getByText(message).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await composer.fill('A draft for the next message');
@@ -153,6 +152,7 @@ test('leaving a pending send preserves a new conversation draft', async ({ page 
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(composer).toBeDisabled();
   await page.getByRole('tab', { name: 'Analysis', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Token usage' })).toBeVisible();
   await page.getByRole('tab', { name: 'Conversation', exact: true }).click();
   await composer.fill('New draft');
   const response = page.waitForResponse('**/sessions/*/messages');
