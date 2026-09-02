@@ -62,6 +62,21 @@
 #define ATTACH_URETPROBE_CHECKED(skel, binary_path, sym_name, prog_name)  \
 	__ATTACH_UPROBE_CHECKED(skel, binary_path, sym_name, prog_name, true)
 
+#define __ATTACH_UPROBE_COOKIE_CHECKED(skel, binary_path, sym_name, prog_name, \
+									   is_retprobe, cookie)                    \
+	do {                                                                        \
+	  LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts, .func_name = #sym_name,         \
+				  .retprobe = is_retprobe, .bpf_cookie = cookie);               \
+	  skel->links.prog_name = bpf_program__attach_uprobe_opts(                  \
+		  skel->progs.prog_name, env.pid, binary_path, 0, &uprobe_opts);      \
+	  __CHECK_PROGRAM(skel, prog_name);                                          \
+	} while (false)
+
+#define ATTACH_UPROBE_COOKIE_CHECKED(skel, binary_path, sym_name, prog_name, cookie) \
+	__ATTACH_UPROBE_COOKIE_CHECKED(skel, binary_path, sym_name, prog_name, false, cookie)
+#define ATTACH_URETPROBE_COOKIE_CHECKED(skel, binary_path, sym_name, prog_name, cookie) \
+	__ATTACH_UPROBE_COOKIE_CHECKED(skel, binary_path, sym_name, prog_name, true, cookie)
+
 #define __ATTACH_UPROBE_OFFSET(skel, binary_path, offset, prog_name, is_retprobe) \
 	do {                                                                          \
 	  LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts, .retprobe = is_retprobe);         \
@@ -79,6 +94,16 @@
 	do {                                                                         \
 	  __ATTACH_UPROBE_OFFSET(skel, binary_path, offset, prog_name, true);        \
 	  __CHECK_PROGRAM(skel, prog_name);                                          \
+	} while (false)
+
+#define __ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, binary_path, offset, prog_name, \
+									  is_retprobe, cookie)                 \
+	do {                                                                            \
+	  LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts, .retprobe = is_retprobe,            \
+				  .bpf_cookie = cookie);                                      \
+	  skel->links.prog_name = bpf_program__attach_uprobe_opts(                      \
+		  skel->progs.prog_name, env.pid, binary_path, offset, &uprobe_opts);     \
+	  __CHECK_PROGRAM(skel, prog_name);                                              \
 	} while (false)
 
 volatile sig_atomic_t exiting = 0;
@@ -146,6 +171,9 @@ static bool verbose = false;
 static struct bpf_link *codex_rustls_links[CODEX_MAX_RUSTLS_OFFSETS];
 static size_t codex_rustls_link_count;
 static struct bpf_link *grok_rustls_link;
+#define MAX_LIFECYCLE_LINKS 3
+static struct bpf_link *lifecycle_links[MAX_LIFECYCLE_LINKS];
+static size_t lifecycle_link_count;
 
 /*
  * BoringSSL function offset detection for stripped binaries.
@@ -393,43 +421,96 @@ static void sig_int(int signo) {
 	exiting = 1;
 }
 
+static int attach_lifecycle(struct sslsniff_bpf *skel, const char *lib,
+					const char *symbol, enum tls_library_t library)
+{
+	LIBBPF_OPTS(bpf_uprobe_opts, opts, .func_name = symbol,
+			  .retprobe = false, .bpf_cookie = library);
+	struct bpf_link *link = bpf_program__attach_uprobe_opts(
+		skel->progs.probe_TLS_close, env.pid, lib, 0, &opts);
+	long err = link ? libbpf_get_error(link) : -(errno ? errno : EIO);
+
+	if (err) {
+		if (verbose)
+			warn("Lifecycle symbol %s unavailable in %s: %ld\n",
+			     symbol, lib, err);
+		return 0;
+	}
+	if (lifecycle_link_count >= MAX_LIFECYCLE_LINKS) {
+		bpf_link__destroy(link);
+		return -E2BIG;
+	}
+	lifecycle_links[lifecycle_link_count++] = link;
+	return 0;
+}
+
+static void destroy_lifecycle_links(void)
+{
+	for (size_t i = 0; i < lifecycle_link_count; i++)
+		bpf_link__destroy(lifecycle_links[i]);
+	lifecycle_link_count = 0;
+}
+
 int attach_openssl(struct sslsniff_bpf *skel, const char *lib) {
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_read_exit);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, SSL_write, probe_SSL_rw_enter,
+						TLS_LIBRARY_OPENSSL);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, SSL_write, probe_SSL_write_exit,
+						   TLS_LIBRARY_OPENSSL);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, SSL_read, probe_SSL_rw_enter,
+						TLS_LIBRARY_OPENSSL);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, SSL_read, probe_SSL_read_exit,
+						   TLS_LIBRARY_OPENSSL);
 
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_exit);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_enter,
+						TLS_LIBRARY_OPENSSL);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_exit,
+						   TLS_LIBRARY_OPENSSL);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_enter,
+						TLS_LIBRARY_OPENSSL);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_exit,
+						   TLS_LIBRARY_OPENSSL);
 
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_do_handshake,
-							probe_SSL_do_handshake_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_do_handshake,
-								probe_SSL_do_handshake_exit);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, SSL_do_handshake,
+							probe_SSL_do_handshake_enter, TLS_LIBRARY_OPENSSL);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, SSL_do_handshake,
+							   probe_SSL_do_handshake_exit, TLS_LIBRARY_OPENSSL);
+	attach_lifecycle(skel, lib, "SSL_free", TLS_LIBRARY_OPENSSL);
 
 	return 0;
 }
 
 int attach_gnutls(struct sslsniff_bpf *skel, const char *lib) {
-	ATTACH_UPROBE_CHECKED(skel, lib, gnutls_record_send, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, gnutls_record_send, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, gnutls_record_recv, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, gnutls_record_recv, probe_SSL_read_exit);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, gnutls_record_send, probe_SSL_rw_enter,
+						TLS_LIBRARY_GNUTLS);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, gnutls_record_send,
+						   probe_SSL_write_exit, TLS_LIBRARY_GNUTLS);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, gnutls_record_recv, probe_SSL_rw_enter,
+						TLS_LIBRARY_GNUTLS);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, gnutls_record_recv,
+						   probe_SSL_read_exit, TLS_LIBRARY_GNUTLS);
+	attach_lifecycle(skel, lib, "gnutls_deinit", TLS_LIBRARY_GNUTLS);
 
 	return 0;
 }
 
 int attach_nss(struct sslsniff_bpf *skel, const char *lib) {
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Write, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Write, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Send, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Send, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Read, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Read, probe_SSL_read_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Recv, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Recv, probe_SSL_read_exit);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, PR_Write, probe_SSL_rw_enter,
+						TLS_LIBRARY_NSS);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, PR_Write, probe_SSL_write_exit,
+						   TLS_LIBRARY_NSS);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, PR_Send, probe_SSL_rw_enter,
+						TLS_LIBRARY_NSS);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, PR_Send, probe_SSL_write_exit,
+						   TLS_LIBRARY_NSS);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, PR_Read, probe_SSL_rw_enter,
+						TLS_LIBRARY_NSS);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, PR_Read, probe_SSL_read_exit,
+						   TLS_LIBRARY_NSS);
+	ATTACH_UPROBE_COOKIE_CHECKED(skel, lib, PR_Recv, probe_SSL_rw_enter,
+						TLS_LIBRARY_NSS);
+	ATTACH_URETPROBE_COOKIE_CHECKED(skel, lib, PR_Recv, probe_SSL_read_exit,
+						   TLS_LIBRARY_NSS);
+	attach_lifecycle(skel, lib, "PR_Close", TLS_LIBRARY_NSS);
 
 	return 0;
 }
@@ -483,34 +564,46 @@ static int attach_grok_rustls(struct sslsniff_bpf *skel, const char *binary,
 int attach_openssl_by_offset(struct sslsniff_bpf *skel, const char *lib,
 							 struct boringssl_offsets *offsets) {
 	if (offsets->write_is_ex) {
-		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-									 probe_SSL_write_ex_enter);
-		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-										probe_SSL_write_ex_exit);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_write,
+										probe_SSL_write_ex_enter, false,
+										TLS_LIBRARY_BORINGSSL);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_write,
+										probe_SSL_write_ex_exit, true,
+										TLS_LIBRARY_BORINGSSL);
 	} else {
-		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-									 probe_SSL_rw_enter);
-		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-										probe_SSL_write_exit);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_write,
+										probe_SSL_rw_enter, false,
+										TLS_LIBRARY_BORINGSSL);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_write,
+										probe_SSL_write_exit, true,
+										TLS_LIBRARY_BORINGSSL);
 	}
 
 	if (offsets->read_is_ex) {
-		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-									 probe_SSL_read_ex_enter);
-		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-										probe_SSL_read_ex_exit);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_read,
+										probe_SSL_read_ex_enter, false,
+										TLS_LIBRARY_BORINGSSL);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_read,
+										probe_SSL_read_ex_exit, true,
+										TLS_LIBRARY_BORINGSSL);
 	} else {
-		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-									 probe_SSL_rw_enter);
-		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-										probe_SSL_read_exit);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_read,
+										probe_SSL_rw_enter, false,
+										TLS_LIBRARY_BORINGSSL);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib, offsets->ssl_read,
+										probe_SSL_read_exit, true,
+										TLS_LIBRARY_BORINGSSL);
 	}
 
 	if (env.handshake) {
-		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_do_handshake,
-									 probe_SSL_do_handshake_enter);
-		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_do_handshake,
-										 probe_SSL_do_handshake_exit);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib,
+										offsets->ssl_do_handshake,
+										probe_SSL_do_handshake_enter, false,
+										TLS_LIBRARY_BORINGSSL);
+		__ATTACH_UPROBE_OFFSET_COOKIE_CHECKED(skel, lib,
+										offsets->ssl_do_handshake,
+										probe_SSL_do_handshake_exit, true,
+										TLS_LIBRARY_BORINGSSL);
 	}
 
 	return 0;
@@ -557,9 +650,42 @@ char *find_library_path(const char *libname) {
 // Global buffer allocated once and reused
 static char *event_buf = NULL;
 
+static const char *tls_library_name(__u8 library)
+{
+	switch (library) {
+	case TLS_LIBRARY_OPENSSL:
+		return "openssl";
+	case TLS_LIBRARY_GNUTLS:
+		return "gnutls";
+	case TLS_LIBRARY_NSS:
+		return "nss";
+	case TLS_LIBRARY_RUSTLS:
+		return "rustls";
+	case TLS_LIBRARY_BORINGSSL:
+		return "boringssl";
+	default:
+		return "unknown";
+	}
+}
+
+static const char *rw_event_name(int rw)
+{
+	switch (rw) {
+	case 0:
+		return "READ/RECV";
+	case 1:
+		return "WRITE/SEND";
+	case 2:
+		return "HANDSHAKE";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 // Function to print the event from the perf buffer in JSON format
 void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	static unsigned long long start = 0;  // Use static to retain value across function calls
+	static unsigned long long capture_seq = 0;
 	unsigned int buf_size;
 
 	// Safety check for global buffer
@@ -594,18 +720,14 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 		start = event->timestamp_ns;
 	}
 
-	char *rw_event[] = {
-		"READ/RECV",
-		"WRITE/SEND",
-		"HANDSHAKE"
-	};
-
 	// Start JSON object
 	printf("{");
 	
 	// Basic fields - always include all fields
-	printf("\"function\":\"%s\",", rw_event[event->rw]);
+	printf("\"function\":\"%s\",",
+	       event->connection_closed ? "CLOSE" : rw_event_name(event->rw));
 	printf("\"timestamp_ns\":%llu,", event->timestamp_ns);
+	printf("\"capture_seq\":%llu,", ++capture_seq);
 	printf("\"comm\":\"%s\",", event->comm);
 	printf("\"pid\":%d,", event->pid);
 	printf("\"len\":%d,", event->len);
@@ -614,6 +736,13 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Always include extra fields (UID, TID)
 	printf("\"uid\":%d,", event->uid);
 	printf("\"tid\":%d,", event->tid);
+	printf("\"transport_handle\":\"0x%llx\",", event->transport_handle);
+	printf("\"process_start_ns\":%llu,", event->process_start_ns);
+	printf("\"ringbuf_reserve_failures\":%llu,",
+	       event->ringbuf_reserve_failures);
+	printf("\"tls_library\":\"%s\",", tls_library_name(event->tls_library));
+	printf("\"connection_closed\":%s,",
+	       event->connection_closed ? "true" : "false");
 
 	// Always include latency field
 	if (event->delta_ns) {
@@ -645,6 +774,9 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 		} else {
 			printf("\"truncated\":false");
 		}
+	} else if (event->len > 0) {
+		printf("\"data\":null,\"truncated\":true,\"bytes_lost\":%u",
+		       event->len);
 	} else {
 		printf("\"data\":null,\"truncated\":false");
 	}
@@ -858,6 +990,7 @@ int main(int argc, char **argv) {
 	}
 
 cleanup:
+	destroy_lifecycle_links();
 	if (grok_rustls_link)
 		bpf_link__destroy(grok_rustls_link);
 	destroy_codex_rustls_links();
