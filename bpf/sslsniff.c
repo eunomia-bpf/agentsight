@@ -774,7 +774,7 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 		} else {
 			printf("\"truncated\":false");
 		}
-	} else if (event->len > 0) {
+	} else if ((event->rw == 0 || event->rw == 1) && event->len > 0) {
 		printf("\"data\":null,\"truncated\":true,\"bytes_lost\":%u",
 		       event->len);
 	} else {

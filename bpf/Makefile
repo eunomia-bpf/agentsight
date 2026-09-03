@@ -31,14 +31,14 @@ CFLAGS += $(ASAN_FLAGS)
 ALL_LDFLAGS += $(ASAN_FLAGS)
 endif
 
-APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_transport_identity # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
 
 # Experimental programs: built only via `make experimental` (or by name), not
 # shipped in the default build or embedded into the collector.
 EXPERIMENTAL_APPS = browsertrace
 
 # All test programs (no BPF skeleton needed)
-TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets
+TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_transport_identity
 
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
@@ -138,7 +138,7 @@ unit-test: test_process_utils test_process_filter test_process_ext_map_flush tes
 	@echo "Running codex offset tests..."
 	@./test_codex_offsets
 
-runtime-test: process stdiocap
+runtime-test: process stdiocap sslsniff test_sslsniff_transport_identity
 	@echo ""
 	@echo "Running process runtime tests..."
 	@if [ "$$(id -u)" -eq 0 ]; then \
@@ -156,6 +156,15 @@ runtime-test: process stdiocap
 		sudo -n env PATH="$$PATH" python3 tests/test_stdiocap_runtime.py; \
 	else \
 		echo "SKIP: stdiocap runtime tests require root or cached sudo"; \
+	fi
+	@echo ""
+	@echo "Running sslsniff transport identity runtime tests..."
+	@if [ "$$(id -u)" -eq 0 ]; then \
+		python3 tests/test_sslsniff_transport_identity.py; \
+	elif sudo -n true >/dev/null 2>&1; then \
+		sudo -n env PATH="$$PATH" python3 tests/test_sslsniff_transport_identity.py; \
+	else \
+		echo "SKIP: sslsniff runtime tests require root or cached sudo"; \
 	fi
 
 .PHONY: integration-test
@@ -237,6 +246,10 @@ $(OUTPUT)/test_codex_offsets.o: test_codex_offsets.c codex_offsets.h | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
 
+$(OUTPUT)/test_sslsniff_transport_identity.o: tests/test_sslsniff_transport_identity.c | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -O0 -fno-inline -pthread -c $< -o $@
+
 $(OUTPUT)/%.o: %.c $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
@@ -271,6 +284,10 @@ test_process_ext_types: $(OUTPUT)/test_process_ext_types.o | $(OUTPUT)
 test_codex_offsets: $(OUTPUT)/test_codex_offsets.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
+
+test_sslsniff_transport_identity: $(OUTPUT)/test_sslsniff_transport_identity.o | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -pthread -Wl,--export-dynamic -o $@
 
 # delete failed targets
 .DELETE_ON_ERROR:
