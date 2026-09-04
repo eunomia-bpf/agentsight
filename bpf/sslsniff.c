@@ -567,7 +567,10 @@ static void add_related_codex_binary(const char *primary, const char *path,
 		if (same_resolved_path(out[i], path))
 			return;
 	}
-	out[(*count)++] = strdup(path);
+	char *copy = strdup(path);
+	if (!copy)
+		return;
+	out[(*count)++] = copy;
 }
 
 static void collect_codex_home_binaries(const char *home, const char *primary,

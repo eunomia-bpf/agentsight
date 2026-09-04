@@ -689,6 +689,7 @@ fn ingest_codebuddy_assistant(
     }
 
     let content = obj.get("content").unwrap_or(&Value::Null);
+    let tools_before = events.tools.len();
     if let Some(items) = content.as_array() {
         for item in items.iter().filter(|item| {
             matches!(
@@ -735,7 +736,8 @@ fn ingest_codebuddy_assistant(
     }
 
     let text = content_to_text(content);
-    if text.trim().is_empty() && input == 0 && output == 0 && events.tools.is_empty() {
+    let added_tools = events.tools.len() > tools_before;
+    if text.trim().is_empty() && input == 0 && output == 0 && !added_tools {
         return;
     }
     let preview_text = if !text.trim().is_empty() {
@@ -2197,12 +2199,29 @@ fn is_codebuddy_walk_file(path: &Path) -> bool {
 }
 
 fn is_codebuddy_project_transcript(path: &Path) -> bool {
+    is_codebuddy_project_transcript_for(
+        path,
+        std::env::var_os("CODEBUDDY_CONFIG_DIR").map(PathBuf::from),
+    )
+}
+
+fn is_codebuddy_project_transcript_for(path: &Path, configured: Option<PathBuf>) -> bool {
     if !is_codebuddy_walk_file(path) {
         return false;
     }
     let value = normalize_path_text(&path.to_string_lossy());
-    value.contains("/.codebuddy/projects/")
+    if value.contains("/.codebuddy/projects/")
         || (value.contains("/codebuddy/") && value.contains("/projects/"))
+    {
+        return true;
+    }
+    let Some(home) = configured.filter(|dir| dir.is_absolute()) else {
+        return false;
+    };
+    let prefix = normalize_path_text(&home.join("projects").to_string_lossy());
+    let prefix = prefix.trim_end_matches('/');
+    value == prefix
+        || (value.starts_with(prefix) && value.as_bytes().get(prefix.len()) == Some(&b'/'))
 }
 
 pub(crate) fn user_home_dir() -> Option<PathBuf> {
@@ -4873,6 +4892,48 @@ mod tests {
         assert!(session_log_path_from_str(session.to_str().unwrap()).is_some());
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn codebuddy_empty_assistant_after_tools_does_not_emit_blank_response() {
+        let content = format!(
+            "{}\n{}",
+            codebuddy_fixture(),
+            r#"{"id":"a2","timestamp":1788513385000,"type":"message","role":"assistant","content":[],"sessionId":"cb-session-1"}"#
+        );
+        let session = parse_session_content(
+            AGENT_CODEBUDDY,
+            Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("codebuddy session");
+        assert_eq!(session.events.tools.len(), 1);
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "你好!有什么我可以帮你的吗?"
+        );
+    }
+
+    #[test]
+    fn codebuddy_custom_config_dir_classifies_project_jsonl() {
+        let custom = Path::new("/data/state/projects/repo/cb-session-1.jsonl");
+        assert!(is_codebuddy_project_transcript_for(
+            custom,
+            Some(PathBuf::from("/data/state"))
+        ));
+        assert!(!is_codebuddy_project_transcript_for(
+            Path::new("/data/other/projects/repo/cb-session-1.jsonl"),
+            Some(PathBuf::from("/data/state"))
+        ));
+        assert!(!is_codebuddy_project_transcript_for(custom, None));
+        assert_eq!(
+            agent_source_for_path(Path::new(
+                "/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"
+            )),
+            Some(AGENT_CODEBUDDY)
+        );
     }
 
     #[test]
