@@ -220,6 +220,7 @@ fn label_from_exec_name(name: &str) -> Option<&'static str> {
         "claude" | "claude-code" => Some("claude"),
         "codex" | "codex-cli" => Some("codex"),
         "gemini" | "gemini-cli" => Some("gemini"),
+        "codebuddy" | "codebuddy-code" => Some("codebuddy"),
         "opencode" => Some("opencode"),
         "aider" => Some("aider"),
         "goose" => Some("goose"),
@@ -237,6 +238,8 @@ fn label_from_known_package_path(path: &str) -> Option<&'static str> {
         Some("codex")
     } else if path.contains("@google/gemini-cli") || path.contains("/gemini-cli/") {
         Some("gemini")
+    } else if path.contains("@tencent-ai/codebuddy-code") || path.contains("/codebuddy-code/") {
+        Some("codebuddy")
     } else {
         None
     }
@@ -325,6 +328,17 @@ mod tests {
             Some("codex")
         );
         assert_eq!(known_agent_label("openclaw-gatewa", ""), Some("openclaw"));
+        assert_eq!(
+            known_agent_label(
+                "node",
+                "node /usr/lib/node_modules/@tencent-ai/codebuddy-code/bin/codebuddy"
+            ),
+            Some("codebuddy")
+        );
+        assert_eq!(
+            known_agent_label("node", "/usr/bin/codebuddy"),
+            Some("codebuddy")
+        );
     }
 
     #[test]
@@ -346,6 +360,16 @@ mod tests {
         };
         assert!(!process_matches_comm(&proc_info, "claude"));
         assert!(process_matches_comm(&proc_info, "agentsight"));
+
+        let codebuddy = ProcInfo {
+            comm: "node".to_string(),
+            command:
+                "/usr/bin/node-20 /usr/lib/node_modules/@tencent-ai/codebuddy-code/bin/codebuddy"
+                    .to_string(),
+            ..Default::default()
+        };
+        assert!(process_matches_comm(&codebuddy, "codebuddy"));
+        assert!(!process_matches_comm(&codebuddy, "claude"));
     }
 
     #[test]

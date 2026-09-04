@@ -30,6 +30,7 @@ const SESSION_ID_HEADER_BYTES: u64 = 64 * 1024;
 // against the published agent-session, which lags behind the workspace copy, so
 // production code here cannot reference constants the registry version lacks.
 const CURSOR_AGENT_TYPE: &str = "cursor";
+const CODEBUDDY_AGENT_TYPE: &str = "codebuddy";
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -122,7 +123,7 @@ fn index_session_paths(
 fn session_candidate_id(candidate: &agent_session::SessionCandidate) -> Option<String> {
     if matches!(
         candidate.agent,
-        agent_session::AGENT_CLAUDE | CURSOR_AGENT_TYPE
+        agent_session::AGENT_CLAUDE | CURSOR_AGENT_TYPE | CODEBUDDY_AGENT_TYPE
     ) {
         return candidate
             .path

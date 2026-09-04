@@ -274,8 +274,14 @@ fn build_ssl_args(cfg: &TraceConfig) -> Vec<String> {
     }
     // Skip --comm for sslsniff when --binary-path is set: SSL traffic runs on
     // "HTTP Client" thread, not the process name, so comm filter drops everything.
+    // CodeBuddy CLI is a Node shebang; kernel comm is `node`, so `-c codebuddy`
+    // would drop every TLS event even when system libssl is hooked correctly.
     if cfg.binary_path.is_none() {
-        if let Some(comm) = cfg.comm.as_deref() {
+        if let Some(comm) = cfg
+            .comm
+            .as_deref()
+            .filter(|comm| !ssl_comm_is_misleading(comm))
+        {
             args.extend(["-c".to_string(), comm.to_string()]);
         }
     }
@@ -286,6 +292,10 @@ fn build_ssl_args(cfg: &TraceConfig) -> Vec<String> {
         args.extend(["--binary-path".to_string(), path.to_string()]);
     }
     args
+}
+
+fn ssl_comm_is_misleading(comm: &str) -> bool {
+    comm.eq_ignore_ascii_case("codebuddy")
 }
 
 fn build_process_args(cfg: &TraceConfig) -> Vec<String> {
@@ -680,5 +690,20 @@ mod tests {
 
         assert!(!saved.is_live_host());
         assert!(live.is_live_host());
+    }
+
+    #[test]
+    fn ssl_args_skip_codebuddy_comm_filter() {
+        let mut cfg = TraceConfig {
+            comm: Some("codebuddy".to_string()),
+            ..TraceConfig::default()
+        };
+        assert!(!build_ssl_args(&cfg).contains(&"-c".to_string()));
+
+        cfg.comm = Some("node".to_string());
+        assert_eq!(
+            build_ssl_args(&cfg),
+            vec!["-c".to_string(), "node".to_string()]
+        );
     }
 }

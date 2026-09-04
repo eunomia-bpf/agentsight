@@ -1286,7 +1286,7 @@ fn provider_session_home(session_path: &Path) -> Option<PathBuf> {
     let mut directory = session_path.parent();
     while let Some(candidate) = directory {
         if candidate.file_name().is_some_and(|name| {
-            [".claude", ".codex", ".gemini"]
+            [".claude", ".codex", ".gemini", ".codebuddy"]
                 .iter()
                 .any(|marker| name.to_string_lossy().eq_ignore_ascii_case(marker))
         }) {
@@ -1596,6 +1596,12 @@ mod tests {
         assert_eq!(
             provider_session_home(Path::new(
                 "service-user/.gemini/tmp/repo/chats/session.json"
+            )),
+            Some(PathBuf::from("service-user"))
+        );
+        assert_eq!(
+            provider_session_home(Path::new(
+                "service-user/.codebuddy/projects/repo/session.jsonl"
             )),
             Some(PathBuf::from("service-user"))
         );
