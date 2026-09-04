@@ -260,10 +260,10 @@ try {
 
 ### Keep the tasks self-healing
 
-The logon trigger and restart settings above only re-launch a task that failed to
-start. A long-running task that is terminated while it is running (for example
-`LastTaskResult = 0xC000013A`) returns to `Ready` and is not started again until
-the next sign-in. A third per-user watchdog task covers that state. It runs at
+In the observed failure mode, a long-running task terminated while it was
+running (for example `LastTaskResult = 0xC000013A`), returned to `Ready`, and
+was not restarted by the settings above before the next sign-in. A third
+per-user watchdog task covers that state. It runs at
 sign-in and on a fixed repetition interval, starts only the Monitor or Bind task
 whose process is actually missing, and leaves a healthy manual instance alone
 when the process command lines are visible. It requires neither elevation nor
