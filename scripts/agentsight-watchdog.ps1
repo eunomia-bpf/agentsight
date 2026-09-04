@@ -67,6 +67,10 @@ function Get-AgentSightInstance {
         $blind = @($processes | Where-Object { -not $_.CommandLine })
         if ($blind.Count) {
             Write-Warning ('{0} agentsight.exe process(es) provide no command line; their role cannot be verified.' -f $blind.Count)
+            # Be conservative when any AgentSight role is opaque. Starting a
+            # second Monitor or Bind instance is worse than deferring recovery
+            # until command-line visibility returns.
+            return $processes
         }
         return @($processes | Where-Object {
             (Get-RoleArgumentTail -CommandLine $_.CommandLine `
@@ -79,6 +83,16 @@ function Get-AgentSightInstance {
         return @(Get-Process -Name 'agentsight' `
             -ErrorAction SilentlyContinue)
     }
+}
+
+function Get-RegisteredTask {
+    param([string]$TaskName)
+
+    # Querying the complete task list lets an absent task produce an empty
+    # result while service/CIM failures remain terminating, actionable errors.
+    return @(Get-ScheduledTask -ErrorAction Stop | Where-Object {
+        $_.TaskName -eq $TaskName
+    }) | Select-Object -First 1
 }
 
 function Test-RoleAlive {
@@ -94,8 +108,7 @@ function Invoke-Maintain {
         @{ TaskName = $BindTaskName; RoleKeyword = $bindKeyword }
     )) {
         try {
-            $task = Get-ScheduledTask -TaskName $role.TaskName `
-                -ErrorAction SilentlyContinue
+            $task = Get-RegisteredTask -TaskName $role.TaskName
             if (-not $task) {
                 Write-MaintainLog "Skipping '$($role.TaskName)': task is not registered."
                 continue
@@ -116,8 +129,7 @@ function Register-Watchdog {
         if ($name -match '[`"]') {
             throw "Task name '$name' contains characters that cannot be embedded in the scheduled task command line."
         }
-        if (-not (Get-ScheduledTask -TaskName $name `
-                -ErrorAction SilentlyContinue)) {
+        if (-not (Get-RegisteredTask -TaskName $name)) {
             throw "Scheduled task '$name' is not registered. Register the AgentSight startup tasks first (see 'Start after sign-in' in docs/installation.md) before adding the watchdog."
         }
     }
@@ -159,8 +171,7 @@ function Register-Watchdog {
 }
 
 function Unregister-Watchdog {
-    $task = Get-ScheduledTask -TaskName $WatchdogTaskName `
-        -ErrorAction SilentlyContinue
+    $task = Get-RegisteredTask -TaskName $WatchdogTaskName
     if (-not $task) {
         Write-Output "'$WatchdogTaskName' is not registered."
         return
