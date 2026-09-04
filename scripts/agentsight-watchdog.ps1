@@ -91,7 +91,7 @@ function Get-RegisteredTask {
     # Querying the complete task list lets an absent task produce an empty
     # result while service/CIM failures remain terminating, actionable errors.
     return @(Get-ScheduledTask -ErrorAction Stop | Where-Object {
-        $_.TaskName -eq $TaskName
+        $_.TaskName -eq $TaskName -and $_.TaskPath -eq '\'
     }) | Select-Object -First 1
 }
 
