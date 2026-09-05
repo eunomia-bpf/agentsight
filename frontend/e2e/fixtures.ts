@@ -187,7 +187,7 @@ export async function mockController(page: Page, options: {
       window.localStorage.setItem('agentsight-locale', 'en');
     });
   }
-  await page.route('http://node-direct.test:7395/**', async (route) => {
+  await page.route(/^https?:\/\/node-direct\.test:7395\//, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     state.directRequests.push(`${request.method()} ${path}`);
@@ -200,6 +200,8 @@ export async function mockController(page: Page, options: {
     if (path === '/api/v1/capabilities') return json(route, { access_token: 'b'.repeat(40) });
     if (path === '/api/v1/snapshot') return json(route, snapshot);
     if (path === '/api/v1/overview') return json(route, overview);
+    if (path.endsWith('/messages')) return route.abort('failed');
+    if (path.startsWith('/api/v1/sessions/')) return json(route, sessionDetail);
     return json(route, { error: `Unhandled Direct route: ${request.method()} ${path}` }, 500);
   });
   await page.route('https://control.agentsight.us/**', async (route) => {

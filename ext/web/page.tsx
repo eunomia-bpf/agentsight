@@ -191,29 +191,9 @@ export default function Home() {
     }
   }, [activeClient]);
 
-  const refreshRelayStatuses = useCallback(async (nodes: CloudNode[], token: string, generation: number) => {
-    if (directoryGeneration.current !== generation) return;
-    setRelayStatus(Object.fromEntries(nodes.map((node) => [node.id, null])));
-    await Promise.all(nodes.map(async (node) => {
-      let online = false;
-      try {
-        online = await relayOnline(token, node.id);
-      } catch (cause) {
-        if (cause instanceof CloudSessionExpiredError
-            && directoryGeneration.current === generation) {
-          handleCloudError(cause, 'Could not check Node relay status.');
-          return;
-        }
-      }
-      if (directoryGeneration.current === generation) {
-        setRelayStatus((current) => ({ ...current, [node.id]: online }));
-      }
-    }));
-  }, [handleCloudError]);
-
   const loadCloudDirectory = useCallback(async (token: string): Promise<CloudOrganization | null> => {
-    const me = await fetchCloudIdentity(token);
-    let nextOrganizations = await fetchOrganizations(token);
+    const [me, fetchedOrganizations] = await Promise.all([fetchCloudIdentity(token), fetchOrganizations(token)]);
+    let nextOrganizations = fetchedOrganizations;
     let selected = preferredOrganization(nextOrganizations);
     const pendingInvite = window.localStorage.getItem(PENDING_INVITE_KEY);
     if (pendingInvite) {
@@ -241,7 +221,6 @@ export default function Home() {
       if (directoryGeneration.current !== generation) return 'stale';
       setCloudNodes(nodes);
       setNodeError('');
-      void refreshRelayStatuses(nodes, token, generation);
       return 'loaded';
     } catch (cause) {
       if (directoryGeneration.current === generation) {
@@ -252,7 +231,7 @@ export default function Home() {
     } finally {
       if (directoryGeneration.current === generation) setNodesLoading(false);
     }
-  }, [handleCloudError, refreshRelayStatuses]);
+  }, [handleCloudError]);
 
   const refreshFleet = useCallback(async () => {
     const organizationId = activeOrganizationId;
@@ -272,63 +251,39 @@ export default function Home() {
 
     try {
       const next = await Promise.all(cloudNodes.map(async (node): Promise<FleetNodeSample> => {
-        const loaded: { value: Pick<FleetNodeSample, 'overview' | 'transport' | 'updatedAt'> | null } = {
-          value: null,
-        };
-        const attempts = [];
+        let sample: FleetNodeSample = { node, state: 'unreachable', overview: null };
         const direct = directConnections[node.id];
-        if (direct) {
-          attempts.push({
-            transport: 'direct',
-            open: async () => {
-              const client = directNodeClient(direct);
-              const overview = await client.overview();
-              if (!overview) throw new Error('This Node does not expose a live overview.');
-              loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
-            },
+        const relayCheck = (token ? relayOnline(token, node.id) : Promise.resolve(false))
+          .catch((cause) => {
+            if (cause instanceof CloudSessionExpiredError && fleetGeneration.current === generation) {
+              handleCloudError(cause, 'Could not check Node relay status.');
+            }
+            return false;
+          }).then((online) => {
+            if (fleetGeneration.current === generation) {
+              setRelayStatus((current) => ({ ...current, [node.id]: online }));
+            }
+            return online;
           });
-        }
-        let relayAvailable = false;
-        try {
-          relayAvailable = token ? await relayOnline(token, node.id) : false;
-        } catch (cause) {
-          if (cause instanceof CloudSessionExpiredError) throw cause;
+        for (const client of [direct && directNodeClient(direct), token && relayNodeClient(node, token)]) {
+          if (!client || (client.transport === 'relay' && !await relayCheck)) continue;
+          try {
+            const overview = await client.overview();
+            if (!overview) throw new Error('This Node does not expose a live overview.');
+            sample = { node, state: 'online', overview, transport: client.transport, updatedAt: Date.now() };
+            break;
+          } catch (cause) {
+            sample.error = cause instanceof Error ? cause.message : 'No reachable transport.';
+          }
         }
         if (fleetGeneration.current === generation) {
-          setRelayStatus((current) => current[node.id] === relayAvailable
-            ? current : { ...current, [node.id]: relayAvailable });
+          setFleetSamples((current) => current.map((item) => item.node.id === node.id ? sample : item));
         }
-        if (token && relayAvailable) {
-          attempts.push({
-            transport: 'relay',
-            open: async () => {
-              const client = relayNodeClient(node, token);
-              const overview = await client.overview();
-              if (!overview) throw new Error('This Node does not expose a live overview.');
-              loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
-            },
-          });
-        }
-        if (attempts.length === 0) {
-          return {
-            node,
-            state: 'unreachable',
-            overview: null,
-          };
-        }
-        const result = await tryNodeTransports(attempts);
-        if (loaded.value && result.transport) return { node, state: 'online', ...loaded.value };
-        const cause = result.failures.at(-1)?.cause;
-        return {
-          node,
-          state: 'unreachable',
-          overview: null,
-          error: cause instanceof Error ? cause.message : 'No reachable transport.',
-        };
+        await relayCheck;
+        return sample;
       }));
 
       if (fleetGeneration.current === generation) {
-        setFleetSamples(next);
         const failed = next.filter((sample) => sample.state === 'unreachable').length;
         if (failed && failed === next.length) setFleetError('No machine overview is currently reachable.');
       }
@@ -706,34 +661,23 @@ export default function Home() {
   useEffect(() => {
     if (mode !== 'live' || !activeClient) return;
     let cancelled = false;
-    let overviewRefreshing = false;
-    let snapshotRefreshing = false;
-    const refreshOverview = async () => {
-      if (overviewRefreshing || document.visibilityState === 'hidden') return;
-      overviewRefreshing = true;
-      try {
-        const next = await activeClient.overview();
-        if (!cancelled) setOverview(next);
-      } catch {
-        // Retain the last good top sample; manual refresh reports Node errors.
-      } finally {
-        overviewRefreshing = false;
-      }
+    const poll = <T,>(read: () => Promise<T>, update: (value: T) => void, interval: number) => {
+      let refreshing = false;
+      return window.setInterval(async () => {
+        if (refreshing || document.visibilityState === 'hidden') return;
+        refreshing = true;
+        try {
+          const next = await read();
+          if (!cancelled) update(next);
+        } catch {
+          // Keep the last good sample; manual refresh reports Node errors.
+        } finally {
+          refreshing = false;
+        }
+      }, interval);
     };
-    const refreshSnapshot = async () => {
-      if (snapshotRefreshing || document.visibilityState === 'hidden') return;
-      snapshotRefreshing = true;
-      try {
-        const next = await activeClient.snapshot();
-        if (!cancelled) setSnapshot(next);
-      } catch {
-        // Keep the current session index until the next bounded refresh.
-      } finally {
-        snapshotRefreshing = false;
-      }
-    };
-    const overviewTimer = window.setInterval(() => { void refreshOverview(); }, 3_000);
-    const snapshotTimer = window.setInterval(() => { void refreshSnapshot(); }, 30_000);
+    const overviewTimer = poll(() => activeClient.overview(), setOverview, 3_000);
+    const snapshotTimer = poll(() => activeClient.snapshot(), setSnapshot, 30_000);
     return () => {
       cancelled = true;
       window.clearInterval(overviewTimer);
@@ -742,7 +686,7 @@ export default function Home() {
   }, [activeClient, mode]);
 
   useEffect(() => {
-    if (mode !== 'directory' || !identity) return;
+    if ((mode !== 'directory' && !dialogOpen) || !identity) return;
     let cancelled = false;
     let timer: number | undefined;
     const refresh = async () => {
@@ -754,7 +698,7 @@ export default function Home() {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [identity, mode, refreshFleet]);
+  }, [dialogOpen, identity, mode, refreshFleet]);
 
   useEffect(() => {
     const handleLaunchFragment = () => {
@@ -767,14 +711,11 @@ export default function Home() {
     return () => { window.removeEventListener('hashchange', handleLaunchFragment); };
   }, []);
 
-  const openSession = (sessionId: string) => {
+  const openSession = (sessionId: string | null) => {
     setSelectedSessionId(sessionId);
-    window.history.replaceState(null, '', `${basePath}/?session=${encodeURIComponent(sessionId)}`);
-  };
-
-  const closeSession = () => {
-    setSelectedSessionId(null);
-    window.history.replaceState(null, '', `${basePath}/`);
+    const query = sessionId === null ? '' : `?session=${encodeURIComponent(sessionId)}`;
+    window.history.replaceState(null, '', `${basePath}/${query}`);
+    window.scrollTo(0, 0);
   };
 
   const showFleet = () => {
@@ -799,6 +740,7 @@ export default function Home() {
 
   const nodeManager = identity ? (
     <NodeManager nodes={cloudNodes} connections={directConnections}
+      modal={dialogOpen} onClose={() => setDialogOpen(false)}
       relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
       loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError}
       onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
@@ -816,17 +758,7 @@ export default function Home() {
           onDemo={() => { void enterDemo(); }} />
       )}
 
-      {identity && dialogOpen && (
-        <NodeManager nodes={cloudNodes} connections={directConnections}
-          relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
-          loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError} modal
-          onClose={() => setDialogOpen(false)}
-          onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
-          onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
-          onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
-          onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
-          onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
-      )}
+      {dialogOpen && nodeManager}
 
       {identity && organizationDialogOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 px-4">
@@ -870,7 +802,7 @@ export default function Home() {
                   ))}
                 </select>
                 <button type="button" onClick={() => setOrganizationDialogOpen(true)}
-                  className="hidden text-xs font-medium text-slate-500 hover:text-slate-900 sm:inline">
+                  className="text-xs font-medium text-slate-500 hover:text-slate-900">
                   {t('app.addOrganization')}
                 </button>
               </div>
@@ -949,8 +881,8 @@ export default function Home() {
 
             {snapshot ? (
               selectedSession ? (
-                <SessionWorkspace snapshot={snapshot} overview={overview} session={selectedSession}
-                  client={activeClient} onBack={closeSession} />
+                <SessionWorkspace key={`${activeClient?.nodeId}:${selectedSession.id}`} snapshot={snapshot} overview={overview} session={selectedSession}
+                  client={activeClient} onBack={() => openSession(null)} />
               ) : (
                 <NodeOverview snapshot={snapshot} overview={overview} organization={activeOrganization}
                   onOpenSession={openSession} />

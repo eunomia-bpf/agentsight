@@ -24,7 +24,7 @@ import {
   sessionWorkspace,
 } from '@/utils/sessionData';
 
-function count(value: number | null | undefined): string {
+export function count(value: number | null | undefined): string {
   const number = value ?? 0;
   if (Math.abs(number) >= 1_000_000_000) return `${(number / 1_000_000_000).toFixed(1)}B`;
   if (Math.abs(number) >= 1_000_000) return `${(number / 1_000_000).toFixed(1)}M`;
@@ -107,7 +107,7 @@ export function NodeOverview({
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <Stat label={t('overview.running')} value={liveAvailable ? String(running) : '—'}
           tone={liveAvailable ? 'emerald' : 'slate'}
           hint={liveAvailable ? t('overview.runningHint') : t('overview.liveUnavailable')} />
@@ -141,8 +141,8 @@ export function NodeOverview({
             <span className="text-xs tabular-nums text-slate-400">{sessions.length + unmatched.length}</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
-              <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+            <table className="w-full text-left text-sm md:min-w-[820px] [&_td:nth-child(n+4)]:hidden md:[&_td:nth-child(n+4)]:table-cell">
+              <thead className="hidden bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 md:table-header-group">
                 <tr>
                   <th scope="col" className="px-5 py-2.5 font-medium">{t('overview.state')}</th>
                   <th scope="col" className="px-3 py-2.5 font-medium">{t('overview.agentProcess')}</th>
@@ -159,7 +159,7 @@ export function NodeOverview({
                   const state = sessionActivityState(session, live);
                   const runningSession = state === 'running';
                   return (
-                    <tr key={session.id} className="group hover:bg-blue-50/40">
+                    <tr key={session.id} className="group grid grid-cols-2 hover:bg-blue-50/40 md:table-row">
                       <td className="px-5 py-3">
                         {isRecordedCaptureSession(session)
                           ? <span className="text-xs font-medium text-slate-500">{t('sessionDetail.recordedCapture')}</span>
@@ -176,7 +176,7 @@ export function NodeOverview({
                             .filter(Boolean).join(' · ')}
                         </div>
                       </td>
-                      <td className="max-w-[420px] px-3 py-3">
+                      <td className="col-span-2 min-w-0 px-3 pb-3 md:max-w-[420px] md:py-3">
                         <button type="button" onClick={() => onOpenSession(session.id)}
                           className="block w-full truncate text-left font-medium text-slate-700 group-hover:text-slate-950">
                           {currentWork(session, live)}
@@ -211,10 +211,10 @@ export function NodeOverview({
                   );
                 })}
                 {unmatched.map((row) => (
-                  <tr key={`${row.pid}-${row.session}`} className="bg-slate-50/50">
+                  <tr key={`${row.pid}-${row.session}`} className="grid grid-cols-2 bg-slate-50/50 md:table-row">
                     <td className="px-5 py-3"><State state="running" /></td>
                     <td className="px-3 py-3 font-semibold capitalize text-slate-900">{row.agent}</td>
-                    <td className="max-w-[420px] px-3 py-3">
+                    <td className="col-span-2 min-w-0 px-3 pb-3 md:max-w-[420px] md:py-3">
                       <div className="truncate font-medium text-slate-700">{row.command}</div>
                       <div className="truncate text-[11px] text-slate-400">{row.workspace || `PID ${row.pid}`}</div>
                     </td>
@@ -308,7 +308,7 @@ export function NodeOverview({
   );
 }
 
-function Stat({ label, value, hint, tone = 'slate' }: {
+export function Stat({ label, value, hint, tone = 'slate' }: {
   label: string; value: string; hint: string; tone?: 'slate' | 'emerald';
 }) {
   return (
@@ -323,7 +323,7 @@ function Stat({ label, value, hint, tone = 'slate' }: {
   );
 }
 
-function State({ state }: { state: 'running' | 'recent' | 'stopped' }) {
+export function State({ state }: { state: 'running' | 'recent' | 'stopped' }) {
   const { t } = useTranslation();
   const running = state === 'running';
   const recent = state === 'recent';
