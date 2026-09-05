@@ -2076,6 +2076,33 @@ mod tests {
     }
 
     #[test]
+    fn codex_state_db_uses_token_usage_record_before_token_count() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 15);
+        assert_eq!(sessions[0].usage.input_tokens, 11);
+        assert_eq!(sessions[0].usage.output_tokens, 4);
+    }
+
+    #[test]
     fn codex_state_db_errors_return_empty_for_jsonl_fallback() {
         let temp = tempfile::tempdir().unwrap();
         fs::create_dir_all(temp.path().join(".codex")).unwrap();

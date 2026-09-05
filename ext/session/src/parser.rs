@@ -1146,6 +1146,25 @@ fn parse_jsonl(
                     acc.model = Some(name.to_string());
                 }
             }
+            (AGENT_CODEX, "token_usage_record") => {
+                // Codex 0.153+ writes this rollout item before event_msg token_count.
+                if let Some(usage) = obj.get("payload").and_then(codex_record_token_usage) {
+                    have_codex_total = true;
+                    let name = if codex_model.is_empty() {
+                        "unknown"
+                    } else {
+                        &codex_model
+                    };
+                    acc.set_usage(
+                        name,
+                        usage.input_tokens,
+                        usage.output_tokens,
+                        0,
+                        usage.cache_read_tokens,
+                        usage.total_tokens,
+                    );
+                }
+            }
             (AGENT_CODEX, "event_msg") => {
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
@@ -3002,15 +3021,32 @@ fn codex_named_token_usage(info: &Value, key: &str) -> Option<TokenUsage> {
         .filter(|usage| usage.total_tokens > 0)
 }
 
+fn codex_record_token_usage(payload: &Value) -> Option<TokenUsage> {
+    payload
+        .get("thread_token_usage")
+        .or_else(|| payload.get("usage"))
+        .or_else(|| payload.get("turn_token_usage"))
+        .map(codex_token_usage)
+        .filter(|usage| usage.total_tokens > 0)
+}
+
 pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
     let mut last_fallback = None;
+    let mut record_fallback = None;
     for line in content.lines().rev() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
         };
+        let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
         let Some(payload) = obj.get("payload") else {
             continue;
         };
+        if typ == "token_usage_record" {
+            if record_fallback.is_none() {
+                record_fallback = codex_record_token_usage(payload);
+            }
+            continue;
+        }
         if payload.get("type").and_then(Value::as_str) != Some("token_count") {
             continue;
         }
@@ -3024,7 +3060,7 @@ pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
             last_fallback = codex_named_token_usage(info, "last_token_usage");
         }
     }
-    last_fallback
+    record_fallback.or(last_fallback)
 }
 
 /// Read the newest plan update from a bounded Codex rollout tail.
@@ -5764,6 +5800,87 @@ mod tests {
         assert_eq!(session.usage.total_tokens, 100);
         assert_eq!(session.usage.input_tokens, 80);
         assert_eq!(session.usage.output_tokens, 20);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            100
+        );
+    }
+
+    #[test]
+    fn latest_codex_token_usage_record_sets_session_tokens() {
+        // Codex 0.153+ writes this item before event_msg token_count. The macOS
+        // live smoke greps for "total_tokens":15 here and immediately runs top.
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_id":"01a07152-7112-7d60-8d15-0d6f49abd542","turn_id":"01a07152-7155-75b3-9067-0419f25a345c","session_id":"01a07152-7112-7d60-8d15-0d6f49abd542","usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15},"turn_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 15);
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            15
+        );
+    }
+
+    #[test]
+    fn latest_codex_token_usage_record_beats_trailing_last_only() {
+        let content = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+        );
+        assert_eq!(
+            parse_session_content(
+                AGENT_CODEX,
+                &PathBuf::from("/tmp/session.jsonl"),
+                UNIX_EPOCH,
+                content,
+            )
+            .expect("session")
+            .usage
+            .total_tokens,
+            100
+        );
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            100
+        );
+    }
+
+    #[test]
+    fn latest_codex_token_count_total_overrides_earlier_record() {
+        let content = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100}}}}"#,
+        );
+        assert_eq!(
+            parse_session_content(
+                AGENT_CODEX,
+                &PathBuf::from("/tmp/session.jsonl"),
+                UNIX_EPOCH,
+                content,
+            )
+            .expect("session")
+            .usage
+            .total_tokens,
+            100
+        );
         assert_eq!(
             codex_total_token_usage(content)
                 .expect("usage")
