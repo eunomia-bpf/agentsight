@@ -522,11 +522,18 @@ static int attach_codex_ssl(struct sslsniff_bpf *skel, const char *binary)
 			binary, plaintext_offset);
 		err = attach_rustls_buffer_plaintext(skel, binary,
 						     plaintext_offset);
-		if (!err)
+		if (!err) {
+			fprintf(stderr,
+				"Attached Codex/rustls buffer_plaintext at 0x%zx "
+				"(1 offset) for %s\n",
+				plaintext_offset, binary);
 			return 0;
+		}
 		warn("buffer_plaintext attach failed for %s (%d); "
 		     "falling back to write hooks\n",
 		     binary, err);
+		if (!have_write)
+			return err;
 	}
 	if (have_write) {
 		fprintf(stderr,

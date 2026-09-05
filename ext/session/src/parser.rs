@@ -1149,14 +1149,13 @@ fn parse_jsonl(
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
                 if ptype == "token_count"
-                    && let Some(usage) = payload.pointer("/info/total_token_usage")
+                    && let Some(usage) = payload.get("info").and_then(codex_preferred_token_usage)
                 {
                     let name = if codex_model.is_empty() {
                         "unknown"
                     } else {
                         &codex_model
                     };
-                    let usage = codex_token_usage(usage);
                     acc.set_usage(
                         name,
                         usage.input_tokens,
@@ -2215,10 +2214,10 @@ fn is_codebuddy_project_transcript_for(path: &Path, configured: Option<PathBuf>)
     {
         return true;
     }
-    let Some(home) = configured.filter(|dir| dir.is_absolute()) else {
+    let Some(home) = configured_absolute_dir(configured) else {
         return false;
     };
-    let prefix = normalize_path_text(&home.join("projects").to_string_lossy());
+    let prefix = join_path_text(&home, "projects");
     let prefix = prefix.trim_end_matches('/');
     value == prefix
         || (value.starts_with(prefix) && value.as_bytes().get(prefix.len()) == Some(&b'/'))
@@ -2262,8 +2261,8 @@ fn configured_codebuddy_home(home: &Path) -> PathBuf {
 }
 
 fn resolve_codebuddy_home(home: &Path, configured: Option<PathBuf>) -> PathBuf {
-    configured
-        .filter(|path| path.is_absolute())
+    configured_absolute_dir(configured)
+        .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".codebuddy"))
 }
 
@@ -2723,6 +2722,13 @@ fn is_absolute_path_text(path: &str) -> bool {
         || path.as_bytes().get(1) == Some(&b':') && path.as_bytes().get(2) == Some(&b'/')
 }
 
+fn configured_absolute_dir(configured: Option<PathBuf>) -> Option<String> {
+    configured.and_then(|dir| {
+        let text = normalize_path_text(&dir.to_string_lossy());
+        is_absolute_path_text(&text).then_some(text)
+    })
+}
+
 fn join_path_text(base: &str, child: &str) -> String {
     let base = normalize_path_text(base);
     let child = normalize_path_text(child);
@@ -2958,18 +2964,35 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
     segments
 }
 
+fn json_token_count(value: &Value, key: &str) -> i64 {
+    first_i64(value, &[key]).unwrap_or(0).max(0)
+}
+
 fn codex_token_usage(value: &Value) -> TokenUsage {
-    let input = json_i64(value, "input_tokens").max(0);
-    let output = json_i64(value, "output_tokens").max(0);
-    let cache = json_i64(value, "cached_input_tokens").max(0);
+    let input = json_token_count(value, "input_tokens");
+    let output = json_token_count(value, "output_tokens");
+    let cache = json_token_count(value, "cached_input_tokens");
+    let explicit_total = json_token_count(value, "total_tokens");
     let input = input.saturating_sub(cache);
+    let computed = input + output + cache;
     TokenUsage {
         input_tokens: input,
         output_tokens: output,
         cache_creation_tokens: 0,
         cache_read_tokens: cache,
-        total_tokens: input + output + cache,
+        total_tokens: explicit_total.max(computed),
     }
+}
+
+fn codex_preferred_token_usage(info: &Value) -> Option<TokenUsage> {
+    info.get("total_token_usage")
+        .map(codex_token_usage)
+        .filter(|usage| usage.total_tokens > 0)
+        .or_else(|| {
+            info.get("last_token_usage")
+                .map(codex_token_usage)
+                .filter(|usage| usage.total_tokens > 0)
+        })
 }
 
 pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
@@ -2979,9 +3002,7 @@ pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
         if payload.get("type").and_then(Value::as_str) != Some("token_count") {
             return None;
         }
-        payload
-            .pointer("/info/total_token_usage")
-            .map(codex_token_usage)
+        payload.get("info").and_then(codex_preferred_token_usage)
     })
 }
 
@@ -4923,6 +4944,10 @@ mod tests {
             custom,
             Some(PathBuf::from("/data/state"))
         ));
+        assert!(is_codebuddy_project_transcript_for(
+            Path::new(r"C:\state\projects\repo\cb-session-1.jsonl"),
+            Some(PathBuf::from(r"C:\state"))
+        ));
         assert!(!is_codebuddy_project_transcript_for(
             Path::new("/data/other/projects/repo/cb-session-1.jsonl"),
             Some(PathBuf::from("/data/state"))
@@ -5634,6 +5659,56 @@ mod tests {
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
         assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn latest_codex_last_token_usage_sets_session_tokens() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 15);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            15
+        );
+    }
+
+    #[test]
+    fn latest_codex_explicit_total_survives_empty_breakdown() {
+        let content = concat!(
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":15},"last_token_usage":{"total_tokens":15}}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{}}}}"#,
+        );
+        assert_eq!(
+            parse_session_content(
+                AGENT_CODEX,
+                &PathBuf::from("/tmp/session.jsonl"),
+                UNIX_EPOCH,
+                content,
+            )
+            .expect("session")
+            .usage
+            .total_tokens,
+            15
+        );
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            15
+        );
     }
 
     #[test]

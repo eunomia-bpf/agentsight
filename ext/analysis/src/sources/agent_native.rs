@@ -237,10 +237,12 @@ fn codex_state_session(
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
     let path = PathBuf::from(rollout_path);
     let (rollout_usage, plan, _) = codex_rollout_summary(&path);
-    let usage = rollout_usage.unwrap_or(TokenUsage {
-        total_tokens: tokens_used.max(0),
-        ..Default::default()
-    });
+    let usage = rollout_usage
+        .filter(|usage| usage.total_tokens > 0)
+        .unwrap_or(TokenUsage {
+            total_tokens: tokens_used.max(0),
+            ..Default::default()
+        });
     let model = model.filter(|value| !value.is_empty());
     let mut model_usage = BTreeMap::new();
     if let Some(model) = model.as_deref() {
@@ -2013,6 +2015,35 @@ mod tests {
         assert_eq!(sessions[0].usage.cache_read_tokens, 9_984);
         assert_eq!(sessions[0].usage.output_tokens, 11);
         assert_eq!(sessions[0].usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_state_db_uses_last_token_usage_when_total_is_empty() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+                "\n",
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{}}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 15);
+        assert_eq!(sessions[0].usage.input_tokens, 11);
+        assert_eq!(sessions[0].usage.output_tokens, 4);
     }
 
     #[test]
