@@ -7,10 +7,7 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <errno.h>
-#include <linux/limits.h>
-#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -547,114 +544,6 @@ static int attach_codex_ssl(struct sslsniff_bpf *skel, const char *binary)
 	return 0;
 }
 
-static bool same_resolved_path(const char *a, const char *b)
-{
-	char ra[PATH_MAX];
-	char rb[PATH_MAX];
-
-	if (!a || !b)
-		return false;
-	if (!realpath(a, ra) || !realpath(b, rb))
-		return strcmp(a, b) == 0;
-	return strcmp(ra, rb) == 0;
-}
-
-static void add_related_codex_binary(const char *primary, const char *path,
-				     char **out, size_t *count, size_t max)
-{
-	size_t i;
-
-	if (*count >= max || !path || access(path, R_OK) != 0)
-		return;
-	if (same_resolved_path(primary, path))
-		return;
-	if (!codex_binary_has_tls_markers(path))
-		return;
-	for (i = 0; i < *count; i++) {
-		if (same_resolved_path(out[i], path))
-			return;
-	}
-	char *copy = strdup(path);
-	if (!copy)
-		return;
-	out[(*count)++] = copy;
-}
-
-static void collect_codex_home_binaries(const char *home, const char *primary,
-					char **out, size_t *count, size_t max)
-{
-	char releases[PATH_MAX];
-	DIR *dir;
-	struct dirent *ent;
-
-	if (!home || home[0] == '\0')
-		return;
-	snprintf(releases, sizeof(releases),
-		 "%s/.codex/packages/standalone/releases", home);
-	dir = opendir(releases);
-	if (!dir)
-		return;
-	while ((ent = readdir(dir)) != NULL && *count < max) {
-		char candidate[PATH_MAX];
-		int n;
-
-		if (ent->d_name[0] == '.')
-			continue;
-		n = snprintf(candidate, sizeof(candidate), "%s/%s/bin/codex",
-			     releases, ent->d_name);
-		if (n < 0 || (size_t)n >= sizeof(candidate))
-			continue;
-		add_related_codex_binary(primary, candidate, out, count, max);
-	}
-	closedir(dir);
-}
-
-static void collect_related_codex_binaries(const char *primary, char **out,
-					   size_t *count, size_t max)
-{
-	DIR *dir;
-	struct dirent *ent;
-	const char *home = getenv("HOME");
-	const char *sudo_user = getenv("SUDO_USER");
-
-	*count = 0;
-	collect_codex_home_binaries(home, primary, out, count, max);
-	if (sudo_user && sudo_user[0]) {
-		struct passwd *pw = getpwnam(sudo_user);
-
-		if (pw)
-			collect_codex_home_binaries(pw->pw_dir, primary, out,
-						    count, max);
-	}
-	dir = opendir("/proc");
-	if (!dir)
-		return;
-	while ((ent = readdir(dir)) != NULL && *count < max) {
-		char linkpath[PATH_MAX];
-		char exe[PATH_MAX];
-		ssize_t n;
-		char *base;
-		int pn;
-
-		if (ent->d_name[0] < '1' || ent->d_name[0] > '9')
-			continue;
-		pn = snprintf(linkpath, sizeof(linkpath), "/proc/%s/exe",
-			      ent->d_name);
-		if (pn < 0 || (size_t)pn >= sizeof(linkpath))
-			continue;
-		n = readlink(linkpath, exe, sizeof(exe) - 1);
-		if (n <= 0)
-			continue;
-		exe[n] = '\0';
-		base = strrchr(exe, '/');
-		base = base ? base + 1 : exe;
-		if (strncmp(base, "codex", 5) != 0)
-			continue;
-		add_related_codex_binary(primary, exe, out, count, max);
-	}
-	closedir(dir);
-}
-
 int attach_openssl_by_offset(struct sslsniff_bpf *skel, const char *lib,
 							 struct boringssl_offsets *offsets) {
 	if (offsets->write_is_ex) {
@@ -761,8 +650,14 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	if (env.comm && strcmp(env.comm, event->comm) != 0) {
 		return;
 	}
-	if (env.session_id > 0 && getsid(event->pid) != env.session_id) {
-		return;
+	if (env.session_id > 0) {
+		pid_t sid = getsid((pid_t)event->pid);
+
+		/* Drop only when we can prove a different live session.
+		 * getsid() fails after a short-lived Codex worker exits, and
+		 * sandbox children may create a new sid. */
+		if (sid >= 0 && sid != env.session_id)
+			return;
 	}
 
 	if (start == 0) {
@@ -969,23 +864,6 @@ int main(int argc, char **argv) {
 			// the existing generic BoringSSL detector.
 			if (is_codex) {
 				err = attach_codex_ssl(obj, env.extra_lib);
-				if (!err) {
-					char *related[MAX_SSL_BINARIES];
-					size_t related_count = 0;
-					size_t i;
-
-					collect_related_codex_binaries(env.extra_lib, related,
-								       &related_count,
-								       MAX_SSL_BINARIES);
-					for (i = 0; i < related_count; i++) {
-						int related_err =
-							attach_codex_ssl(obj, related[i]);
-						if (related_err)
-							warn("Skipping extra Codex binary %s: attach failed (%d)\n",
-							     related[i], related_err);
-						free(related[i]);
-					}
-				}
 			} else if (grok_rustls) {
 				fprintf(stderr,
 					"Grok/rustls plaintext buffer pattern detected in %s. "
@@ -1031,6 +909,11 @@ int main(int argc, char **argv) {
 		err = 1;
 		goto cleanup;
 	}
+
+	/* Do not scan ~/.codex standalone releases here. A pinned
+	 * --binary-path is already the ELF record will exec; attaching
+	 * extra 250MB copies blocks ring_buffer__poll through the short
+	 * Codex TLS burst and silently drops plaintext. */
 
 	while (!exiting) {
 		err = ring_buffer__poll(rb, PERF_POLL_TIMEOUT_MS);
