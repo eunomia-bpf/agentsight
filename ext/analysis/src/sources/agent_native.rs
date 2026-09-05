@@ -2047,6 +2047,35 @@ mod tests {
     }
 
     #[test]
+    fn codex_state_db_keeps_cumulative_total_when_trailing_last_only() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"last_token_usage":{"total_tokens":15}}}}"#,
+                "\n",
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 100);
+        assert_eq!(sessions[0].usage.input_tokens, 80);
+        assert_eq!(sessions[0].usage.output_tokens, 20);
+    }
+
+    #[test]
     fn codex_state_db_errors_return_empty_for_jsonl_fallback() {
         let temp = tempfile::tempdir().unwrap();
         fs::create_dir_all(temp.path().join(".codex")).unwrap();

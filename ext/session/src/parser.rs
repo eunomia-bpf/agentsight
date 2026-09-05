@@ -840,6 +840,7 @@ fn parse_jsonl(
     let mut claude_prompt_id: Option<String> = None;
     let mut codex_meta_seen = false;
     let mut codex_owns_events = true;
+    let mut have_codex_total = false;
     let mut codex_session_started_at = 0.0_f64;
 
     for line in content.lines() {
@@ -1148,22 +1149,33 @@ fn parse_jsonl(
             (AGENT_CODEX, "event_msg") => {
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
-                if ptype == "token_count"
-                    && let Some(usage) = payload.get("info").and_then(codex_preferred_token_usage)
-                {
-                    let name = if codex_model.is_empty() {
-                        "unknown"
+                if ptype == "token_count" {
+                    let info = payload.get("info").unwrap_or(&Value::Null);
+                    let usage = if let Some(usage) =
+                        codex_named_token_usage(info, "total_token_usage")
+                    {
+                        have_codex_total = true;
+                        Some(usage)
+                    } else if !have_codex_total {
+                        codex_named_token_usage(info, "last_token_usage")
                     } else {
-                        &codex_model
+                        None
                     };
-                    acc.set_usage(
-                        name,
-                        usage.input_tokens,
-                        usage.output_tokens,
-                        0,
-                        usage.cache_read_tokens,
-                        usage.total_tokens,
-                    );
+                    if let Some(usage) = usage {
+                        let name = if codex_model.is_empty() {
+                            "unknown"
+                        } else {
+                            &codex_model
+                        };
+                        acc.set_usage(
+                            name,
+                            usage.input_tokens,
+                            usage.output_tokens,
+                            0,
+                            usage.cache_read_tokens,
+                            usage.total_tokens,
+                        );
+                    }
                 }
                 if matches!(ptype, "token_count" | "token_usage") {
                     let info = payload
@@ -2248,8 +2260,8 @@ fn configured_codex_home(home: &Path) -> PathBuf {
 }
 
 fn resolve_codex_home(home: &Path, configured: Option<PathBuf>) -> PathBuf {
-    configured
-        .filter(|path| path.is_absolute())
+    configured_absolute_dir(configured)
+        .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".codex"))
 }
 
@@ -2984,26 +2996,35 @@ fn codex_token_usage(value: &Value) -> TokenUsage {
     }
 }
 
-fn codex_preferred_token_usage(info: &Value) -> Option<TokenUsage> {
-    info.get("total_token_usage")
+fn codex_named_token_usage(info: &Value, key: &str) -> Option<TokenUsage> {
+    info.get(key)
         .map(codex_token_usage)
         .filter(|usage| usage.total_tokens > 0)
-        .or_else(|| {
-            info.get("last_token_usage")
-                .map(codex_token_usage)
-                .filter(|usage| usage.total_tokens > 0)
-        })
 }
 
 pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
-    content.lines().rev().find_map(|line| {
-        let obj: Value = serde_json::from_str(line).ok()?;
-        let payload = obj.get("payload")?;
+    let mut last_fallback = None;
+    for line in content.lines().rev() {
+        let Ok(obj) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let Some(payload) = obj.get("payload") else {
+            continue;
+        };
         if payload.get("type").and_then(Value::as_str) != Some("token_count") {
-            return None;
+            continue;
         }
-        payload.get("info").and_then(codex_preferred_token_usage)
-    })
+        let Some(info) = payload.get("info") else {
+            continue;
+        };
+        if let Some(usage) = codex_named_token_usage(info, "total_token_usage") {
+            return Some(usage);
+        }
+        if last_fallback.is_none() {
+            last_fallback = codex_named_token_usage(info, "last_token_usage");
+        }
+    }
+    last_fallback
 }
 
 /// Read the newest plan update from a bounded Codex rollout tail.
@@ -4160,6 +4181,19 @@ mod tests {
         assert_eq!(
             resolve_codex_home(profile_home, Some(PathBuf::from("relative/state"))),
             profile_home.join(".codex")
+        );
+    }
+
+    #[test]
+    fn unix_and_windows_codex_home_are_absolute_on_any_host() {
+        let profile_home = Path::new("/home/agent");
+        assert_eq!(
+            resolve_codex_home(profile_home, Some(PathBuf::from("/data/codex"))),
+            PathBuf::from("/data/codex")
+        );
+        assert_eq!(
+            resolve_codex_home(profile_home, Some(PathBuf::from(r"C:\codex"))),
+            PathBuf::from("C:/codex")
         );
     }
 
@@ -5708,6 +5742,33 @@ mod tests {
                 .expect("usage")
                 .total_tokens,
             15
+        );
+    }
+
+    #[test]
+    fn latest_codex_keeps_cumulative_total_when_trailing_last_only() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 100);
+        assert_eq!(session.usage.input_tokens, 80);
+        assert_eq!(session.usage.output_tokens, 20);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            100
         );
     }
 
