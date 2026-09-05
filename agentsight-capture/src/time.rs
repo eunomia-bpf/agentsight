@@ -12,26 +12,47 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Cached boot time in seconds since UNIX epoch
 static BOOT_TIME_SECS: OnceLock<i64> = OnceLock::new();
 
+/// Earliest plausible boot timestamp accepted by the conversion helpers.
+const MIN_BOOT_TIME_SECS: i64 = 1_577_836_800; // 2020-01-01 00:00:00 UTC
+
+fn is_plausible_boot_time(candidate: i64, now_secs: i64) -> bool {
+    candidate > MIN_BOOT_TIME_SECS && candidate < now_secs
+}
+
+fn select_boot_time_secs(
+    reported_boot_time_secs: Option<i64>,
+    uptime_secs: Option<i64>,
+    now_secs: i64,
+) -> i64 {
+    if let Some(boot_time) = reported_boot_time_secs
+        && is_plausible_boot_time(boot_time, now_secs)
+    {
+        return boot_time;
+    }
+
+    if let Some(uptime) = uptime_secs.filter(|uptime| *uptime > 0 && *uptime < now_secs) {
+        let derived_boot_time = now_secs.saturating_sub(uptime);
+        if is_plausible_boot_time(derived_boot_time, now_secs) {
+            return derived_boot_time;
+        }
+    }
+
+    now_secs.saturating_sub(1)
+}
+
 /// Get the system boot time in seconds since UNIX epoch
 ///
 /// This uses the platform process backend and caches the result.
 pub fn get_boot_time_secs() -> i64 {
     *BOOT_TIME_SECS.get_or_init(|| {
-        if let Ok(boot_time) = i64::try_from(sysinfo::System::boot_time())
-            && boot_time > 0
-        {
-            return boot_time;
-        }
-
         let now_secs = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        let uptime_secs = i64::try_from(sysinfo::System::uptime())
-            .ok()
-            .filter(|uptime| *uptime > 0)
-            .unwrap_or(1);
-        now_secs.saturating_sub(uptime_secs)
+
+        let reported_boot_time_secs = i64::try_from(sysinfo::System::boot_time()).ok();
+        let uptime_secs = i64::try_from(sysinfo::System::uptime()).ok();
+        select_boot_time_secs(reported_boot_time_secs, uptime_secs, now_secs)
     })
 }
 
@@ -65,7 +86,38 @@ mod tests {
             .as_secs() as i64;
         assert!(boot_time < now);
         // Boot time should be reasonable (after year 2020)
-        assert!(boot_time > 1577836800); // 2020-01-01
+        assert!(boot_time > MIN_BOOT_TIME_SECS);
+    }
+
+    #[test]
+    fn select_boot_time_rejects_invalid_positive_reported_time() {
+        let now = 1_800_000_000;
+        let invalid_boot_time = 1;
+
+        let boot_time = select_boot_time_secs(Some(invalid_boot_time), None, now);
+
+        assert_eq!(boot_time, now - 1);
+    }
+
+    #[test]
+    fn select_boot_time_rejects_future_reported_time() {
+        let now = 1_800_000_000;
+        let valid_uptime = 600;
+
+        let boot_time = select_boot_time_secs(Some(now + 60), Some(valid_uptime), now);
+
+        assert_eq!(boot_time, now - valid_uptime);
+    }
+
+    #[test]
+    fn select_boot_time_rejects_derived_invalid_reported_time() {
+        let now = 1_800_000_000;
+        let invalid_boot_time = 1;
+        let circular_uptime = now - invalid_boot_time;
+
+        let boot_time = select_boot_time_secs(Some(invalid_boot_time), Some(circular_uptime), now);
+
+        assert_eq!(boot_time, now - 1);
     }
 
     #[test]

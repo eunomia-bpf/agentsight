@@ -950,6 +950,38 @@ fn parse_jsonl(
                     }
                 }
             }
+            (AGENT_CODEX, "token_usage_record") => {
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                let token_usage = payload
+                    .get("thread_token_usage")
+                    .or_else(|| payload.get("turn_token_usage"))
+                    .or_else(|| payload.get("usage"))
+                    .unwrap_or(payload);
+                let usage = codex_token_usage(token_usage);
+                if usage.total_tokens > 0 {
+                    let name = if codex_model.is_empty() {
+                        "unknown"
+                    } else {
+                        &codex_model
+                    };
+                    acc.set_usage(
+                        name,
+                        usage.input_tokens,
+                        usage.output_tokens,
+                        0,
+                        usage.cache_read_tokens,
+                        usage.total_tokens,
+                    );
+                    if let Some(last) = events.llm_responses.last_mut()
+                        && last.total_tokens == 0
+                    {
+                        last.input_tokens = usage.input_tokens as u64;
+                        last.output_tokens = usage.output_tokens as u64;
+                        last.cache_tokens = usage.cache_read_tokens as u64;
+                        last.total_tokens = usage.total_tokens as u64;
+                    }
+                }
+            }
             (AGENT_CODEX, "response_item")
                 if obj.pointer("/payload/type").and_then(Value::as_str)
                     == Some("custom_tool_call") =>
@@ -4476,6 +4508,30 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn codex_token_usage_record_updates_session_totals() {
+        let codex = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"agentsight macos live token check"}]}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"turn_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.model.as_deref(), Some("gpt-agentsight-mock"));
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(session.usage.total_tokens, 15);
     }
 
     #[test]
