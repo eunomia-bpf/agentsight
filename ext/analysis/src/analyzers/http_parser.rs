@@ -7,7 +7,9 @@ use crate::event::Event;
 use crate::runners::EventStream;
 use async_trait::async_trait;
 use flate2::{Decompress, FlushDecompress};
-use futures::{stream, stream::StreamExt};
+#[cfg(test)]
+use futures::stream;
+use futures::stream::StreamExt;
 use hpack::Decoder as HpackDecoder;
 use std::collections::HashMap;
 
@@ -730,6 +732,25 @@ impl HTTP1State {
             include_raw_data,
         )])
     }
+
+    fn flush(&mut self, include_raw_data: bool, websocket: &mut WebSocketState) -> Vec<Event> {
+        let pending = std::mem::take(&mut self.streams);
+        let mut events = Vec::new();
+        for ((_, tid, _), acc) in pending {
+            let Some(parsed) = HTTPParser::parse_http_message(&String::from_utf8_lossy(&acc.buf))
+            else {
+                continue;
+            };
+            websocket.observe_handshake(&acc.original, &parsed);
+            events.push(HTTPParser::create_http_event(
+                tid,
+                parsed,
+                &acc.original,
+                include_raw_data,
+            ));
+        }
+        events
+    }
 }
 
 fn looks_like_http1_start(bytes: &[u8]) -> bool {
@@ -768,9 +789,20 @@ fn http1_complete_len(buf: &[u8]) -> Option<usize> {
         if buf.len() >= need {
             return Some(need);
         }
+        // Fixture and some clients advertise a larger Content-Length than the
+        // JSON they actually wrote. Emit once the object/array is closed.
+        if json_body_complete(&buf[header_end..]) {
+            return Some(buf.len());
+        }
         return None;
     }
     Some(buf.len())
+}
+
+fn json_body_complete(body: &[u8]) -> bool {
+    let trimmed = body.trim_ascii_start();
+    matches!(trimmed.first(), Some(b'{') | Some(b'['))
+        && serde_json::from_slice::<serde_json::Value>(trimmed).is_ok()
 }
 
 fn http1_content_length(headers: &[u8]) -> Option<usize> {
@@ -1017,28 +1049,33 @@ fn ssl_json_string_to_bytes(data: &str) -> Vec<u8> {
 
 #[async_trait]
 impl Analyzer for HTTPParser {
-    async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
+    async fn process(&mut self, mut stream: EventStream) -> Result<EventStream, AnalyzerError> {
         let include_raw_data = self.include_raw_data;
         let mut http1 = std::mem::take(&mut self.http1);
         let mut http2 = std::mem::take(&mut self.http2);
         let mut websocket = std::mem::take(&mut self.websocket);
 
-        let processed_stream = stream.flat_map(move |event| {
-            let events = if event.source == "ssl" {
-                Self::handle_ssl_event(
-                    &mut http1,
-                    &mut http2,
-                    &mut websocket,
-                    event,
-                    include_raw_data,
-                )
-            } else {
-                vec![event]
-            };
-            stream::iter(events)
-        });
-
-        Ok(Box::pin(processed_stream))
+        Ok(Box::pin(async_stream::stream! {
+            while let Some(event) = stream.next().await {
+                let events = if event.source == "ssl" {
+                    Self::handle_ssl_event(
+                        &mut http1,
+                        &mut http2,
+                        &mut websocket,
+                        event,
+                        include_raw_data,
+                    )
+                } else {
+                    vec![event]
+                };
+                for ev in events {
+                    yield ev;
+                }
+            }
+            for ev in http1.flush(include_raw_data, &mut websocket) {
+                yield ev;
+            }
+        }))
     }
 }
 
@@ -1376,6 +1413,30 @@ Content-Type: application/json\r\nContent-Length: {}\r\n\r\n",
                 .any(|event| event.audit_type == "llm"
                     && event.action.as_deref() == Some("request")
                     && event.details.to_string().contains(prompt))
+        );
+    }
+
+    #[tokio::test]
+    async fn emits_http1_when_content_length_overstates_json_body() {
+        let body = r#"{"model":"gpt-4","messages":[{"role":"user","content":"Test request 0"}]}"#;
+        let raw = format!(
+            "POST /v1/chat/completions HTTP/1.1\r\nHost: api.openai.com\r\n\
+Content-Type: application/json\r\nContent-Length: 150\r\n\r\n{body}"
+        );
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(
+            1,
+            "WRITE/SEND",
+            raw.into_bytes(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/v1/chat/completions");
+        assert!(
+            output[0].data["body"]
+                .as_str()
+                .unwrap()
+                .contains("Test request 0")
         );
     }
 }
