@@ -235,7 +235,7 @@ enum Commands {
         /// Process PID filter, similar to top -p
         #[arg(short = 'p', long, conflicts_with = "comm")]
         pid: Option<u32>,
-        /// Process command/name filter, e.g. claude, codex, gemini
+        /// Process command/name filter, e.g. claude, codex, gemini, codebuddy
         #[arg(short = 'c', long, conflicts_with = "pid")]
         comm: Option<String>,
         /// Sort key: cpu, rss, tokens, execs, fail, files, net, agent
@@ -268,7 +268,7 @@ enum Commands {
     /// Record a command, or attach to an already-running agent by command name or PID.
     /// Examples: sudo agentsight record -- claude     (or)  sudo agentsight record -c claude
     Record {
-        /// Process command filter, e.g. claude, codex, node, python
+        /// Process command filter, e.g. claude, codex, codebuddy, node, python
         #[arg(short = 'c', long, conflicts_with = "pid")]
         comm: Option<String>,
         /// Process PID filter

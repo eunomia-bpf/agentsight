@@ -32,6 +32,25 @@ struct {
         _min1 < _min2 ? _min1 : _min2; \
     })
 
+/* bpf_probe_read_user() requires a non-negative bounded size. After unrolled
+ * remaining -= copy_size, some 6.6 verifiers (including TencentOS 4) treat the
+ * size as signed-unbounded and reject with "R2 min value is negative".
+ * Mask + barrier_var forces a fresh register the verifier can prove is in
+ * [0, max_n]. 0x7ffff (19 bits) is larger than MAX_BUF_SIZE and the rustls
+ * chunk size, so the subsequent clamp is preserved. */
+static __always_inline u32 clamp_probe_size(size_t len, u32 max_n)
+{
+    u32 n = (u32)len;
+
+    n &= 0x7ffff;
+    if (n > max_n)
+        n = max_n;
+    barrier_var(n);
+    if (n > max_n)
+        n = max_n;
+    return n;
+}
+
 /* ssl_data per-CPU array removed - ring buffer allocates memory directly */
 
 struct {
@@ -110,7 +129,7 @@ static __always_inline void submit_rustls_write(struct probe_SSL_data_t *data,
 static __always_inline u32 copy_rustls_iovec(
     struct probe_SSL_data_t *data, const struct rustls_iovec *iovec, u32 copied)
 {
-    size_t copy_size;
+    u32 copy_size;
     u32 capacity;
     u32 destination;
 
@@ -121,9 +140,7 @@ static __always_inline u32 copy_rustls_iovec(
     /* Keep independent bounds visible across merged verifier states. */
     barrier_var(destination);
     destination &= GROK_MAX_CAPTURE_SIZE - 1;
-    copy_size = iovec->len;
-    if (copy_size > GROK_MAX_CAPTURE_SIZE)
-        copy_size = GROK_MAX_CAPTURE_SIZE;
+    copy_size = clamp_probe_size(iovec->len, GROK_MAX_CAPTURE_SIZE);
     if (copy_size > capacity)
         copy_size = capacity;
     barrier_var(copy_size);
@@ -144,9 +161,9 @@ int BPF_UPROBE(probe_rustls_write, void *conn, const void *buf, size_t len)
     u32 pid = pid_tgid >> 32;
     u32 tid = (u32)pid_tgid;
     u32 uid = bpf_get_current_uid_gid();
-    u32 copied = len > MAX_BUF_SIZE ? MAX_BUF_SIZE : (u32)len;
+    u32 copied = clamp_probe_size(len, MAX_BUF_SIZE);
 
-    if (!trace_allowed(uid, pid) || !buf || len == 0)
+    if (!trace_allowed(uid, pid) || !buf || len == 0 || !copied)
         return 0;
     struct probe_SSL_data_t *data = bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
     if (!data)
@@ -192,15 +209,19 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
         source = iovec.base;
 #pragma unroll
         for (int chunk = 0; chunk < MAX_RUSTLS_CHUNKS_PER_IOV; chunk++) {
-            size_t copy_size;
+            u32 copy_size;
+            u32 dest;
 
             if (remaining == 0
                 || copied > MAX_BUF_SIZE - RUSTLS_COPY_CHUNK_SIZE)
                 break;
-            copy_size = remaining;
-            if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
-                copy_size = RUSTLS_COPY_CHUNK_SIZE;
-            if (bpf_probe_read_user(data->buf + copied, copy_size, source))
+            copy_size = clamp_probe_size(remaining, RUSTLS_COPY_CHUNK_SIZE);
+            if (copy_size == 0)
+                break;
+            dest = copied;
+            barrier_var(dest);
+            dest &= MAX_BUF_SIZE - 1;
+            if (bpf_probe_read_user(data->buf + dest, copy_size, source))
                 break;
             copied += copy_size;
             source += copy_size;
@@ -236,8 +257,7 @@ int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
         total = outbound.start_or_len;
         if (!outbound.data || total == 0)
             return 0;
-        copied = total > GROK_MAX_CAPTURE_SIZE
-            ? GROK_MAX_CAPTURE_SIZE : (u32)total;
+        copied = clamp_probe_size(total, GROK_MAX_CAPTURE_SIZE);
         struct probe_SSL_data_t *data =
             bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
         if (!data)
@@ -344,7 +364,7 @@ static int SSL_exit(struct pt_regs *ctx, int rw) {
     data->buf_size = 0;
     data->rw = rw;
     data->is_handshake = false;
-    u32 buf_copy_size = min((size_t)MAX_BUF_SIZE, (size_t)len);
+    u32 buf_copy_size = clamp_probe_size((size_t)len, MAX_BUF_SIZE);
 
     bpf_get_current_comm(&data->comm, sizeof(data->comm));
 
