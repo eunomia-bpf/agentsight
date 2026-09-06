@@ -22,9 +22,21 @@
 #define RING_BUFFER_SIZE (16 * 1024 * 1024)  // 16MB ring buffer
 #define TASK_COMM_LEN 16
 
+enum tls_library_t {
+    TLS_LIBRARY_UNKNOWN = 0,
+    TLS_LIBRARY_OPENSSL = 1,
+    TLS_LIBRARY_GNUTLS = 2,
+    TLS_LIBRARY_NSS = 3,
+    TLS_LIBRARY_RUSTLS = 4,
+    TLS_LIBRARY_BORINGSSL = 5,
+};
+
 struct probe_SSL_data_t {
     __u64 timestamp_ns;
     __u64 delta_ns;
+    __u64 transport_handle; // SSL*, gnutls_session_t, PRFileDesc*, or Rustls connection
+    __u64 ringbuf_reserve_failures; // cumulative capture-loss counter
+    __u64 process_start_ns; // process-instance discriminator from task_struct
     __u32 pid;
     __u32 tid;
     __u32 uid;
@@ -35,6 +47,8 @@ struct probe_SSL_data_t {
     char comm[TASK_COMM_LEN];
     __u8 buf[MAX_BUF_SIZE];
     int is_handshake;
+    __u8 tls_library;
+    __u8 connection_closed;
 };
 
 #endif /* __SSLSNIFF_H */
