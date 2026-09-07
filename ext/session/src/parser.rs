@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-//! Session file parsing for Claude Code, Codex, and Gemini CLI.
+//! Session file parsing for Claude Code, Codex, Gemini CLI, Cursor, and CodeBuddy CLI.
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -14,7 +14,7 @@ use crate::types::{
     AgentSession, LlmResponse, PlanStep, SessionCandidate, SessionDirStat, SessionEvents,
     TokenUsage, ToolEvent, ToolPath, UserPrompt,
 };
-use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI};
+use crate::{AGENT_CLAUDE, AGENT_CODEBUDDY, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI};
 
 /// Discover all session files in the user's home directory.
 pub fn discover_session_files() -> Vec<SessionCandidate> {
@@ -22,20 +22,26 @@ pub fn discover_session_files() -> Vec<SessionCandidate> {
         return Vec::new();
     };
     let codex_home = configured_codex_home(&home);
-    discover_session_files_in_roots(&home, &codex_home)
+    let codebuddy_home = configured_codebuddy_home(&home);
+    discover_session_files_in_roots(&home, &codex_home, &codebuddy_home)
 }
 
 /// Discover session files under a specific home directory.
 pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
-    discover_session_files_in_roots(home, &home.join(".codex"))
+    discover_session_files_in_roots(home, &home.join(".codex"), &home.join(".codebuddy"))
 }
 
-fn discover_session_files_in_roots(home: &Path, codex_home: &Path) -> Vec<SessionCandidate> {
+fn discover_session_files_in_roots(
+    home: &Path,
+    codex_home: &Path,
+    codebuddy_home: &Path,
+) -> Vec<SessionCandidate> {
     let roots = [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, codex_home.join("sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
         (AGENT_CURSOR, home.join(".cursor/projects")),
+        (AGENT_CODEBUDDY, codebuddy_home.join("projects")),
     ];
     let mut out = Vec::new();
     for (agent, dir) in roots {
@@ -142,7 +148,8 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
         return Vec::new();
     };
     let codex_home = configured_codex_home(&home);
-    count_session_dirs_in_roots(&home, &codex_home)
+    let codebuddy_home = configured_codebuddy_home(&home);
+    count_session_dirs_in_roots(&home, &codex_home, &codebuddy_home)
 }
 
 /// Refresh a discovered candidate without losing provider-specific update rules.
@@ -157,15 +164,20 @@ pub fn refresh_session_candidate(candidate: &SessionCandidate) -> Option<Session
 
 /// Count sessions and bytes per agent directory under a specific home directory.
 pub fn count_session_dirs_in_home(home: &Path) -> Vec<SessionDirStat> {
-    count_session_dirs_in_roots(home, &home.join(".codex"))
+    count_session_dirs_in_roots(home, &home.join(".codex"), &home.join(".codebuddy"))
 }
 
-fn count_session_dirs_in_roots(home: &Path, codex_home: &Path) -> Vec<SessionDirStat> {
+fn count_session_dirs_in_roots(
+    home: &Path,
+    codex_home: &Path,
+    codebuddy_home: &Path,
+) -> Vec<SessionDirStat> {
     [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, codex_home.join("sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
         (AGENT_CURSOR, home.join(".cursor/projects")),
+        (AGENT_CODEBUDDY, codebuddy_home.join("projects")),
     ]
     .into_iter()
     .filter_map(|(agent, dir)| {
@@ -239,6 +251,8 @@ fn parse_session_impl(
         parse_gemini_json(path, updated, content)
     } else if agent == AGENT_CURSOR {
         parse_cursor_jsonl(path, updated, content, cursor_children)
+    } else if agent == AGENT_CODEBUDDY {
+        parse_codebuddy_jsonl(path, updated, content)
     } else {
         parse_jsonl(agent, path, updated, content)
     }
@@ -278,6 +292,8 @@ pub fn agent_source_for_path(path: &Path) -> Option<&'static str> {
         Some(AGENT_GEMINI)
     } else if value.contains("/.cursor/") && is_cursor_transcript(path) {
         Some(AGENT_CURSOR)
+    } else if is_codebuddy_project_transcript(path) {
+        Some(AGENT_CODEBUDDY)
     } else {
         None
     }
@@ -305,6 +321,8 @@ fn loose_agent_source_for_path(path: &Path) -> Option<&'static str> {
         Some(AGENT_CLAUDE)
     } else if value.contains("/cursor/") && value.contains("agent-transcripts") {
         Some(AGENT_CURSOR)
+    } else if value.contains("codebuddy") && value.contains("/projects/") {
+        Some(AGENT_CODEBUDDY)
     } else {
         None
     }
@@ -319,6 +337,7 @@ pub fn fixture_session_path(agent: &str, home: &Path) -> Option<PathBuf> {
         AGENT_CURSOR => {
             Some(home.join(".cursor/projects/test/agent-transcripts/session/session.jsonl"))
         }
+        AGENT_CODEBUDDY => Some(home.join(".codebuddy/projects/test/session.jsonl")),
         _ => None,
     }
 }
@@ -533,6 +552,276 @@ fn is_continuation_prompt(text: &str) -> bool {
     )
 }
 
+fn parse_codebuddy_jsonl(path: &Path, updated: SystemTime, content: &str) -> Option<AgentSession> {
+    let mut acc = SessionAccumulator::new(AGENT_CODEBUDDY, path, updated);
+    let mut events = SessionEvents::default();
+    let mut current_prompt_index = 0usize;
+    let mut call_index = BTreeMap::<String, usize>::new();
+    let mut task_stack = SemanticTaskStack::default();
+
+    for line in content.lines() {
+        let Ok(obj) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        observe_codebuddy_clock(&mut acc, &obj);
+        let (session_id, conversation_id) = local_session_ids(&obj);
+        if let Some(id) = session_id {
+            acc.session_id = id;
+        }
+        if let Some(id) = conversation_id {
+            acc.conversation_id = Some(id);
+        }
+        if acc.cwd.is_none() {
+            acc.cwd = obj
+                .get("cwd")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string);
+        }
+
+        match obj.get("type").and_then(Value::as_str).unwrap_or("") {
+            "message" => match obj.get("role").and_then(Value::as_str).unwrap_or("") {
+                "user" => {
+                    let content = obj.get("content").unwrap_or(&Value::Null);
+                    if claude_is_tool_result(content) {
+                        apply_codebuddy_tool_results(&mut events, &call_index, content);
+                    } else if let Some(text) = local_message_preview(content) {
+                        if acc.prompt_preview.is_none() {
+                            acc.prompt_preview = Some(truncate_clean(&text, 180));
+                        }
+                        task_stack.observe_user(&text);
+                        current_prompt_index =
+                            events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
+                    }
+                }
+                "assistant" => ingest_codebuddy_assistant(
+                    &mut acc,
+                    &mut events,
+                    &mut call_index,
+                    &mut task_stack,
+                    current_prompt_index,
+                    &obj,
+                ),
+                _ => {}
+            },
+            "ai-title" => {
+                if acc.prompt_preview.is_none()
+                    && let Some(title) = obj.get("aiTitle").and_then(Value::as_str)
+                    && !title.is_empty()
+                {
+                    acc.prompt_preview = Some(truncate_clean(title, 180));
+                }
+            }
+            "summary" => {
+                if acc.prompt_preview.is_none()
+                    && let Some(summary) = obj.get("summary").and_then(Value::as_str)
+                    && !summary.is_empty()
+                {
+                    acc.prompt_preview = Some(truncate_clean(summary, 180));
+                }
+            }
+            "turn-metrics" => {
+                acc.duration_ms = acc.duration_ms.saturating_add(json_u64(&obj, "durationMs"));
+            }
+            _ => {}
+        }
+    }
+
+    if acc.duration_ms == 0
+        && let (Some(start), Some(end)) = (acc.start_timestamp_ms, acc.end_timestamp_ms)
+        && end > start
+    {
+        acc.duration_ms = end - start;
+    }
+
+    acc.finish_with_events(events)
+}
+
+fn ingest_codebuddy_assistant(
+    acc: &mut SessionAccumulator,
+    events: &mut SessionEvents,
+    call_index: &mut BTreeMap<String, usize>,
+    task_stack: &mut SemanticTaskStack,
+    current_prompt_index: usize,
+    obj: &Value,
+) {
+    let provider = obj.get("providerData").unwrap_or(&Value::Null);
+    let model = provider
+        .get("model")
+        .or_else(|| provider.get("requestModelId"))
+        .and_then(Value::as_str)
+        .or(acc.model.as_deref())
+        .unwrap_or(AGENT_CODEBUDDY)
+        .to_string();
+    acc.model.get_or_insert_with(|| model.clone());
+
+    let raw_usage = provider.get("rawUsage").unwrap_or(&Value::Null);
+    let camel_usage = provider.get("usage").unwrap_or(&Value::Null);
+    let message_usage = obj.pointer("/message/usage").unwrap_or(&Value::Null);
+    let input = first_i64(raw_usage, &["prompt_tokens"])
+        .or_else(|| first_i64(camel_usage, &["inputTokens"]))
+        .or_else(|| first_i64(message_usage, &["input_tokens"]))
+        .unwrap_or(0);
+    let output = first_i64(raw_usage, &["completion_tokens"])
+        .or_else(|| first_i64(camel_usage, &["outputTokens"]))
+        .or_else(|| first_i64(message_usage, &["output_tokens"]))
+        .unwrap_or(0);
+    let cache_creation = first_i64(
+        raw_usage,
+        &["cache_creation_input_tokens", "prompt_cache_write_tokens"],
+    )
+    .unwrap_or(0);
+    let cache_read = first_i64(
+        raw_usage,
+        &[
+            "cache_read_input_tokens",
+            "cached_tokens",
+            "prompt_cache_hit_tokens",
+        ],
+    )
+    .unwrap_or(0);
+    let total = first_i64(raw_usage, &["total_tokens"])
+        .or_else(|| first_i64(camel_usage, &["totalTokens"]))
+        .or_else(|| first_i64(message_usage, &["total_tokens"]))
+        .unwrap_or(0);
+    if input > 0 || output > 0 || cache_creation > 0 || cache_read > 0 || total > 0 {
+        acc.add_usage(&model, input, output, cache_creation, cache_read, total);
+    }
+
+    let content = obj.get("content").unwrap_or(&Value::Null);
+    let tools_before = events.tools.len();
+    if let Some(items) = content.as_array() {
+        for item in items.iter().filter(|item| {
+            matches!(
+                item.get("type").and_then(Value::as_str),
+                Some("tool_use") | Some("function_call")
+            )
+        }) {
+            let name = item
+                .get("name")
+                .or_else(|| item.pointer("/function/name"))
+                .and_then(Value::as_str)
+                .unwrap_or("?");
+            let input = item
+                .get("input")
+                .or_else(|| item.get("arguments"))
+                .or_else(|| item.pointer("/function/arguments"))
+                .unwrap_or(&Value::Null);
+            acc.add_tool(name);
+            if let Some(fp) = find_file_arg(input).filter(|s| !is_noise_path(s)) {
+                acc.add_file(fp);
+            }
+            let call_id = item
+                .get("id")
+                .or_else(|| item.get("tool_call_id"))
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            if is_plan_tool(name) {
+                task_stack.observe_plan(input);
+            }
+            let event = tool_event_from_input(
+                acc.cwd.as_deref(),
+                ts_ms_from_event(obj),
+                current_prompt_index,
+                name,
+                input,
+                call_id.clone(),
+                task_stack.path_for_tool(name, input),
+            );
+            if let Some(id) = call_id {
+                call_index.insert(id, events.tools.len());
+            }
+            events.tools.push(event);
+        }
+    }
+
+    let text = content_to_text(content);
+    let added_tools = events.tools.len() > tools_before;
+    if text.trim().is_empty() && input == 0 && output == 0 && !added_tools {
+        return;
+    }
+    let preview_text = if !text.trim().is_empty() {
+        text.clone()
+    } else {
+        String::new()
+    };
+    events.llm_responses.push(LlmResponse {
+        ts_ms: ts_ms_from_event(obj),
+        prompt_index: current_prompt_index,
+        model,
+        source_id: obj
+            .get("id")
+            .and_then(Value::as_str)
+            .or_else(|| provider.get("messageId").and_then(Value::as_str))
+            .unwrap_or("")
+            .to_string(),
+        text_hash: short_hash(&(text.clone() + &raw_usage.to_string()), 12),
+        text: bounded_detail_text(&text),
+        preview: truncate_clean(
+            if preview_text.is_empty() {
+                "token report"
+            } else {
+                &preview_text
+            },
+            140,
+        ),
+        input_tokens: u64::try_from(input).unwrap_or(0),
+        output_tokens: u64::try_from(output).unwrap_or(0),
+        cache_tokens: u64::try_from(cache_creation.saturating_add(cache_read)).unwrap_or(0),
+        total_tokens: u64::try_from(total).unwrap_or(0),
+        tag: String::new(),
+        response_phase: if obj.get("status").and_then(Value::as_str) == Some("completed")
+            && !text.trim().is_empty()
+        {
+            "final_answer".to_string()
+        } else {
+            "assistant_message".to_string()
+        },
+        skill: String::new(),
+        task_path: task_stack.path(),
+    });
+}
+
+fn apply_codebuddy_tool_results(
+    events: &mut SessionEvents,
+    call_index: &BTreeMap<String, usize>,
+    content: &Value,
+) {
+    for result in content.as_array().into_iter().flatten() {
+        let Some(id) = result
+            .get("tool_use_id")
+            .or_else(|| result.get("tool_call_id"))
+            .and_then(Value::as_str)
+        else {
+            continue;
+        };
+        if let Some(index) = call_index.get(id).copied()
+            && let Some(tool) = events.tools.get_mut(index)
+        {
+            let failed = result
+                .get("is_error")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            tool.status = if failed { "fail" } else { "ok" }.to_string();
+        }
+    }
+}
+
+fn observe_codebuddy_clock(acc: &mut SessionAccumulator, obj: &Value) {
+    let Some(ms) = ts_ms_from_event(obj) else {
+        return;
+    };
+    if ms <= 0 {
+        return;
+    }
+    let ums = ms as u64;
+    acc.start_timestamp_ms = Some(acc.start_timestamp_ms.map_or(ums, |start| start.min(ums)));
+    acc.end_timestamp_ms = Some(acc.end_timestamp_ms.map_or(ums, |end| end.max(ums)));
+    if let Some(iso) = epoch_ms_to_rfc3339(ms) {
+        acc.last_message_at = Some(iso);
+    }
+}
+
 fn parse_jsonl(
     agent: &str,
     path: &Path,
@@ -551,6 +840,7 @@ fn parse_jsonl(
     let mut claude_prompt_id: Option<String> = None;
     let mut codex_meta_seen = false;
     let mut codex_owns_events = true;
+    let mut have_codex_total = false;
     let mut codex_session_started_at = 0.0_f64;
 
     for line in content.lines() {
@@ -856,18 +1146,15 @@ fn parse_jsonl(
                     acc.model = Some(name.to_string());
                 }
             }
-            (AGENT_CODEX, "event_msg") => {
-                let payload = obj.get("payload").unwrap_or(&Value::Null);
-                let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
-                if ptype == "token_count"
-                    && let Some(usage) = payload.pointer("/info/total_token_usage")
-                {
+            (AGENT_CODEX, "token_usage_record") => {
+                // Codex 0.153+ writes this rollout item before event_msg token_count.
+                if let Some(usage) = obj.get("payload").and_then(codex_record_token_usage) {
+                    have_codex_total = true;
                     let name = if codex_model.is_empty() {
                         "unknown"
                     } else {
                         &codex_model
                     };
-                    let usage = codex_token_usage(usage);
                     acc.set_usage(
                         name,
                         usage.input_tokens,
@@ -876,6 +1163,38 @@ fn parse_jsonl(
                         usage.cache_read_tokens,
                         usage.total_tokens,
                     );
+                }
+            }
+            (AGENT_CODEX, "event_msg") => {
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
+                if ptype == "token_count" {
+                    let info = payload.get("info").unwrap_or(&Value::Null);
+                    let usage = if let Some(usage) =
+                        codex_named_token_usage(info, "total_token_usage")
+                    {
+                        have_codex_total = true;
+                        Some(usage)
+                    } else if !have_codex_total {
+                        codex_named_token_usage(info, "last_token_usage")
+                    } else {
+                        None
+                    };
+                    if let Some(usage) = usage {
+                        let name = if codex_model.is_empty() {
+                            "unknown"
+                        } else {
+                            &codex_model
+                        };
+                        acc.set_usage(
+                            name,
+                            usage.input_tokens,
+                            usage.output_tokens,
+                            0,
+                            usage.cache_read_tokens,
+                            usage.total_tokens,
+                        );
+                    }
                 }
                 if matches!(ptype, "token_count" | "token_usage") {
                     let info = payload
@@ -1899,8 +2218,40 @@ fn is_agent_file_for(agent: &str, path: &Path) -> bool {
                 && normalized.contains("/chats/")
         }
         AGENT_CURSOR => is_cursor_parent_transcript(path),
+        AGENT_CODEBUDDY => is_codebuddy_walk_file(path),
         _ => false,
     }
+}
+
+fn is_codebuddy_walk_file(path: &Path) -> bool {
+    path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
+        && path.file_name().and_then(|name| name.to_str()) != Some("history.jsonl")
+}
+
+fn is_codebuddy_project_transcript(path: &Path) -> bool {
+    is_codebuddy_project_transcript_for(
+        path,
+        std::env::var_os("CODEBUDDY_CONFIG_DIR").map(PathBuf::from),
+    )
+}
+
+fn is_codebuddy_project_transcript_for(path: &Path, configured: Option<PathBuf>) -> bool {
+    if !is_codebuddy_walk_file(path) {
+        return false;
+    }
+    let value = normalize_path_text(&path.to_string_lossy());
+    if value.contains("/.codebuddy/projects/")
+        || (value.contains("/codebuddy/") && value.contains("/projects/"))
+    {
+        return true;
+    }
+    let Some(home) = configured_absolute_dir(configured) else {
+        return false;
+    };
+    let prefix = join_path_text(&home, "projects");
+    let prefix = prefix.trim_end_matches('/');
+    value == prefix
+        || (value.starts_with(prefix) && value.as_bytes().get(prefix.len()) == Some(&b'/'))
 }
 
 pub(crate) fn user_home_dir() -> Option<PathBuf> {
@@ -1928,9 +2279,22 @@ fn configured_codex_home(home: &Path) -> PathBuf {
 }
 
 fn resolve_codex_home(home: &Path, configured: Option<PathBuf>) -> PathBuf {
-    configured
-        .filter(|path| path.is_absolute())
+    configured_absolute_dir(configured)
+        .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".codex"))
+}
+
+fn configured_codebuddy_home(home: &Path) -> PathBuf {
+    resolve_codebuddy_home(
+        home,
+        std::env::var_os("CODEBUDDY_CONFIG_DIR").map(PathBuf::from),
+    )
+}
+
+fn resolve_codebuddy_home(home: &Path, configured: Option<PathBuf>) -> PathBuf {
+    configured_absolute_dir(configured)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".codebuddy"))
 }
 
 fn add_usage(
@@ -2389,6 +2753,13 @@ fn is_absolute_path_text(path: &str) -> bool {
         || path.as_bytes().get(1) == Some(&b':') && path.as_bytes().get(2) == Some(&b'/')
 }
 
+fn configured_absolute_dir(configured: Option<PathBuf>) -> Option<String> {
+    configured.and_then(|dir| {
+        let text = normalize_path_text(&dir.to_string_lossy());
+        is_absolute_path_text(&text).then_some(text)
+    })
+}
+
 fn join_path_text(base: &str, child: &str) -> String {
     let base = normalize_path_text(base);
     let child = normalize_path_text(child);
@@ -2624,31 +2995,72 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
     segments
 }
 
+fn json_token_count(value: &Value, key: &str) -> i64 {
+    first_i64(value, &[key]).unwrap_or(0).max(0)
+}
+
 fn codex_token_usage(value: &Value) -> TokenUsage {
-    let input = json_i64(value, "input_tokens").max(0);
-    let output = json_i64(value, "output_tokens").max(0);
-    let cache = json_i64(value, "cached_input_tokens").max(0);
+    let input = json_token_count(value, "input_tokens");
+    let output = json_token_count(value, "output_tokens");
+    let cache = json_token_count(value, "cached_input_tokens");
+    let explicit_total = json_token_count(value, "total_tokens");
     let input = input.saturating_sub(cache);
+    let computed = input + output + cache;
     TokenUsage {
         input_tokens: input,
         output_tokens: output,
         cache_creation_tokens: 0,
         cache_read_tokens: cache,
-        total_tokens: input + output + cache,
+        total_tokens: explicit_total.max(computed),
     }
 }
 
+fn codex_named_token_usage(info: &Value, key: &str) -> Option<TokenUsage> {
+    info.get(key)
+        .map(codex_token_usage)
+        .filter(|usage| usage.total_tokens > 0)
+}
+
+fn codex_record_token_usage(payload: &Value) -> Option<TokenUsage> {
+    payload
+        .get("thread_token_usage")
+        .or_else(|| payload.get("usage"))
+        .or_else(|| payload.get("turn_token_usage"))
+        .map(codex_token_usage)
+        .filter(|usage| usage.total_tokens > 0)
+}
+
 pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
-    content.lines().rev().find_map(|line| {
-        let obj: Value = serde_json::from_str(line).ok()?;
-        let payload = obj.get("payload")?;
-        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
-            return None;
+    let mut last_fallback = None;
+    let mut record_fallback = None;
+    for line in content.lines().rev() {
+        let Ok(obj) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
+        let Some(payload) = obj.get("payload") else {
+            continue;
+        };
+        if typ == "token_usage_record" {
+            if record_fallback.is_none() {
+                record_fallback = codex_record_token_usage(payload);
+            }
+            continue;
         }
-        payload
-            .pointer("/info/total_token_usage")
-            .map(codex_token_usage)
-    })
+        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
+            continue;
+        }
+        let Some(info) = payload.get("info") else {
+            continue;
+        };
+        if let Some(usage) = codex_named_token_usage(info, "total_token_usage") {
+            return Some(usage);
+        }
+        if last_fallback.is_none() {
+            last_fallback = codex_named_token_usage(info, "last_token_usage");
+        }
+    }
+    record_fallback.or(last_fallback)
 }
 
 /// Read the newest plan update from a bounded Codex rollout tail.
@@ -3682,10 +4094,29 @@ fn json_u64(value: &Value, key: &str) -> u64 {
 }
 
 fn ts_ms_from_event(value: &Value) -> Option<i64> {
-    value
-        .get("timestamp")
-        .and_then(Value::as_str)
-        .and_then(parse_ts_ms)
+    match value.get("timestamp") {
+        Some(Value::String(ts)) => parse_ts_ms(ts),
+        Some(Value::Number(ts)) => ts
+            .as_i64()
+            .or_else(|| ts.as_u64().and_then(|ms| i64::try_from(ms).ok())),
+        _ => None,
+    }
+}
+
+fn first_i64(value: &Value, keys: &[&str]) -> Option<i64> {
+    keys.iter().find_map(|key| {
+        value.get(*key).and_then(Value::as_i64).or_else(|| {
+            value
+                .get(*key)
+                .and_then(Value::as_u64)
+                .and_then(|n| i64::try_from(n).ok())
+        })
+    })
+}
+
+fn epoch_ms_to_rfc3339(ms: i64) -> Option<String> {
+    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ms)
+        .map(|ts| ts.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
 }
 
 fn parse_ts_ms(value: &str) -> Option<i64> {
@@ -3753,7 +4184,11 @@ mod tests {
         );
         fs::write(&session, content).unwrap();
 
-        let candidates = discover_session_files_in_roots(&profile_home, &codex_home);
+        let candidates = discover_session_files_in_roots(
+            &profile_home,
+            &codex_home,
+            &profile_home.join(".codebuddy"),
+        );
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].agent, AGENT_CODEX);
         assert_eq!(candidates[0].path, session);
@@ -3762,7 +4197,11 @@ mod tests {
             .expect("custom CODEX_HOME candidate should retain its provider");
         assert_eq!(parsed.session_id, "custom-home-session");
 
-        let stats = count_session_dirs_in_roots(&profile_home, &codex_home);
+        let stats = count_session_dirs_in_roots(
+            &profile_home,
+            &codex_home,
+            &profile_home.join(".codebuddy"),
+        );
         assert_eq!(stats.len(), 1);
         assert_eq!(stats[0].agent, AGENT_CODEX);
         assert_eq!(stats[0].dir, codex_home.join("sessions"));
@@ -3778,6 +4217,19 @@ mod tests {
         assert_eq!(
             resolve_codex_home(profile_home, Some(PathBuf::from("relative/state"))),
             profile_home.join(".codex")
+        );
+    }
+
+    #[test]
+    fn unix_and_windows_codex_home_are_absolute_on_any_host() {
+        let profile_home = Path::new("/home/agent");
+        assert_eq!(
+            resolve_codex_home(profile_home, Some(PathBuf::from("/data/codex"))),
+            PathBuf::from("/data/codex")
+        );
+        assert_eq!(
+            resolve_codex_home(profile_home, Some(PathBuf::from(r"C:\codex"))),
+            PathBuf::from("C:/codex")
         );
     }
 
@@ -4419,6 +4871,175 @@ mod tests {
             Path::new(r"C:\Users\dev\.gemini\tmp\repo\chats\session-2026-08-12T00-00-id.json");
         assert_eq!(agent_source_for_path(gemini), Some(AGENT_GEMINI));
         assert!(is_agent_file_for(AGENT_GEMINI, gemini));
+        assert_eq!(
+            agent_source_for_path(Path::new(
+                r"C:\Users\dev\.codebuddy\projects\repo\a945feca-2398-4a70-87cb-dbfa58c57f2e.jsonl"
+            )),
+            Some(AGENT_CODEBUDDY)
+        );
+    }
+
+    fn codebuddy_fixture() -> String {
+        [
+            r#"{"type":"session-meta","sessionId":"cb-session-1","timestamp":1788513380000,"meta":{"codebuddy.ai/hostKind":"unopted"}}"#,
+            r#"{"id":"u1","timestamp":1788513380102,"type":"message","role":"user","content":[{"type":"input_text","text":"nihao"}],"sessionId":"cb-session-1","cwd":"/data/workspace"}"#,
+            r#"{"id":"t1","timestamp":1788513380200,"type":"ai-title","aiTitle":"初始会话","sessionId":"cb-session-1"}"#,
+            r#"{"id":"a1","timestamp":1788513384380,"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"你好!有什么我可以帮你的吗?"},{"type":"tool_use","id":"tool-1","name":"Read","input":{"path":"/data/workspace/README.md"}}],"providerData":{"model":"claude-sonnet-5","rawUsage":{"prompt_tokens":36149,"completion_tokens":18,"total_tokens":36167,"cache_read_input_tokens":0,"cache_creation_input_tokens":31864},"usage":{"inputTokens":36149,"outputTokens":18,"totalTokens":36167}},"message":{"usage":{"input_tokens":36149,"output_tokens":18,"total_tokens":36167}},"sessionId":"cb-session-1","cwd":"/data/workspace"}"#,
+            r#"{"id":"s1","timestamp":1788513384431,"type":"summary","summary":"nihao"}"#,
+            r#"{"id":"m1","timestamp":1788513384583,"type":"turn-metrics","durationMs":4277,"tokenDelta":36167,"cwd":"/data/workspace"}"#,
+        ]
+        .join("\n")
+    }
+
+    #[test]
+    fn codebuddy_parser_reads_numeric_timestamps_usage_and_tools() {
+        let path = Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl");
+        let session =
+            parse_session_content(AGENT_CODEBUDDY, path, UNIX_EPOCH, &codebuddy_fixture())
+                .expect("codebuddy session");
+        assert_eq!(session.agent_type, AGENT_CODEBUDDY);
+        assert_eq!(session.session_id, "cb-session-1");
+        assert_eq!(session.cwd.as_deref(), Some("/data/workspace"));
+        assert_eq!(session.model.as_deref(), Some("claude-sonnet-5"));
+        assert_eq!(session.prompt_preview.as_deref(), Some("nihao"));
+        assert_eq!(session.duration_ms, 4277);
+        assert_eq!(session.usage.input_tokens, 36149);
+        assert_eq!(session.usage.output_tokens, 18);
+        assert_eq!(session.usage.cache_creation_tokens, 31864);
+        assert_eq!(session.events.prompts.len(), 1);
+        assert_eq!(session.events.prompts[0].preview, "nihao");
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "你好!有什么我可以帮你的吗?"
+        );
+        assert_eq!(
+            session.events.llm_responses[0].response_phase,
+            "final_answer"
+        );
+        assert_eq!(session.events.tools.len(), 1);
+        assert_eq!(session.events.tools[0].tool_name, "Read");
+        assert_eq!(session.start_timestamp_ms, Some(1788513380000));
+        assert!(
+            session
+                .last_message_at
+                .as_deref()
+                .unwrap()
+                .starts_with("2026-")
+        );
+    }
+
+    #[test]
+    fn codebuddy_session_meta_only_is_not_a_session() {
+        let content = r#"{"type":"session-meta","sessionId":"empty","timestamp":1788513401469}"#;
+        assert!(
+            parse_session_content(
+                AGENT_CODEBUDDY,
+                Path::new("/root/.codebuddy/projects/tmp/empty.jsonl"),
+                UNIX_EPOCH,
+                content
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn codebuddy_discovery_finds_project_jsonl_and_skips_history() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "agentsight-codebuddy-home-{}-{unique}",
+            std::process::id()
+        ));
+        let home = root.join("profile");
+        let session = home.join(".codebuddy/projects/data-workspace/cb-session-1.jsonl");
+        fs::create_dir_all(session.parent().unwrap()).unwrap();
+        fs::write(&session, codebuddy_fixture()).unwrap();
+        fs::write(
+            home.join(".codebuddy/history.jsonl"),
+            "{\"display\":\"nihao\"}\n",
+        )
+        .unwrap();
+
+        let candidates =
+            discover_session_files_in_roots(&home, &home.join(".codex"), &home.join(".codebuddy"));
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].agent, AGENT_CODEBUDDY);
+        assert_eq!(candidates[0].path, session);
+
+        let stats =
+            count_session_dirs_in_roots(&home, &home.join(".codex"), &home.join(".codebuddy"));
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].agent, AGENT_CODEBUDDY);
+
+        let fixture = fixture_session_path(AGENT_CODEBUDDY, &home).expect("fixture");
+        assert!(is_agent_file_for(AGENT_CODEBUDDY, &fixture));
+        assert!(!is_agent_file_for(
+            AGENT_CODEBUDDY,
+            &home.join(".codebuddy/history.jsonl")
+        ));
+        assert!(session_log_path_from_str(session.to_str().unwrap()).is_some());
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn codebuddy_empty_assistant_after_tools_does_not_emit_blank_response() {
+        let content = format!(
+            "{}\n{}",
+            codebuddy_fixture(),
+            r#"{"id":"a2","timestamp":1788513385000,"type":"message","role":"assistant","content":[],"sessionId":"cb-session-1"}"#
+        );
+        let session = parse_session_content(
+            AGENT_CODEBUDDY,
+            Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("codebuddy session");
+        assert_eq!(session.events.tools.len(), 1);
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "你好!有什么我可以帮你的吗?"
+        );
+    }
+
+    #[test]
+    fn codebuddy_custom_config_dir_classifies_project_jsonl() {
+        let custom = Path::new("/data/state/projects/repo/cb-session-1.jsonl");
+        assert!(is_codebuddy_project_transcript_for(
+            custom,
+            Some(PathBuf::from("/data/state"))
+        ));
+        assert!(is_codebuddy_project_transcript_for(
+            Path::new(r"C:\state\projects\repo\cb-session-1.jsonl"),
+            Some(PathBuf::from(r"C:\state"))
+        ));
+        assert!(!is_codebuddy_project_transcript_for(
+            Path::new("/data/other/projects/repo/cb-session-1.jsonl"),
+            Some(PathBuf::from("/data/state"))
+        ));
+        assert!(!is_codebuddy_project_transcript_for(custom, None));
+        assert_eq!(
+            agent_source_for_path(Path::new(
+                "/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"
+            )),
+            Some(AGENT_CODEBUDDY)
+        );
+    }
+
+    #[test]
+    fn relative_codebuddy_home_falls_back_to_the_profile() {
+        assert_eq!(
+            resolve_codebuddy_home(
+                Path::new("/home/agent"),
+                Some(PathBuf::from("relative/state"))
+            ),
+            Path::new("/home/agent/.codebuddy")
+        );
     }
 
     #[test]
@@ -5108,6 +5729,164 @@ mod tests {
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
         assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn latest_codex_last_token_usage_sets_session_tokens() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 15);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            15
+        );
+    }
+
+    #[test]
+    fn latest_codex_explicit_total_survives_empty_breakdown() {
+        let content = concat!(
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":15},"last_token_usage":{"total_tokens":15}}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{}}}}"#,
+        );
+        assert_eq!(
+            parse_session_content(
+                AGENT_CODEX,
+                &PathBuf::from("/tmp/session.jsonl"),
+                UNIX_EPOCH,
+                content,
+            )
+            .expect("session")
+            .usage
+            .total_tokens,
+            15
+        );
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            15
+        );
+    }
+
+    #[test]
+    fn latest_codex_keeps_cumulative_total_when_trailing_last_only() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 100);
+        assert_eq!(session.usage.input_tokens, 80);
+        assert_eq!(session.usage.output_tokens, 20);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            100
+        );
+    }
+
+    #[test]
+    fn latest_codex_token_usage_record_sets_session_tokens() {
+        // Codex 0.153+ writes this item before event_msg token_count. The macOS
+        // live smoke greps for "total_tokens":15 here and immediately runs top.
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_id":"01a07152-7112-7d60-8d15-0d6f49abd542","turn_id":"01a07152-7155-75b3-9067-0419f25a345c","session_id":"01a07152-7112-7d60-8d15-0d6f49abd542","usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15},"turn_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 15);
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            15
+        );
+    }
+
+    #[test]
+    fn latest_codex_token_usage_record_beats_trailing_last_only() {
+        let content = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+        );
+        assert_eq!(
+            parse_session_content(
+                AGENT_CODEX,
+                &PathBuf::from("/tmp/session.jsonl"),
+                UNIX_EPOCH,
+                content,
+            )
+            .expect("session")
+            .usage
+            .total_tokens,
+            100
+        );
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            100
+        );
+    }
+
+    #[test]
+    fn latest_codex_token_count_total_overrides_earlier_record() {
+        let content = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100}}}}"#,
+        );
+        assert_eq!(
+            parse_session_content(
+                AGENT_CODEX,
+                &PathBuf::from("/tmp/session.jsonl"),
+                UNIX_EPOCH,
+                content,
+            )
+            .expect("session")
+            .usage
+            .total_tokens,
+            100
+        );
+        assert_eq!(
+            codex_total_token_usage(content)
+                .expect("usage")
+                .total_tokens,
+            100
+        );
     }
 
     #[test]

@@ -40,6 +40,13 @@ pub fn provider_from_host(host: &str) -> String {
         "gcp.gen_ai".to_string()
     } else if h.contains("bedrock") {
         "aws.bedrock".to_string()
+    } else if h.contains("codebuddy")
+        || h.contains("workbuddy")
+        || h.contains("copilot.tencent.com")
+        || h.contains("copilot.qq.com")
+        || h.contains("copilot-staging")
+    {
+        "codebuddy".to_string()
     } else {
         host.to_string()
     }
