@@ -688,47 +688,47 @@ impl HTTP1State {
         let tid = event.data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
         let key = (event.pid, tid, direction);
 
-        if looks_like_http1_start(bytes) {
-            if let Some(parsed) = take_complete_http1(bytes) {
-                self.streams.remove(&key);
-                websocket.observe_handshake(event, &parsed);
-                return Some(vec![HTTPParser::create_http_event(
-                    tid,
-                    parsed,
-                    event,
-                    include_raw_data,
-                )]);
-            }
-            self.streams.insert(
-                key,
-                HTTP1Acc {
+        let mut acc = if looks_like_http1_start(bytes) {
+            match self.streams.remove(&key) {
+                Some(mut pending) => {
+                    extend_capped(&mut pending.buf, bytes, MAX_HTTP_BODY_BYTES);
+                    pending
+                }
+                None => HTTP1Acc {
                     buf: bytes.to_vec(),
                     original: event.clone(),
                 },
-            );
-            evict_http1(&mut self.streams);
-            return Some(Vec::new());
-        }
-
-        let acc = self.streams.get_mut(&key)?;
-        extend_capped(&mut acc.buf, bytes, MAX_HTTP_BODY_BYTES);
-        let Some(parsed) = take_complete_http1(&acc.buf) else {
-            return Some(Vec::new());
+            }
+        } else {
+            let mut acc = self.streams.remove(&key)?;
+            extend_capped(&mut acc.buf, bytes, MAX_HTTP_BODY_BYTES);
+            acc
         };
-        let acc = self.streams.remove(&key)?;
         let tid = acc
             .original
             .data
             .get("tid")
             .and_then(|v| v.as_u64())
             .unwrap_or(tid);
-        websocket.observe_handshake(&acc.original, &parsed);
-        Some(vec![HTTPParser::create_http_event(
-            tid,
-            parsed,
-            &acc.original,
-            include_raw_data,
-        )])
+
+        let mut events = Vec::new();
+        while let Some((message, consumed)) = take_next_http1(&acc.buf) {
+            websocket.observe_handshake(&acc.original, &message);
+            events.push(HTTPParser::create_http_event(
+                tid,
+                message,
+                &acc.original,
+                include_raw_data,
+            ));
+            acc.buf.drain(0..consumed);
+        }
+
+        if !acc.buf.is_empty() {
+            self.streams.insert(key, acc);
+            evict_http1(&mut self.streams);
+        }
+
+        Some(events)
     }
 }
 
@@ -750,9 +750,10 @@ fn looks_like_http1_start(bytes: &[u8]) -> bool {
         && parts[2].starts_with("HTTP/1.")
 }
 
-fn take_complete_http1(buf: &[u8]) -> Option<HTTPMessage> {
+fn take_next_http1(buf: &[u8]) -> Option<(HTTPMessage, usize)> {
     let n = http1_complete_len(buf)?;
-    HTTPParser::parse_http_message(&String::from_utf8_lossy(&buf[..n]))
+    let message = HTTPParser::parse_http_message(&String::from_utf8_lossy(&buf[..n]))?;
+    Some((message, n))
 }
 
 fn http1_complete_len(buf: &[u8]) -> Option<usize> {
@@ -1427,7 +1428,7 @@ Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
     }
 
     #[tokio::test]
-    async fn http1_pipelined_buffer_emits_first_message_at_declared_length() {
+    async fn http1_pipelined_buffer_emits_every_complete_message() {
         let first_body =
             r#"{"model":"gpt-4","messages":[{"role":"user","content":"first"}]}"#.to_string();
         let second_body =
@@ -1437,20 +1438,95 @@ Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
 POST /second HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n{second_body}",
             first_body.len(),
             second_body.len()
-        );
-        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(
-            1,
-            "WRITE/SEND",
-            raw.into_bytes(),
-        )]));
+        )
+        .into_bytes();
+
+        let input: EventStream =
+            Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw.clone())]));
         let mut parser = HTTPParser::new().disable_raw_data();
         let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-        assert_eq!(output.len(), 1);
+        assert_eq!(output.len(), 2);
         assert_eq!(output[0].data["path"], "/first");
         assert_eq!(
             output[0].data["body"].as_str().unwrap(),
             first_body,
             "first message body must be exactly the declared Content-Length"
         );
+        assert_eq!(output[1].data["path"], "/second");
+        assert_eq!(
+            output[1].data["body"].as_str().unwrap(),
+            second_body,
+            "second message body must be exactly the declared Content-Length"
+        );
+
+        // Split the second message across a TLS chunk boundary: the tail of
+        // the first chunk is retained under the same stream key and the
+        // message only completes once the remaining bytes arrive.
+        let split_at = raw.len() - second_body.len() / 2;
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", raw[..split_at].to_vec()),
+            ssl_event(2, "WRITE/SEND", raw[split_at..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/first");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), first_body);
+        assert_eq!(output[1].data["path"], "/second");
+        assert_eq!(
+            output[1].data["body"].as_str().unwrap(),
+            second_body,
+            "split tail must complete from retained bytes plus later chunk"
+        );
+    }
+
+    #[tokio::test]
+    async fn http1_strict_content_length_holds_complete_json_with_trailing_whitespace() {
+        // Declared Content-Length includes trailing legal whitespace bytes,
+        // so the JSON body is syntactically complete before the declared
+        // length is reached. A complete JSON body must not override the
+        // declared Content-Length: nothing may emit before the final byte,
+        // and a stream that ends short must emit nothing at all.
+        let json_body =
+            r#"{"model":"gpt-4","messages":[{"role":"user","content":"strict tail"}]}"#.to_string();
+        let body = format!("{json_body} \n");
+        assert!(serde_json::from_str::<serde_json::Value>(&json_body).is_ok());
+        assert!(
+            body.strip_prefix(&json_body)
+                .is_some_and(|trailing| trailing.bytes().all(|b| b.is_ascii_whitespace()))
+        );
+
+        let raw = format!(
+            "POST /v1/chat/completions HTTP/1.1\r\nHost: api.openai.com\r\n\
+Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        )
+        .into_bytes();
+
+        // No event before the final declared byte arrives (also EOF
+        // short-body: the stream ends under the declared Content-Length).
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(
+            1,
+            "WRITE/SEND",
+            raw[..raw.len() - 1].to_vec(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert_eq!(
+            output.len(),
+            0,
+            "complete JSON must not override the declared Content-Length"
+        );
+
+        // Exactly one event after the final declared byte arrives.
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", raw[..raw.len() - 1].to_vec()),
+            ssl_event(2, "WRITE/SEND", raw[raw.len() - 1..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/v1/chat/completions");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), body);
     }
 }
