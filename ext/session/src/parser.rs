@@ -860,14 +860,14 @@ fn parse_jsonl(
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
                 if ptype == "token_count"
-                    && let Some(usage) = payload.pointer("/info/total_token_usage")
+                    && let Some(usage_value) = payload.pointer("/info/total_token_usage")
+                    && let Some(usage) = codex_token_usage(usage_value)
                 {
                     let name = if codex_model.is_empty() {
                         "unknown"
                     } else {
                         &codex_model
                     };
-                    let usage = codex_token_usage(usage);
                     acc.set_usage(
                         name,
                         usage.input_tokens,
@@ -948,6 +948,33 @@ fn parse_jsonl(
                             task_path: task_stack.path(),
                         });
                     }
+                }
+            }
+            (AGENT_CODEX, "token_usage_record") => {
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                let Some(usage) = codex_token_usage_candidate(payload) else {
+                    continue;
+                };
+                let name = if codex_model.is_empty() {
+                    "unknown"
+                } else {
+                    &codex_model
+                };
+                acc.set_usage(
+                    name,
+                    usage.input_tokens,
+                    usage.output_tokens,
+                    0,
+                    usage.cache_read_tokens,
+                    usage.total_tokens,
+                );
+                if let Some(last) = events.llm_responses.last_mut()
+                    && last.total_tokens == 0
+                {
+                    last.input_tokens = usage.input_tokens as u64;
+                    last.output_tokens = usage.output_tokens as u64;
+                    last.cache_tokens = usage.cache_read_tokens as u64;
+                    last.total_tokens = usage.total_tokens as u64;
                 }
             }
             (AGENT_CODEX, "response_item")
@@ -2624,30 +2651,55 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
     segments
 }
 
-fn codex_token_usage(value: &Value) -> TokenUsage {
-    let input = json_i64(value, "input_tokens").max(0);
-    let output = json_i64(value, "output_tokens").max(0);
-    let cache = json_i64(value, "cached_input_tokens").max(0);
-    let input = input.saturating_sub(cache);
-    TokenUsage {
+fn codex_token_usage(value: &Value) -> Option<TokenUsage> {
+    let fields = value.as_object()?;
+    let mut input = 0_i64;
+    let mut output = 0_i64;
+    let mut cache = 0_i64;
+    for (key, target) in [
+        ("input_tokens", &mut input),
+        ("output_tokens", &mut output),
+        ("cached_input_tokens", &mut cache),
+    ] {
+        let Some(raw) = fields.get(key) else {
+            continue;
+        };
+        let parsed = raw.as_i64().filter(|value| *value >= 0)?;
+        *target = parsed;
+    }
+    let input = input.checked_sub(cache).filter(|value| *value >= 0)?;
+    let total = input.checked_add(output)?.checked_add(cache)?;
+    (total > 0).then_some(TokenUsage {
         input_tokens: input,
         output_tokens: output,
         cache_creation_tokens: 0,
         cache_read_tokens: cache,
-        total_tokens: input + output + cache,
+        total_tokens: total,
+    })
+}
+
+fn codex_token_usage_candidate(payload: &Value) -> Option<TokenUsage> {
+    for key in ["thread_token_usage", "turn_token_usage", "usage"] {
+        if let Some(usage) = payload.get(key).and_then(codex_token_usage) {
+            return Some(usage);
+        }
     }
+    codex_token_usage(payload)
 }
 
 pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
     content.lines().rev().find_map(|line| {
         let obj: Value = serde_json::from_str(line).ok()?;
         let payload = obj.get("payload")?;
+        if obj.get("type").and_then(Value::as_str) == Some("token_usage_record") {
+            return codex_token_usage_candidate(payload);
+        }
         if payload.get("type").and_then(Value::as_str) != Some("token_count") {
             return None;
         }
         payload
             .pointer("/info/total_token_usage")
-            .map(codex_token_usage)
+            .and_then(codex_token_usage)
     })
 }
 
@@ -4479,6 +4531,30 @@ mod tests {
     }
 
     #[test]
+    fn codex_token_usage_record_updates_session_totals() {
+        let codex = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"agentsight macos live token check"}]}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"turn_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.model.as_deref(), Some("gpt-agentsight-mock"));
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(session.usage.total_tokens, 15);
+    }
+
+    #[test]
     fn claude_exact_skill_calls_create_prompt_bounded_latest_wins_scopes() {
         let claude = [
             r#"{"type":"system","skill_listing":["availability only"]}"#,
@@ -5108,6 +5184,264 @@ mod tests {
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
         assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_total_token_usage_reads_mid_turn_token_usage_record() {
+        let content = r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"turn_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15}}}"#;
+
+        let usage = codex_total_token_usage(content).expect("usage");
+
+        assert_eq!(usage.input_tokens, 11);
+        assert_eq!(usage.output_tokens, 4);
+        assert_eq!(usage.total_tokens, 15);
+    }
+
+    #[test]
+    fn codex_total_token_usage_newest_record_wins() {
+        let legacy_first = concat!(
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":0,"output_tokens":11,"total_tokens":19195}}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+        );
+        let record_first = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":0,"output_tokens":11,"total_tokens":19195}}}}"#,
+        );
+
+        assert_eq!(
+            codex_total_token_usage(legacy_first).map(|usage| usage.total_tokens),
+            Some(15)
+        );
+        assert_eq!(
+            codex_total_token_usage(record_first).map(|usage| usage.total_tokens),
+            Some(19_195)
+        );
+    }
+
+    #[test]
+    fn codex_total_token_usage_prefers_first_valid_candidate() {
+        let content = r#"{"type":"token_usage_record","payload":{"thread_token_usage":null,"turn_token_usage":{"input_tokens":7,"cached_input_tokens":0,"output_tokens":3,"total_tokens":10},"usage":{"input_tokens":1,"cached_input_tokens":0,"output_tokens":1,"total_tokens":2}}}"#;
+
+        let usage = codex_total_token_usage(content).expect("usage");
+
+        assert_eq!(usage.input_tokens, 7);
+        assert_eq!(usage.output_tokens, 3);
+        assert_eq!(usage.total_tokens, 10);
+    }
+
+    #[test]
+    fn codex_total_token_usage_invalid_newest_record_falls_back_to_older() {
+        let zero_newest = concat!(
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":0,"output_tokens":11,"total_tokens":19195}}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"total_tokens":0},"turn_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"total_tokens":0},"usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"total_tokens":0}}}"#,
+        );
+        assert_eq!(
+            codex_total_token_usage(zero_newest).map(|usage| usage.total_tokens),
+            Some(19_195)
+        );
+
+        let malformed_newest = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":"corrupt","turn_token_usage":{"total_tokens":"not-a-number"},"usage":null}}"#,
+        );
+        assert_eq!(
+            codex_total_token_usage(malformed_newest).map(|usage| usage.total_tokens),
+            Some(15)
+        );
+
+        let only_invalid = r#"{"type":"token_usage_record","payload":{"thread_token_usage":null,"turn_token_usage":null,"usage":null}}"#;
+        assert_eq!(codex_total_token_usage(only_invalid), None);
+    }
+
+    #[test]
+    fn codex_total_token_usage_rejects_cache_exceeding_input_newest_falls_back() {
+        let content = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":10,"cached_input_tokens":40,"output_tokens":4,"total_tokens":54}}}"#,
+        );
+        assert_eq!(
+            codex_total_token_usage(content).map(|usage| usage.total_tokens),
+            Some(15)
+        );
+    }
+
+    #[test]
+    fn codex_total_token_usage_rejects_total_overflow_newest_falls_back() {
+        let content = concat!(
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":9223372036854775807,"cached_input_tokens":0,"output_tokens":1,"total_tokens":9223372036854775808}}}"#,
+        );
+        assert_eq!(
+            codex_total_token_usage(content).map(|usage| usage.total_tokens),
+            Some(15)
+        );
+    }
+
+    #[test]
+    fn codex_total_token_usage_rejects_non_object_negative_and_empty() {
+        let non_object = r#"{"type":"token_usage_record","payload":{"thread_token_usage":"corrupt","turn_token_usage":null,"usage":null}}"#;
+        assert_eq!(codex_total_token_usage(non_object), None);
+
+        let negative = r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":-1,"cached_input_tokens":0,"output_tokens":4,"total_tokens":3}}}"#;
+        assert_eq!(codex_total_token_usage(negative), None);
+
+        let empty = r#"{"type":"token_usage_record","payload":{"thread_token_usage":{},"turn_token_usage":{},"usage":{}}}"#;
+        assert_eq!(codex_total_token_usage(empty), None);
+    }
+
+    #[test]
+    fn codex_token_usage_record_skips_null_thread_usage() {
+        let codex = [
+            r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#,
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":null,"turn_token_usage":{"input_tokens":7,"cached_input_tokens":0,"output_tokens":3,"total_tokens":10}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 7);
+        assert_eq!(session.usage.output_tokens, 3);
+        assert_eq!(session.usage.cache_read_tokens, 0);
+        assert_eq!(session.usage.total_tokens, 10);
+    }
+
+    #[test]
+    fn codex_token_usage_record_invalid_newest_keeps_older_totals() {
+        let codex = [
+            r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#,
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"total_tokens":0},"turn_token_usage":null,"usage":{"total_tokens":"oops"}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(session.usage.total_tokens, 15);
+    }
+
+    #[test]
+    fn codex_token_usage_record_keeps_cached_input_arithmetic() {
+        let codex = [
+            r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#,
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":100,"cached_input_tokens":40,"output_tokens":10,"total_tokens":150}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 60);
+        assert_eq!(session.usage.output_tokens, 10);
+        assert_eq!(session.usage.cache_read_tokens, 40);
+        assert_eq!(session.usage.total_tokens, 110);
+    }
+
+    #[test]
+    fn codex_total_token_usage_reads_payload_level_fields() {
+        let content = r#"{"type":"token_usage_record","payload":{"thread_token_usage":null,"turn_token_usage":null,"usage":null,"input_tokens":7,"cached_input_tokens":0,"output_tokens":3,"total_tokens":10}}"#;
+
+        let usage = codex_total_token_usage(content).expect("usage");
+
+        assert_eq!(usage.input_tokens, 7);
+        assert_eq!(usage.output_tokens, 3);
+        assert_eq!(usage.total_tokens, 10);
+    }
+
+    #[test]
+    fn codex_total_token_usage_rejects_invalid_legacy_records() {
+        let zero = r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"total_tokens":0}}}}"#;
+        assert_eq!(codex_total_token_usage(zero), None);
+
+        let malformed = r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":"corrupt","cached_input_tokens":0,"output_tokens":4}}}}"#;
+        assert_eq!(codex_total_token_usage(malformed), None);
+    }
+
+    #[test]
+    fn codex_token_usage_record_falls_back_to_payload_fields() {
+        let codex = [
+            r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#,
+            r#"{"type":"token_usage_record","payload":{"input_tokens":7,"cached_input_tokens":0,"output_tokens":3,"total_tokens":10}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 7);
+        assert_eq!(session.usage.output_tokens, 3);
+        assert_eq!(session.usage.total_tokens, 10);
+    }
+
+    #[test]
+    fn codex_token_usage_record_corrupt_thread_falls_back_to_turn() {
+        let codex = [
+            r#"{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#,
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":"corrupt","turn_token_usage":{"input_tokens":7,"cached_input_tokens":0,"output_tokens":3,"total_tokens":10}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 7);
+        assert_eq!(session.usage.output_tokens, 3);
+        assert_eq!(session.usage.total_tokens, 10);
+    }
+
+    #[test]
+    fn codex_token_count_invalid_legacy_usage_keeps_prior_totals() {
+        let codex = [
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":"corrupt","cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(session.usage.total_tokens, 15);
     }
 
     #[test]

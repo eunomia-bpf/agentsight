@@ -1508,6 +1508,56 @@ mod tests {
     }
 
     #[test]
+    fn codex_state_db_falls_back_to_tokens_used_for_invalid_rollout() {
+        let temp = tempfile::tempdir().unwrap();
+        let codex_dir = temp.path().join(".codex");
+        fs::create_dir_all(&codex_dir).unwrap();
+        let rollout = codex_dir.join("rollout.jsonl");
+        fs::write(
+            &rollout,
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":"corrupt","turn_token_usage":null,"usage":null}}"#,
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                rollout_path TEXT,
+                model TEXT,
+                tokens_used INTEGER NOT NULL DEFAULT 0,
+                preview TEXT,
+                cwd TEXT,
+                created_at_ms INTEGER,
+                updated_at_ms INTEGER
+            );",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO threads
+            (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
+            VALUES
+            ('019f49ca-54e7-7a91-82e7-a52b53cfd456', ?1, 'gpt-web-ci', 33, 'db fallback prompt', '/work/repo', 1800000, 1900000)",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].usage.total_tokens, 33);
+        assert_eq!(sessions[0].usage.input_tokens, 0);
+        assert_eq!(sessions[0].usage.output_tokens, 0);
+        assert_eq!(
+            sessions[0]
+                .model_usage
+                .get("gpt-web-ci")
+                .unwrap()
+                .total_tokens,
+            33
+        );
+    }
+
+    #[test]
     fn codex_rollout_summary_cache_tracks_file_metadata() {
         let temp = tempfile::tempdir().unwrap();
         let rollout = temp.path().join("rollout.jsonl");
