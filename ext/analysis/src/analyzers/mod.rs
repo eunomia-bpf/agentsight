@@ -4,6 +4,7 @@
 pub use agentsight_capture_core::analyzers::{Analyzer, AnalyzerError};
 
 pub mod auth_header_remover;
+mod capture_metadata;
 pub mod common;
 mod filter_base;
 mod filter_metrics;

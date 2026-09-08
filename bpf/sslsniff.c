@@ -18,6 +18,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <gelf.h>
+#include <libelf.h>
 
 #include "sslsniff.skel.h"
 #include "sslsniff.h"
@@ -29,32 +31,49 @@
 #define INVALID_PID -1
 #define DEFAULT_BUFFER_SIZE 8192
 
+#define MAX_ATTACH_LINKS 40
+static struct bpf_link *attach_links[MAX_ATTACH_LINKS];
+static size_t attach_link_count;
+
+static int keep_attach_link(struct bpf_link *link)
+{
+	long err = link ? libbpf_get_error(link) : -(errno ? errno : EIO);
+
+	if (err)
+		return (int)err;
+	if (attach_link_count >= MAX_ATTACH_LINKS) {
+		bpf_link__destroy(link);
+		return -E2BIG;
+	}
+	attach_links[attach_link_count++] = link;
+	return 0;
+}
+
+static void destroy_attach_links_since(size_t mark)
+{
+	while (attach_link_count > mark)
+		bpf_link__destroy(attach_links[--attach_link_count]);
+}
+
+static void destroy_attach_links(void)
+{
+	destroy_attach_links_since(0);
+}
+
 #define __ATTACH_UPROBE(skel, binary_path, sym_name, prog_name, is_retprobe)   \
 	do {                                                                       \
 	  LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts, .func_name = #sym_name,        \
 				  .retprobe = is_retprobe);                                    \
-	  skel->links.prog_name = bpf_program__attach_uprobe_opts(                 \
-		  skel->progs.prog_name, env.pid, binary_path, 0, &uprobe_opts);       \
-	} while (false)
-
-#define __CHECK_PROGRAM(skel, prog_name)               \
-	do {                                               \
-	  long __err = libbpf_get_error(skel->links.prog_name); \
-	  if (__err) {                                     \
-		skel->links.prog_name = NULL;                  \
-		return (int)__err;                             \
-	  }                                                \
-	  if (!skel->links.prog_name) {                    \
-		perror("no program attached for " #prog_name); \
-		return -(errno ? errno : ENOENT);              \
-	  }                                                \
+	  int __err = keep_attach_link(bpf_program__attach_uprobe_opts(            \
+		  skel->progs.prog_name, env.pid, binary_path, 0, &uprobe_opts));      \
+	  if (__err)                                                               \
+		return __err;                                                         \
 	} while (false)
 
 #define __ATTACH_UPROBE_CHECKED(skel, binary_path, sym_name, prog_name,     \
 								is_retprobe)                                \
 	do {                                                                    \
 	  __ATTACH_UPROBE(skel, binary_path, sym_name, prog_name, is_retprobe); \
-	  __CHECK_PROGRAM(skel, prog_name);                                     \
 	} while (false)
 
 #define ATTACH_UPROBE_CHECKED(skel, binary_path, sym_name, prog_name)     \
@@ -62,26 +81,41 @@
 #define ATTACH_URETPROBE_CHECKED(skel, binary_path, sym_name, prog_name)  \
 	__ATTACH_UPROBE_CHECKED(skel, binary_path, sym_name, prog_name, true)
 
+#define ATTACH_UPROBE_OPTIONAL(skel, binary_path, sym_name, prog_name)     \
+	do {                                                                    \
+	  LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts, .func_name = #sym_name,     \
+				  .retprobe = false);                                        \
+	  int __err = keep_attach_link(bpf_program__attach_uprobe_opts(         \
+		  skel->progs.prog_name, env.pid, binary_path, 0, &uprobe_opts));   \
+	  if (__err) {                                                          \
+		if (verbose)                                                        \
+		  warn("Lifecycle symbol " #sym_name " unavailable in %s: %ld\n", \
+		       binary_path, (long)__err);                                   \
+	  }                                                                     \
+	} while (false)
+
 #define __ATTACH_UPROBE_OFFSET(skel, binary_path, offset, prog_name, is_retprobe) \
 	do {                                                                          \
 	  LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts, .retprobe = is_retprobe);         \
-	  skel->links.prog_name = bpf_program__attach_uprobe_opts(                    \
-		  skel->progs.prog_name, env.pid, binary_path, offset, &uprobe_opts);     \
+	  int __err = keep_attach_link(bpf_program__attach_uprobe_opts(               \
+		  skel->progs.prog_name, env.pid, binary_path, offset, &uprobe_opts));    \
+	  if (__err)                                                                  \
+		return __err;                                                            \
 	} while (false)
 
 #define ATTACH_UPROBE_OFFSET_CHECKED(skel, binary_path, offset, prog_name)       \
 	do {                                                                         \
 	  __ATTACH_UPROBE_OFFSET(skel, binary_path, offset, prog_name, false);       \
-	  __CHECK_PROGRAM(skel, prog_name);                                          \
 	} while (false)
 
 #define ATTACH_URETPROBE_OFFSET_CHECKED(skel, binary_path, offset, prog_name)    \
 	do {                                                                         \
 	  __ATTACH_UPROBE_OFFSET(skel, binary_path, offset, prog_name, true);        \
-	  __CHECK_PROGRAM(skel, prog_name);                                          \
 	} while (false)
 
 volatile sig_atomic_t exiting = 0;
+static unsigned long long capture_seq;
+static unsigned long long last_reported_capture_loss;
 
 const char *argp_program_version = "sslsniff 0.1";
 const char *argp_program_bug_address = "https://github.com/iovisor/bcc/tree/master/libbpf-tools";
@@ -164,6 +198,53 @@ struct boringssl_offsets {
 	bool found;
 	const char *source;
 };
+
+static bool elf_has_symbol(const char *binary_path, const char *symbol_name)
+{
+	Elf *elf = NULL;
+	Elf_Scn *section = NULL;
+	int fd = -1;
+	bool found = false;
+
+	if (elf_version(EV_CURRENT) == EV_NONE)
+		return false;
+	fd = open(binary_path, O_RDONLY);
+	if (fd < 0)
+		return false;
+	elf = elf_begin(fd, ELF_C_READ, NULL);
+	if (!elf)
+		goto out;
+	while ((section = elf_nextscn(elf, section)) != NULL) {
+		GElf_Shdr header;
+		Elf_Data *data = NULL;
+
+		if (!gelf_getshdr(section, &header)
+			|| (header.sh_type != SHT_SYMTAB && header.sh_type != SHT_DYNSYM)
+			|| header.sh_entsize == 0)
+			continue;
+		while ((data = elf_getdata(section, data)) != NULL) {
+			size_t count = data->d_size / header.sh_entsize;
+
+			for (size_t i = 0; i < count; i++) {
+				GElf_Sym symbol;
+				const char *name;
+
+				if (!gelf_getsym(data, (int)i, &symbol))
+					continue;
+				name = elf_strptr(elf, header.sh_link, symbol.st_name);
+				if (name && strcmp(name, symbol_name) == 0) {
+					found = true;
+					goto out;
+				}
+			}
+		}
+	}
+out:
+	if (elf)
+		elf_end(elf);
+	close(fd);
+	return found;
+}
 
 static size_t find_pattern(const unsigned char *data, size_t data_len,
 						   const unsigned char *pattern, size_t pattern_len)
@@ -394,42 +475,71 @@ static void sig_int(int signo) {
 }
 
 int attach_openssl(struct sslsniff_bpf *skel, const char *lib) {
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write, probe_SSL_rw_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write, probe_openssl_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_rw_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read, probe_openssl_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_read_exit);
 
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write_ex,
+						probe_openssl_SSL_write_ex_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read_ex,
+						probe_openssl_SSL_read_ex_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_exit);
 
 	ATTACH_UPROBE_CHECKED(skel, lib, SSL_do_handshake,
-							probe_SSL_do_handshake_enter);
+						probe_openssl_SSL_do_handshake_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_do_handshake,
-								probe_SSL_do_handshake_exit);
+						   probe_SSL_do_handshake_exit);
+	ATTACH_UPROBE_OPTIONAL(skel, lib, SSL_free, probe_openssl_TLS_close);
+
+	return 0;
+}
+
+int attach_boringssl(struct sslsniff_bpf *skel, const char *lib) {
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write, probe_boringssl_SSL_rw_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write, probe_SSL_write_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read, probe_boringssl_SSL_rw_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_read_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write_ex,
+						probe_boringssl_SSL_write_ex_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read_ex,
+						probe_boringssl_SSL_read_ex_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_do_handshake,
+						probe_boringssl_SSL_do_handshake_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_do_handshake,
+						   probe_SSL_do_handshake_exit);
+	ATTACH_UPROBE_OPTIONAL(skel, lib, SSL_free, probe_boringssl_TLS_close);
 
 	return 0;
 }
 
 int attach_gnutls(struct sslsniff_bpf *skel, const char *lib) {
-	ATTACH_UPROBE_CHECKED(skel, lib, gnutls_record_send, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, gnutls_record_send, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, gnutls_record_recv, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_CHECKED(skel, lib, gnutls_record_recv, probe_SSL_read_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, gnutls_record_send,
+						probe_gnutls_SSL_rw_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, gnutls_record_send,
+						   probe_SSL_write_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, gnutls_record_recv,
+						probe_gnutls_SSL_rw_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, gnutls_record_recv,
+						   probe_SSL_read_exit);
+	ATTACH_UPROBE_OPTIONAL(skel, lib, gnutls_deinit, probe_gnutls_TLS_close);
 
 	return 0;
 }
 
 int attach_nss(struct sslsniff_bpf *skel, const char *lib) {
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Write, probe_SSL_rw_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, PR_Write, probe_nss_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Write, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Send, probe_SSL_rw_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, PR_Send, probe_nss_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Send, probe_SSL_write_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Read, probe_SSL_rw_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, PR_Read, probe_nss_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Read, probe_SSL_read_exit);
-	ATTACH_UPROBE_CHECKED(skel, lib, PR_Recv, probe_SSL_rw_enter);
+	ATTACH_UPROBE_CHECKED(skel, lib, PR_Recv, probe_nss_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Recv, probe_SSL_read_exit);
+	ATTACH_UPROBE_OPTIONAL(skel, lib, PR_Close, probe_nss_TLS_close);
 
 	return 0;
 }
@@ -484,33 +594,33 @@ int attach_openssl_by_offset(struct sslsniff_bpf *skel, const char *lib,
 							 struct boringssl_offsets *offsets) {
 	if (offsets->write_is_ex) {
 		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-									 probe_SSL_write_ex_enter);
+									probe_boringssl_SSL_write_ex_enter);
 		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-										probe_SSL_write_ex_exit);
+									   probe_SSL_write_ex_exit);
 	} else {
 		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-									 probe_SSL_rw_enter);
+									probe_boringssl_SSL_rw_enter);
 		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
-										probe_SSL_write_exit);
+									   probe_SSL_write_exit);
 	}
 
 	if (offsets->read_is_ex) {
 		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-									 probe_SSL_read_ex_enter);
+									probe_boringssl_SSL_read_ex_enter);
 		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-										probe_SSL_read_ex_exit);
+									   probe_SSL_read_ex_exit);
 	} else {
 		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-									 probe_SSL_rw_enter);
+									probe_boringssl_SSL_rw_enter);
 		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
-										probe_SSL_read_exit);
+									   probe_SSL_read_exit);
 	}
 
 	if (env.handshake) {
 		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_do_handshake,
-									 probe_SSL_do_handshake_enter);
+									probe_boringssl_SSL_do_handshake_enter);
 		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_do_handshake,
-										 probe_SSL_do_handshake_exit);
+									   probe_SSL_do_handshake_exit);
 	}
 
 	return 0;
@@ -557,6 +667,38 @@ char *find_library_path(const char *libname) {
 // Global buffer allocated once and reused
 static char *event_buf = NULL;
 
+static const char *tls_library_name(__u8 library)
+{
+	switch (library) {
+	case TLS_LIBRARY_OPENSSL:
+		return "openssl";
+	case TLS_LIBRARY_GNUTLS:
+		return "gnutls";
+	case TLS_LIBRARY_NSS:
+		return "nss";
+	case TLS_LIBRARY_RUSTLS:
+		return "rustls";
+	case TLS_LIBRARY_BORINGSSL:
+		return "boringssl";
+	default:
+		return "unknown";
+	}
+}
+
+static const char *rw_event_name(int rw)
+{
+	switch (rw) {
+	case 0:
+		return "READ/RECV";
+	case 1:
+		return "WRITE/SEND";
+	case 2:
+		return "HANDSHAKE";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 // Function to print the event from the perf buffer in JSON format
 void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	static unsigned long long start = 0;  // Use static to retain value across function calls
@@ -594,18 +736,14 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 		start = event->timestamp_ns;
 	}
 
-	char *rw_event[] = {
-		"READ/RECV",
-		"WRITE/SEND",
-		"HANDSHAKE"
-	};
-
 	// Start JSON object
 	printf("{");
 	
 	// Basic fields - always include all fields
-	printf("\"function\":\"%s\",", rw_event[event->rw]);
+	printf("\"function\":\"%s\",",
+	       event->connection_closed ? "CLOSE" : rw_event_name(event->rw));
 	printf("\"timestamp_ns\":%llu,", event->timestamp_ns);
+	printf("\"capture_seq\":%llu,", ++capture_seq);
 	printf("\"comm\":\"%s\",", event->comm);
 	printf("\"pid\":%d,", event->pid);
 	printf("\"len\":%d,", event->len);
@@ -614,6 +752,15 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Always include extra fields (UID, TID)
 	printf("\"uid\":%d,", event->uid);
 	printf("\"tid\":%d,", event->tid);
+	printf("\"transport_handle\":\"0x%llx\",", event->transport_handle);
+	printf("\"process_start_ns\":%llu,", event->process_start_ns);
+	printf("\"ringbuf_reserve_failures\":%llu,",
+	       event->ringbuf_reserve_failures);
+	if (event->ringbuf_reserve_failures > last_reported_capture_loss)
+		last_reported_capture_loss = event->ringbuf_reserve_failures;
+	printf("\"tls_library\":\"%s\",", tls_library_name(event->tls_library));
+	printf("\"connection_closed\":%s,",
+	       event->connection_closed ? "true" : "false");
 
 	// Always include latency field
 	if (event->delta_ns) {
@@ -645,6 +792,9 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 		} else {
 			printf("\"truncated\":false");
 		}
+	} else if ((event->rw == 0 || event->rw == 1) && event->len > 0) {
+		printf("\"data\":null,\"truncated\":true,\"bytes_lost\":%u",
+		       event->len);
 	} else {
 		printf("\"data\":null,\"truncated\":false");
 	}
@@ -655,6 +805,43 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Close JSON object
 	printf("}\n");
 	fflush(stdout);
+}
+
+static unsigned long long current_timestamp_ns(void)
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+		return 0;
+	return (unsigned long long)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
+
+static void report_final_capture_loss(struct sslsniff_bpf *obj)
+{
+	unsigned long long failures;
+	unsigned int key = 0;
+	int map_fd;
+
+	if (!obj)
+		return;
+	map_fd = bpf_map__fd(obj->maps.capture_loss);
+	if (map_fd < 0 || bpf_map_lookup_elem(map_fd, &key, &failures) != 0) {
+		if (verbose)
+			warn("failed to read final ring-buffer loss count: %s\n",
+			     strerror(errno));
+		return;
+	}
+	if (failures <= last_reported_capture_loss)
+		return;
+
+	printf("{\"function\":\"CAPTURE_LOSS\",");
+	printf("\"timestamp_ns\":%llu,", current_timestamp_ns());
+	printf("\"capture_seq\":%llu,", ++capture_seq);
+	printf("\"comm\":\"sslsniff\",");
+	printf("\"pid\":%d,", env.pid == INVALID_PID ? 0 : env.pid);
+	printf("\"ringbuf_reserve_failures\":%llu}\n", failures);
+	fflush(stdout);
+	last_reported_capture_loss = failures;
 }
 
 static int handle_event(void *ctx, void *data, size_t data_sz) {
@@ -736,7 +923,12 @@ int main(int argc, char **argv) {
 					openssl_path ? openssl_path : "not found");
 
 		if (openssl_path) {
-			attach_openssl(obj, openssl_path);
+			size_t attach_mark = attach_link_count;
+			int attach_err;
+
+			attach_err = attach_openssl(obj, openssl_path);
+			if (attach_err)
+				destroy_attach_links_since(attach_mark);
 		} else {
 			warn("OpenSSL library not found\n");
 		}
@@ -747,7 +939,12 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "GnuTLS path: %s\n", gnutls_path ? gnutls_path : "not found");
 		}
 		if (gnutls_path) {
-			attach_gnutls(obj, gnutls_path);
+			size_t attach_mark = attach_link_count;
+			int attach_err;
+
+			attach_err = attach_gnutls(obj, gnutls_path);
+			if (attach_err)
+				destroy_attach_links_since(attach_mark);
 		} else {
 			warn("GnuTLS library not found\n");
 		}
@@ -758,7 +955,12 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "NSS path: %s\n", nss_path ? nss_path : "not found");
 		}
 		if (nss_path) {
-			attach_nss(obj, nss_path);
+			size_t attach_mark = attach_link_count;
+			int attach_err;
+
+			attach_err = attach_nss(obj, nss_path);
+			if (attach_err)
+				destroy_attach_links_since(attach_mark);
 		} else {
 			warn("NSS library not found\n");
 		}
@@ -766,6 +968,10 @@ int main(int argc, char **argv) {
 
 	// Handle custom binary path for statically-linked SSL (e.g., NVM Node.js, Bun apps)
 	if (env.extra_lib) {
+		size_t attach_mark = attach_link_count;
+		bool symbol_boringssl = elf_has_symbol(
+			env.extra_lib, "OPENSSL_is_boringssl");
+
 		err = -ENOENT;
 
 		if (verbose) {
@@ -777,22 +983,19 @@ int main(int argc, char **argv) {
 				 env.extra_lib, strerror(errno));
 			goto cleanup;
 		}
-		// First try symbol-based attachment (works for binaries with symbols)
-		LIBBPF_OPTS(bpf_uprobe_opts, test_opts, .func_name = "SSL_write",
-					.retprobe = false);
-		struct bpf_link *test_link = bpf_program__attach_uprobe_opts(
-			obj->progs.probe_SSL_rw_enter, env.pid, env.extra_lib, 0, &test_opts);
-		long test_err = test_link ? libbpf_get_error(test_link) : -(errno ? errno : EIO);
-		if (test_link && !test_err) {
-			// Symbol found - use standard symbol-based attachment
-			bpf_link__destroy(test_link);
+		// Try the real symbol attachments directly. A disposable probe link here
+		// leaks in libbpf's perf-event fallback under LeakSanitizer.
+		err = symbol_boringssl
+			? attach_boringssl(obj, env.extra_lib)
+			: attach_openssl(obj, env.extra_lib);
+		if (err)
+			destroy_attach_links_since(attach_mark);
+		if (!err) {
 			if (verbose)
 				fprintf(stderr, "Using symbol-based attachment for %s\n", env.extra_lib);
-			err = attach_openssl(obj, env.extra_lib);
-		} else if (test_err != -ENOENT) {
-			err = (int)test_err;
+		} else if (err != -ENOENT) {
 			warn("Failed to probe SSL_write in %s: libbpf error %ld\n",
-				 env.extra_lib, test_err);
+				 env.extra_lib, (long)err);
 		} else {
 			// Some stripped static clients use rustls; other clients use
 			// the existing generic BoringSSL detector.
@@ -842,10 +1045,15 @@ int main(int argc, char **argv) {
 		goto cleanup;
 	}
 
-	if (signal(SIGINT, sig_int) == SIG_ERR) {
+	if (signal(SIGINT, sig_int) == SIG_ERR ||
+	    signal(SIGTERM, sig_int) == SIG_ERR) {
 		warn("can't set signal handler: %s\n", strerror(errno));
 		err = 1;
 		goto cleanup;
+	}
+	if (verbose) {
+		fprintf(stderr, "SSLSNIFF_READY\n");
+		fflush(stderr);
 	}
 
 	while (!exiting) {
@@ -858,9 +1066,22 @@ int main(int argc, char **argv) {
 	}
 
 cleanup:
+	if (obj)
+		sslsniff_bpf__detach(obj);
+	destroy_attach_links();
 	if (grok_rustls_link)
 		bpf_link__destroy(grok_rustls_link);
 	destroy_codex_rustls_links();
+	if (rb) {
+		int drain_err;
+
+		do {
+			drain_err = ring_buffer__poll(rb, 0);
+		} while (drain_err > 0);
+		if (drain_err < 0 && drain_err != -EINTR && verbose)
+			warn("error draining ring buffer: %s\n", strerror(-drain_err));
+	}
+	report_final_capture_loss(obj);
 	if (event_buf) {
 		free(event_buf);
 		event_buf = NULL;

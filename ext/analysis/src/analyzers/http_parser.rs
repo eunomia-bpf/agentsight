@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use super::capture_metadata::CaptureMetadataAccumulator;
 use super::protocol_events::HTTPEvent;
 use super::{Analyzer, AnalyzerError};
 use crate::event::Event;
@@ -9,7 +10,7 @@ use async_trait::async_trait;
 use flate2::{Decompress, FlushDecompress};
 use futures::{stream, stream::StreamExt};
 use hpack::Decoder as HpackDecoder;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 const MAX_HTTP2_STREAMS: usize = 1024;
 const MAX_HTTP2_PENDING_HEADERS: usize = 1024;
@@ -38,6 +39,8 @@ struct HTTP2StreamState {
     response_body: Vec<u8>,
     request_emitted: bool,
     response_emitted: bool,
+    request_capture_metadata: CaptureMetadataAccumulator,
+    response_capture_metadata: CaptureMetadataAccumulator,
 }
 
 struct PendingHTTP2Headers {
@@ -68,6 +71,7 @@ struct WebSocketConnection {
     path: String,
     headers: HashMap<String, String>,
     inflater: Decompress,
+    handshake_capture_metadata: CaptureMetadataAccumulator,
 }
 
 impl Default for HTTP2State {
@@ -280,6 +284,11 @@ impl HTTPParser {
             4; // +4 for \r\n\r\n separator
 
         HTTPEvent {
+            capture_metadata: {
+                let mut metadata = CaptureMetadataAccumulator::default();
+                metadata.observe_event(original_event);
+                metadata.finish()
+            },
             tid,
             message_type: message_type_str.to_string(),
             first_line: parsed_message.first_line,
@@ -368,6 +377,11 @@ impl WebSocketState {
                 path: path.clone(),
                 headers: message.headers.clone(),
                 inflater: Decompress::new(false),
+                handshake_capture_metadata: {
+                    let mut metadata = CaptureMetadataAccumulator::default();
+                    metadata.observe_event(event);
+                    metadata
+                },
             },
         );
     }
@@ -402,6 +416,7 @@ impl WebSocketState {
             event,
             &connection.path,
             &connection.headers,
+            &connection.handshake_capture_metadata,
             body,
             include_raw_data,
         )])
@@ -451,6 +466,7 @@ fn create_websocket_request_event(
     original_event: &Event,
     path: &str,
     headers: &HashMap<String, String>,
+    handshake_capture_metadata: &CaptureMetadataAccumulator,
     body: String,
     include_raw_data: bool,
 ) -> Event {
@@ -459,7 +475,10 @@ fn create_websocket_request_event(
         .get("tid")
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
+    let mut capture_metadata = handshake_capture_metadata.clone();
+    capture_metadata.observe_event(original_event);
     HTTPEvent {
+        capture_metadata: capture_metadata.finish(),
         tid,
         message_type: "request".to_string(),
         first_line: format!("POST {path} WebSocket"),
@@ -502,6 +521,25 @@ impl HTTP2State {
         )?;
         let frames = parse_http2_frames(bytes)?;
         let mut events = Vec::new();
+
+        // A single TLS capture can contain several frames for one stream. Record that
+        // capture once per affected stream/direction, rather than once per frame.
+        let affected_streams = frames
+            .iter()
+            .filter(|frame| frame.stream_id != 0 && matches!(frame.frame_type, 0x0 | 0x1 | 0x9))
+            .map(|frame| frame.stream_id)
+            .collect::<HashSet<_>>();
+        for stream_id in affected_streams {
+            let state = self.streams.entry((tid, stream_id)).or_default();
+            match direction {
+                HTTP2Direction::Request => {
+                    state.request_capture_metadata.observe_event(original_event)
+                }
+                HTTP2Direction::Response => state
+                    .response_capture_metadata
+                    .observe_event(original_event),
+            }
+        }
 
         for frame in frames {
             let key = (tid, frame.stream_id);
@@ -783,6 +821,7 @@ fn create_http2_request_event(
     let body_hex = (!state.request_body.is_empty()).then(|| hex::encode(&state.request_body));
     let total_size = headers_size(&state.request_headers) + state.request_body.len();
     HTTPEvent {
+        capture_metadata: state.request_capture_metadata.finish(),
         tid: synthetic_http2_tid(tid, stream_id),
         message_type: "request".to_string(),
         first_line,
@@ -822,6 +861,7 @@ fn create_http2_response_event(
     let body_hex = (!state.response_body.is_empty()).then(|| hex::encode(&state.response_body));
     let total_size = headers_size(&state.response_headers) + state.response_body.len();
     HTTPEvent {
+        capture_metadata: state.response_capture_metadata.finish(),
         tid: synthetic_http2_tid(tid, stream_id),
         message_type: "response".to_string(),
         first_line,
@@ -925,6 +965,7 @@ mod tests {
     use std::io::Write;
 
     fn ssl_event(timestamp: u64, function: &str, bytes: Vec<u8>) -> Event {
+        let len = bytes.len();
         Event::new_with_timestamp(
             timestamp,
             "ssl".to_string(),
@@ -935,6 +976,14 @@ mod tests {
                 "function": function,
                 "data": bytes_to_ssl_json_string(&bytes),
                 "data_hex": hex::encode(&bytes),
+                "transport_handle": "0xabc",
+                "process_start_ns": 12345,
+                "tls_library": "openssl",
+                "capture_seq": timestamp,
+                "len": len,
+                "buf_size": len,
+                "truncated": false,
+                "ringbuf_reserve_failures": 0,
             }),
         )
     }
@@ -987,6 +1036,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn http1_events_expose_capture_metadata_and_accept_legacy_input() {
+        let request =
+            b"POST /v1/messages HTTP/1.1\r\nHost: api.example.test\r\nContent-Length: 2\r\n\r\n{}"
+                .to_vec();
+        let legacy = Event::new_with_timestamp(
+            2,
+            "ssl".to_string(),
+            4242,
+            "node".to_string(),
+            json!({
+                "tid": 7,
+                "function": "READ/RECV",
+                "data": "HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n"
+            }),
+        );
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", request),
+            legacy,
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["capture_fragment_count"], 1);
+        assert_eq!(output[0].data["transport_handle"], "0xabc");
+        assert_eq!(output[0].data["capture_metadata_complete"], true);
+        assert_eq!(output[1].data["capture_fragment_count"], 1);
+        assert!(output[1].data["transport_handle"].is_null());
+        assert!(output[1].data["capture_original_len"].is_null());
+        assert_eq!(output[1].data["capture_metadata_complete"], false);
+    }
+
+    #[tokio::test]
     async fn parses_compressed_websocket_responses_with_context_takeover() {
         let handshake = b"GET /backend-api/codex/responses HTTP/1.1\r\n\
 Host: chatgpt.com\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\
@@ -1026,6 +1108,10 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert_eq!(output.len(), 3);
         assert_eq!(output[2].data["path"], "/backend-api/codex/responses");
         assert!(output[2].data["body"].as_str().unwrap().contains(prompt));
+        assert_eq!(output[2].data["capture_fragment_count"], 2);
+        assert_eq!(output[2].data["capture_seq_start"], 1);
+        assert_eq!(output[2].data["capture_seq_end"], 3);
+        assert_eq!(output[2].data["transport_handle"], "0xabc");
         let mut view = MaterializedView::new();
         for event in output {
             view.ingest_event(&event).unwrap();
@@ -1061,18 +1147,15 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         request_bytes.extend(frame(0x1, 0x4, 1, &request_encoder.encode(request_headers)));
         request_bytes.extend(frame(0x0, 0x1, 1, request_body));
 
-        let mut response_bytes = Vec::new();
-        response_bytes.extend(frame(
-            0x1,
-            0x4,
-            1,
-            &response_encoder.encode(response_headers),
-        ));
-        response_bytes.extend(frame(0x0, 0x1, 1, response_body));
+        let response_headers_bytes = frame(0x1, 0x4, 1, &response_encoder.encode(response_headers));
+        let response_body_bytes = frame(0x0, 0x1, 1, response_body);
+        let expected_response_capture_len =
+            response_headers_bytes.len() + response_body_bytes.len();
 
         let input: EventStream = Box::pin(stream::iter(vec![
             ssl_event(1, "WRITE/SEND", request_bytes),
-            ssl_event(2, "READ/RECV", response_bytes),
+            ssl_event(2, "READ/RECV", response_headers_bytes),
+            ssl_event(3, "READ/RECV", response_body_bytes),
         ]));
         let mut parser = HTTPParser::new().disable_raw_data();
         let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
@@ -1094,6 +1177,16 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
                 .unwrap()
                 .contains("usageMetadata")
         );
+        assert_eq!(output[0].data["capture_fragment_count"], 1);
+        assert_eq!(output[1].data["capture_fragment_count"], 2);
+        assert_eq!(output[1].data["capture_seq_start"], 2);
+        assert_eq!(output[1].data["capture_seq_end"], 3);
+        assert_eq!(
+            output[1].data["capture_original_len"],
+            expected_response_capture_len
+        );
+        assert_eq!(output[1].data["capture_identity_consistent"], true);
+        assert_eq!(output[1].data["capture_metadata_complete"], true);
 
         let mut view = MaterializedView::new();
         for event in output {

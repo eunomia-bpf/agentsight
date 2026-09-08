@@ -14,6 +14,7 @@ mod sse_processor_tests {
     use serde_json::json;
 
     fn ssl_sse_chunk(timestamp: u64, data: &str) -> Event {
+        let len = data.len();
         Event::new_with_timestamp(
             timestamp,
             "ssl".to_string(),
@@ -24,7 +25,15 @@ mod sse_processor_tests {
                 "function": "READ/RECV",
                 "pid": 1234,
                 "tid": 99,
-                "timestamp_ns": timestamp
+                "timestamp_ns": timestamp,
+                "transport_handle": "0xabc",
+                "process_start_ns": 12345,
+                "tls_library": "openssl",
+                "capture_seq": timestamp,
+                "len": len,
+                "buf_size": len,
+                "truncated": false,
+                "ringbuf_reserve_failures": 4
             }),
         )
     }
@@ -72,6 +81,23 @@ mod sse_processor_tests {
             .unwrap()
             .collect()
             .await
+    }
+
+    #[tokio::test]
+    async fn capture_metadata_aggregates_all_raw_sse_fragments() {
+        let output = process_chunks(&[
+            "data: {\"id\":\"chatcmpl-1\",\"choices\":[{\"delta\":{\"content\":\"hello\"}}]}",
+            "data: [DONE]",
+        ])
+        .await;
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["capture_fragment_count"], 2);
+        assert_eq!(output[0].data["capture_seq_start"], 2);
+        assert_eq!(output[0].data["capture_seq_end"], 3);
+        assert_eq!(output[0].data["transport_handle"], "0xabc");
+        assert_eq!(output[0].data["capture_tids"], json!([99]));
+        assert_eq!(output[0].data["capture_metadata_complete"], true);
     }
 
     #[tokio::test]
@@ -495,7 +521,25 @@ data: {"type":"response.completed","response":{"id":"resp_1","status":"completed
                 "status_code": 200,
                 "headers": { "content-type": "text/event-stream", "host": "api.example.test" },
                 "path": "/v1/chat/completions",
-                "body": "data: {\"usage\":{\"input_tokens\":2,\"output_tokens\":3}}\n\ndata: [DONE]\n\n"
+                "body": "data: {\"usage\":{\"input_tokens\":2,\"output_tokens\":3}}\n\ndata: [DONE]\n\n",
+                "transport_handle": "0xdef",
+                "process_start_ns": 45678,
+                "tls_library": "boringssl",
+                "capture_seq_start": 10,
+                "capture_seq_end": 12,
+                "capture_fragment_count": 3,
+                "capture_original_len": 300,
+                "capture_captured_len": 280,
+                "capture_truncated": true,
+                "capture_bytes_lost": 20,
+                "ringbuf_reserve_failures_start": 1,
+                "ringbuf_reserve_failures_end": 2,
+                "ringbuf_reserve_failures_delta": 1,
+                "capture_tids": [99, 100],
+                "capture_tid_count": 2,
+                "capture_tids_truncated": false,
+                "capture_identity_consistent": true,
+                "capture_metadata_complete": true
             }),
         );
 
@@ -509,6 +553,14 @@ data: {"type":"response.completed","response":{"id":"resp_1","status":"completed
         assert_eq!(collected[0].data["host"], "api.example.test");
         assert_eq!(collected[0].data["path"], "/v1/chat/completions");
         assert_eq!(collected[0].data["status_code"], 200);
+        assert_eq!(collected[0].data["capture_fragment_count"], 3);
+        assert_eq!(collected[0].data["capture_original_len"], 300);
+        assert_eq!(collected[0].data["capture_captured_len"], 280);
+        assert_eq!(collected[0].data["capture_bytes_lost"], 20);
+        assert_eq!(collected[0].data["capture_tids"], json!([99, 100]));
+        assert_eq!(collected[0].data["ringbuf_reserve_failures_start"], 1);
+        assert_eq!(collected[0].data["ringbuf_reserve_failures_end"], 2);
+        assert_eq!(collected[0].data["ringbuf_reserve_failures_delta"], 1);
     }
 
     #[tokio::test]

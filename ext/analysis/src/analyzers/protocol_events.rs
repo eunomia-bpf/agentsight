@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use super::capture_metadata::CaptureMetadata;
 use crate::event::Event;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -9,6 +10,8 @@ use std::collections::HashMap;
 /// SSE Processor Event - represents a complete SSE interaction with timing information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSEProcessorEvent {
+    #[serde(flatten)]
+    pub(crate) capture_metadata: CaptureMetadata,
     pub connection_id: String,
     pub message_id: Option<String>,
     pub start_time: u64,
@@ -54,6 +57,8 @@ impl SSEProcessorEvent {
 /// HTTP Event - represents a parsed HTTP request or response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTTPEvent {
+    #[serde(flatten)]
+    pub(crate) capture_metadata: CaptureMetadata,
     pub tid: u64,
     pub message_type: String,
     pub first_line: String,

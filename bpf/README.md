@@ -179,6 +179,7 @@ When `--binary-path` is specified, sslsniff:
 - eBPF capture is bounded by `MAX_BUF_SIZE` per event; oversized reads are marked truncated
 - Events include timestamps, process info, and SSL data
 - Handshake events show SSL negotiation details
+- With `--verbose`, stderr emits `SSLSNIFF_READY` after probes and the ring buffer are ready
 
 **Filtering Options:**
 - **PID filtering**: Only capture traffic from specific process
@@ -385,12 +386,18 @@ Each SSL event is a single JSON line with the following schema:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `function` | string | `"READ/RECV"`, `"WRITE/SEND"`, or `"HANDSHAKE"` |
+| `function` | string | Record kind: `"READ/RECV"`, `"WRITE/SEND"`, `"HANDSHAKE"`, `"CLOSE"`, or `"CAPTURE_LOSS"` |
 | `timestamp_ns` | uint64 | Nanoseconds since system boot (`bpf_ktime_get_ns()`) |
+| `capture_seq` | uint64 | Monotonic order of JSONL records emitted by this `sslsniff` process; this is userspace output order, not kernel execution order |
 | `comm` | string | Thread name (max 16 chars), e.g. `"curl"`, `"HTTP Client"` |
 | `pid` | int32 | Process ID (tgid) |
 | `tid` | int32 | Thread ID |
 | `uid` | uint32 | User ID |
+| `transport_handle` | string | Opaque hexadecimal TLS connection/session handle. `"0x0"` means unavailable; consumers must not dereference it |
+| `process_start_ns` | uint64 | Process-instance discriminator from the thread-group leader. `0` means unavailable |
+| `tls_library` | string | `"openssl"`, `"gnutls"`, `"nss"`, `"rustls"`, `"boringssl"`, or `"unknown"` |
+| `ringbuf_reserve_failures` | uint64 | Cumulative count of failed ring-buffer reservations for this tracer run |
+| `connection_closed` | bool | `true` only for a `CLOSE` lifecycle record |
 | `len` | int32 | Total bytes returned by SSL_read/SSL_write |
 | `buf_size` | uint32 | Actual bytes copied into the event buffer (may be < `len`) |
 | `latency_ms` | float | Time between entry and exit of SSL_read/SSL_write, in milliseconds |
@@ -398,6 +405,34 @@ Each SSL event is a single JSON line with the following schema:
 | `data` | string\|null | Decrypted plaintext content (JSON-escaped), or `null` if no data |
 | `truncated` | bool | `true` if `buf_size < len` (data exceeded the configured event buffer) |
 | `bytes_lost` | int | Only present when `truncated` is `true`: `len - buf_size` |
+
+`READ/RECV`, `WRITE/SEND`, `HANDSHAKE`, and `CLOSE` records contain the full
+schema above. A `CLOSE` record identifies the released TLS handle and has no
+payload. Lifecycle hooks are best effort because not every target exports a
+supported close/free symbol.
+
+`ringbuf_reserve_failures` is separate from payload truncation. Truncation means
+one event was captured partially; a reservation failure means no payload event
+could be created at all. Successful events carry the latest cumulative failure
+count. On graceful `SIGINT` or `SIGTERM` shutdown, `sslsniff` reads the counter
+directly and emits a final minimal record if failures occurred after the last
+successful output:
+
+```json
+{
+  "function": "CAPTURE_LOSS",
+  "timestamp_ns": 242692599000000,
+  "capture_seq": 42,
+  "comm": "sslsniff",
+  "pid": 959023,
+  "ringbuf_reserve_failures": 7
+}
+```
+
+Fields not shown above do not apply to `CAPTURE_LOSS` and are omitted. The
+record reports a tracer-wide cumulative total, not a TLS-connection-specific
+loss count. Abrupt termination such as `SIGKILL`, a host crash, or loss of
+userspace execution cannot run this final reporting path.
 
 **SSL Read/Write Events:**
 ```json
@@ -469,10 +504,59 @@ Each SSL event is a single JSON line with the following schema:
 }
 ```
 
+**TLS connection close event** (when a supported lifecycle symbol is available):
+
+```json
+{
+  "function": "CLOSE",
+  "timestamp_ns": 242692598000000,
+  "capture_seq": 41,
+  "comm": "HTTP Client",
+  "pid": 959023,
+  "tid": 959035,
+  "uid": 1000,
+  "transport_handle": "0xffff1234",
+  "process_start_ns": 242690000000000,
+  "tls_library": "openssl",
+  "ringbuf_reserve_failures": 0,
+  "connection_closed": true,
+  "len": 0,
+  "buf_size": 0,
+  "latency_ms": 0,
+  "is_handshake": false,
+  "data": null,
+  "truncated": false
+}
+```
+
 **Notes:**
 - `comm` is the **thread name** from `bpf_get_current_comm()`, not the process name. For example, Claude Code's SSL traffic shows `"HTTP Client"`, not `"claude"`.
 - `data` contains the decrypted plaintext. Control characters are JSON-escaped (`\n`, `\r`, `\t`, `\uXXXX`). Valid UTF-8 sequences are passed through.
 - `len` is what SSL_read/SSL_write returned. `buf_size` is what was actually copied (capped at `MAX_BUF_SIZE`).
+
+#### Capture metadata on derived HTTP/SSE events
+
+When the analysis pipeline replaces raw SSL fragments with an HTTP or SSE
+event, it keeps a flat provenance summary instead of copying metadata from only
+the last fragment:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transport_handle`, `process_start_ns`, `tls_library` | nullable | Retained only when the contributing fragments have a consistent known identity |
+| `capture_seq_start`, `capture_seq_end` | uint64\|null | Inclusive range of contributing raw output sequence numbers |
+| `capture_fragment_count` | uint64 | Number of contributing raw TLS fragments |
+| `capture_original_len`, `capture_captured_len` | uint64\|null | Sums of raw `len` and `buf_size`; null when the inputs are incomplete or overflow |
+| `capture_truncated` | bool\|null | `true` if any fragment was truncated, `false` if none were, null when unknown |
+| `capture_bytes_lost` | uint64\|null | Sum of per-fragment truncation loss; this does not include failed ring-buffer reservations |
+| `ringbuf_reserve_failures_start`, `ringbuf_reserve_failures_end`, `ringbuf_reserve_failures_delta` | uint64\|null | First/last cumulative loss snapshots and their saturating difference |
+| `capture_tids` | array of uint64 | Sorted contributing TIDs, capped at 64 entries |
+| `capture_tid_count` | uint64 | Reported number of distinct contributing TIDs |
+| `capture_tids_truncated` | bool | Whether `capture_tids` omits additional TIDs |
+| `capture_identity_consistent` | bool | `false` when fragments disagree on connection/process/library identity; identity fields are then null |
+| `capture_metadata_complete` | bool | `false` when legacy or incomplete inputs prevent a complete summary |
+
+These fields are additive. Consumers reading older events must accept their
+absence; consumers reading new events must accept null summary values.
 
 ### Common Usage Patterns
 

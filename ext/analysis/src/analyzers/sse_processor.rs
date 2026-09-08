@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use super::capture_metadata::CaptureMetadataAccumulator;
 use super::{Analyzer, AnalyzerError};
 use crate::event::Event;
 use crate::runners::EventStream;
@@ -27,6 +28,7 @@ impl Default for SSEProcessor {
 }
 
 struct SSEAccumulator {
+    capture_metadata: CaptureMetadataAccumulator,
     message_id: Option<String>,
     accumulated_text: String,
     accumulated_json: String,
@@ -706,6 +708,7 @@ impl SSEProcessor {
         let total_size = json_content.len() + text_content.len();
 
         SSEProcessorEvent {
+            capture_metadata: accumulator.capture_metadata.finish(),
             connection_id,
             message_id: accumulator.message_id.clone(),
             start_time: accumulator.start_time,
@@ -936,6 +939,7 @@ impl Analyzer for SSEProcessor {
                 let accumulator = buffers_lock
                     .entry(final_connection_id.clone())
                     .or_insert_with(|| SSEAccumulator {
+                        capture_metadata: CaptureMetadataAccumulator::default(),
                         message_id: None,
                         accumulated_text: String::new(),
                         accumulated_json: String::new(),
@@ -951,6 +955,7 @@ impl Analyzer for SSEProcessor {
 
                 accumulator.last_update = event.timestamp;
                 accumulator.end_time = event.timestamp;
+                accumulator.capture_metadata.observe_event(&event);
 
                 Self::accumulate_content(accumulator, &sse_events);
 
