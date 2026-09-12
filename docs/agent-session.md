@@ -31,7 +31,7 @@ AgentSight maps those fields to OTLP only at export time and leaves
 
 AgentSight's release workflow publishes `agent-session` before publishing
 `agentsight`. The workflow finds the next available `agent-session` patch
-version on crates.io, updates `agent-session/Cargo.toml`, updates the collector
+version on crates.io, updates `ext/session/Cargo.toml`, updates the collector
 dependency, regenerates `collector/Cargo.lock`, and commits that release
 snapshot before packaging.
 

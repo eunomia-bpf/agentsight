@@ -38,7 +38,7 @@ agentsight top
 ```
 
 <div align="center">
-  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/ext/vis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
   <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across the ACTplane repository</em></p>
 </div>
 
@@ -97,6 +97,16 @@ view, and sinks as the `agentsight` binary. The CLI is published separately as
 the `agentsight` package and is the library's primary consumer.
 
 ### Installation
+
+#### Homebrew on Linux
+
+```bash
+brew tap eunomia-bpf/tap
+brew install eunomia-bpf/tap/agentsight
+agentsight --version
+```
+
+The current Homebrew formula supports Linux x86-64.
 
 #### Cargo or Release Binary
 
@@ -165,7 +175,7 @@ Use `agentpprof` when you want a no-sudo pprof/folded-stack/SVG summary of
 local Codex or Claude session history:
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- \
+cargo run --manifest-path ext/pprof/Cargo.toml -- \
   --project-root . \
   --view tokens \
   -o agent.pb.gz
@@ -182,7 +192,7 @@ prompt tag, model, and token kind.
   <p><em>Offline token profile generated from real local bpf-benchmark coding-agent sessions</em></p>
 </div>
 
-See [agentpprof/README.md](agentpprof/README.md) for CLI details and the
+See [ext/pprof/README.md](ext/pprof/README.md) for CLI details and the
 [agentpprof profiling guide](docs/agentpprof.md#example-flamegraphs) for
 flamegraph examples, rendering, view selection, and deterministic tagging rules.
 

@@ -14,6 +14,7 @@ MOCK_PORT="${AGENTSIGHT_AGENT_CANARY_PORT:-18443}"
 PROMPT="${AGENTSIGHT_AGENT_CANARY_PROMPT:-agentsight mock prompt collect this exact text}"
 REQUIRE_EBPF="${AGENTSIGHT_AGENT_CANARY_REQUIRE_EBPF:-1}"
 BUILD_AGENTSIGHT="${AGENTSIGHT_AGENT_CANARY_BUILD:-1}"
+AGENT_TIMEOUT="${AGENTSIGHT_AGENT_CANARY_AGENT_TIMEOUT:-60}"
 
 MOCK_LOG="$WORK_DIR/mock-llm-requests.jsonl"
 SERVER_STDOUT="$WORK_DIR/mock-llm-server.out"
@@ -374,7 +375,8 @@ record_real_agent() {
             OPENCODE_CONFIG_DIR="$opencode_config" \
             OPENCODE_DISABLE_PROJECT_CONFIG=1 \
             OPENCODE_DISABLE_MODELS_FETCH=1 \
-            "$AGENTSIGHT_BIN" record --no-server --db "$db" -- "$@"
+            timeout --foreground --signal=INT "${AGENT_TIMEOUT}s" \
+            "$AGENTSIGHT_BIN" record --no-server --db "$db" -- "$@" < /dev/null
     ) > "$record_log" 2>&1; then
         sed -n '1,240p' "$record_log" >&2 || true
         return 1
@@ -442,10 +444,21 @@ run_real_agent_mock_canary() {
         failures+=("claude")
     fi
 
-    if ! record_real_agent opencode \
-        "$OPENCODE_BIN" run --pure --model agentsight-mock/gpt-agentsight-mock \
-        --format json "$PROMPT"; then
-        failures+=("opencode")
+    local opencode_command=(
+        "$OPENCODE_BIN" run --pure --model agentsight-mock/gpt-agentsight-mock
+        --format json "$PROMPT"
+    )
+    if ! record_real_agent opencode "${opencode_command[@]}"; then
+        # OpenCode's mock invocation is a single-request, roughly three-second
+        # process. An occasional scheduler race can let it exit before the
+        # BoringSSL offset probe emits its first event even though the mock
+        # server received the exact request. Retry once so this canary still
+        # fails persistent binary-signature regressions without blocking a
+        # release on one short-process sampling miss.
+        echo "Retrying OpenCode capture after a short-process sampling miss" >&2
+        if ! record_real_agent opencode "${opencode_command[@]}"; then
+            failures+=("opencode")
+        fi
     fi
 
     if ((${#failures[@]} > 0)); then
@@ -454,6 +467,9 @@ run_real_agent_mock_canary() {
 }
 
 main() {
+    [[ "$AGENT_TIMEOUT" =~ ^[1-9][0-9]*$ ]] \
+        || die "AGENTSIGHT_AGENT_CANARY_AGENT_TIMEOUT must be a positive integer"
+    have timeout || die "timeout is required for the real agent canary"
     mkdir -p "$WORK_DIR"
     build_agentsight
     install_latest_agent_clis

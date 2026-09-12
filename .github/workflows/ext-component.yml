@@ -1,0 +1,33 @@
+name: Component extensions
+
+on:
+  pull_request:
+    branches: ["master", "main"]
+  push:
+    branches: ["master", "main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  session-component:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-wasip2
+
+      - name: Build session extension as a Component
+        run: cargo build --manifest-path ext/session/Cargo.toml --target wasm32-wasip2
+
+      - name: Test bounded extension runtime
+        run: cargo test --manifest-path ext/runtime/Cargo.toml
+
+      - name: Execute session Component through Wasmtime
+        run: |
+          cargo run --manifest-path ext/runtime/Cargo.toml --example session_smoke -- \
+            "$PWD/ext/session/target/wasm32-wasip2/debug/agent_session.wasm"

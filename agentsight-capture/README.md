@@ -1,17 +1,17 @@
-# agentsight-capture
+# agentsight-capture-core
 
-`agentsight-capture` is the reusable collection and analysis library behind the
+`agentsight-capture-core` is the native collection substrate behind the
 [`agentsight`](https://crates.io/crates/agentsight) command-line tool. It
-provides the embedded eBPF probe runners, agent-native and `/proc` sources,
-HTTP/SSE analyzers, normalized event and snapshot models, and SQLite and
-OpenTelemetry sinks.
+provides embedded eBPF probe runners, agent-native and `/proc` sources, and the
+normalized event stream boundary. Product analysis, views, and sinks live in
+`agentsight-analysis`.
 
 The eBPF runners are Linux-only at runtime and require root or suitable BPF
 capabilities. AgentSight keeps the probes in isolated child processes; linking
 this crate does not link libbpf into the caller.
 
 ```rust,no_run
-use agentsight_capture::{
+use agentsight_capture_core::{
     BinaryExtractor,
     runners::{AgentRunner, BinaryRunner, Runner},
 };

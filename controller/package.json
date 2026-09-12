@@ -6,7 +6,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test": "tsx --test src/*.test.ts",
-    "deploy": "wrangler d1 migrations apply DB --remote --config ../wrangler.jsonc && cd .. && wrangler deploy --config wrangler.jsonc",
+    "deploy": "cd .. && wrangler deploy --config wrangler.jsonc",
+    "migrate:remote": "wrangler d1 migrations apply DB --remote --config ../wrangler.jsonc",
     "dev": "cd .. && wrangler dev --config wrangler.jsonc"
   },
   "devDependencies": {

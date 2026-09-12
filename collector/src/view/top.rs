@@ -202,6 +202,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: json!({}),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         });
 
         let sections = top_sections(&snapshot, 10, "network");

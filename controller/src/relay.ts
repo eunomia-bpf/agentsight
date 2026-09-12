@@ -3,8 +3,13 @@
 
 const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 const RELAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
-const RELAY_TIMEOUT_MS = 12_000;
-const MAX_BROWSER_BODY_BYTES = 96 * 1024;
+const NODE_VERSION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/;
+export const RELAY_TIMEOUT_MS = 25_000;
+export const MAX_PENDING_RELAY_REQUESTS = 64;
+// SessionMessageRequest permits 65,536 decoded bytes. JSON escaping can expand
+// control bytes to six source bytes, so relay the full public Node contract.
+const MAX_BROWSER_BODY_BYTES = 512 * 1024;
+const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
 
 export interface RelayEnv {
   DB: D1Database;
@@ -51,72 +56,32 @@ export function relayNodeSocketId(pathname: string): string | null {
 
 export function browserRelayRoute(request: Request): BrowserRelayRoute | null {
   const url = new URL(request.url);
-  const status = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/status$/);
-  if (status && request.method === 'GET') {
-    const nodeId = decodeNodeId(status[1]);
-    return nodeId ? { nodeId, method: 'GET', nodePath: null, statusOnly: true } : null;
-  }
+  const match = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay(?:\/(.*))?$/);
+  if (!match) return null;
+  const nodeId = decodeNodeId(match[1]);
+  if (!nodeId) return null;
 
-  const snapshot = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/snapshot$/);
-  if (snapshot && request.method === 'GET') {
-    const nodeId = decodeNodeId(snapshot[1]);
-    if (!nodeId) return null;
-    const auditLimit = url.searchParams.get('audit_limit');
-    const query = auditLimit && /^\d{1,6}$/.test(auditLimit)
-      ? `?audit_limit=${encodeURIComponent(auditLimit)}`
-      : '';
-    return {
-      nodeId,
-      method: 'GET',
-      nodePath: `/api/v1/snapshot${query}`,
-      statusOnly: false,
-    };
+  const suffix = match[2] || '';
+  if (suffix === 'status' && request.method === 'GET' && !url.search) {
+    return { nodeId, method: 'GET', nodePath: null, statusOnly: true };
   }
-
-  const overview = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/overview$/);
-  if (overview && request.method === 'GET') {
-    const nodeId = decodeNodeId(overview[1]);
-    return nodeId ? {
-      nodeId,
-      method: 'GET',
-      nodePath: '/api/v1/overview',
-      statusOnly: false,
-    } : null;
+  if ((request.method !== 'GET' && request.method !== 'POST') || !validRelaySuffix(suffix, url.search)) {
+    return null;
   }
-
-  const message = url.pathname.match(
-    /^\/v1\/nodes\/([^/]+)\/relay\/sessions\/([^/]+)\/messages$/,
-  );
-  if (message && request.method === 'POST') {
-    const nodeId = decodeNodeId(message[1]);
-    const sessionId = decodeSessionId(message[2]);
-    if (!nodeId || !sessionId) return null;
-    return {
-      nodeId,
-      method: 'POST',
-      nodePath: `/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`,
-      statusOnly: false,
-    };
-  }
-
-  const session = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/sessions\/([^/]+)$/);
-  if (session && request.method === 'GET') {
-    const nodeId = decodeNodeId(session[1]);
-    const sessionId = decodeSessionId(session[2]);
-    if (!nodeId || !sessionId) return null;
-    return {
-      nodeId,
-      method: 'GET',
-      nodePath: `/api/v1/sessions/${encodeURIComponent(sessionId)}`,
-      statusOnly: false,
-    };
-  }
-
-  return null;
+  return {
+    nodeId,
+    method: request.method,
+    nodePath: `/api/v1/${suffix}${url.search}`,
+    statusOnly: false,
+  };
 }
 
 export function validRelayToken(value: string): boolean {
   return RELAY_TOKEN_PATTERN.test(value);
+}
+
+export function validRelayNodeVersion(value: string): boolean {
+  return NODE_VERSION_PATTERN.test(value);
 }
 
 function relayStub(env: RelayEnv, nodeId: string): DurableObjectStub {
@@ -133,6 +98,10 @@ export async function connectNodeRelay(
   }
   const token = bearerToken(request);
   if (!token || !validRelayToken(token)) return json({ error: 'node_auth_required' }, 401);
+  const reportedVersion = request.headers.get('X-AgentSight-Node-Version');
+  if (reportedVersion !== null && !validRelayNodeVersion(reportedVersion)) {
+    return json({ error: 'invalid_node_version' }, 400);
+  }
 
   const row = await env.DB.prepare(
     'SELECT relay_token_hash FROM nodes WHERE id = ?1',
@@ -142,8 +111,9 @@ export async function connectNodeRelay(
   }
 
   await env.DB.prepare(
-    `UPDATE nodes SET last_seen_at = ?1, connection_mode = 'relay' WHERE id = ?2`,
-  ).bind(Math.floor(Date.now() / 1000), nodeId).run();
+    `UPDATE nodes SET last_seen_at = ?1, connection_mode = 'relay',
+       version = COALESCE(?3, version) WHERE id = ?2`,
+  ).bind(Math.floor(Date.now() / 1000), nodeId, reportedVersion).run();
 
   return relayStub(env, nodeId).fetch(request);
 }
@@ -264,6 +234,11 @@ export class NodeRelay {
       || (input.body !== undefined && typeof input.body !== 'string')) {
       return json({ error: 'invalid_relay_request' }, 400);
     }
+    // Durable Object requests can interleave at await points. Reserve the slot only
+    // after parsing, with no await between this check and pending.set below.
+    if (this.pending.size >= MAX_PENDING_RELAY_REQUESTS) {
+      return json({ error: 'relay_busy' }, 429);
+    }
 
     const id = crypto.randomUUID();
     const envelope: RelayRequestEnvelope = {
@@ -300,14 +275,10 @@ function decodeNodeId(value: string): string | null {
   }
 }
 
-function decodeSessionId(value: string): string | null {
-  try {
-    const decoded = decodeURIComponent(value);
-    if (!decoded || decoded.length > 256 || decoded.includes('/') || decoded.includes('\\')) return null;
-    return decoded;
-  } catch {
-    return null;
-  }
+function validRelaySuffix(suffix: string, search: string): boolean {
+  if (!suffix || suffix.length + search.length > MAX_RELAY_SUFFIX_BYTES) return false;
+  if (suffix.startsWith('/') || suffix.includes('\\')) return false;
+  return !suffix.split('/').some((segment) => segment === '' || segment === '.' || segment === '..');
 }
 
 function bearerToken(request: Request): string | null {
@@ -317,11 +288,27 @@ function bearerToken(request: Request): string | null {
 async function boundedBody(request: Request): Promise<string | Response> {
   const declared = Number(request.headers.get('Content-Length') || '0');
   if (declared > MAX_BROWSER_BODY_BYTES) return json({ error: 'request_too_large' }, 413);
-  const body = await request.text();
-  if (new TextEncoder().encode(body).byteLength > MAX_BROWSER_BODY_BYTES) {
-    return json({ error: 'request_too_large' }, 413);
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let received = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > MAX_BROWSER_BODY_BYTES) {
+        await reader.cancel('request too large');
+        return json({ error: 'request_too_large' }, 413);
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join('');
+  } catch {
+    return json({ error: 'invalid_request_body' }, 400);
   }
-  return body;
 }
 
 export async function relayTokenHash(value: string): Promise<string> {
