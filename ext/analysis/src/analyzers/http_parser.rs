@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use flate2::{Decompress, FlushDecompress};
 use futures::{stream, stream::StreamExt};
 use hpack::Decoder as HpackDecoder;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 const MAX_HTTP1_PENDING_MESSAGES: usize = 64;
 const MAX_HTTP1_HEADER_BYTES: usize = 64 * 1024;
@@ -36,6 +36,9 @@ enum HTTP2Direction {
 #[derive(Default)]
 struct HTTP1State {
     pending: HashMap<(u32, u64, HTTP2Direction), PendingHTTP1Message>,
+    /// Insertion-order log so eviction is deterministic FIFO. Removed keys are
+    /// skipped lazily when they surface.
+    order: VecDeque<(u32, u64, HTTP2Direction)>,
 }
 
 struct PendingHTTP1Message {
@@ -389,7 +392,7 @@ impl HTTPParser {
         // current SSL write is only a prefix, retain a bounded pending copy while also
         // passing the raw fragment through unchanged.
         if Self::is_http_data(data_str)
-            && let Some(parsed_message) = Self::parse_http_message(data_str)
+            && let Some(mut parsed_message) = Self::parse_http_message(data_str)
         {
             if !ssl_data
                 .get("truncated")
@@ -400,25 +403,50 @@ impl HTTPParser {
                 && let Some(direction) = direction
             {
                 let key = (event.pid, tid, direction);
-                http1.pending.insert(
+                if http1.pending.insert(
                     key,
                     PendingHTTP1Message {
                         bytes: data_bytes,
                         expected_len,
                         original_event: event.clone(),
                     },
-                );
-                evict_http1_over_capacity(&mut http1.pending);
+                )
+                .is_none()
+                {
+                    http1.order.push_back(key);
+                }
+                evict_http1_over_capacity(&mut http1.pending, &mut http1.order);
                 return vec![event];
             }
 
+            let expected_len = http1_expected_len(&parsed_message, &data_bytes);
+
+            // A declared body larger than the retained cap cannot be presented as a
+            // complete message: drop the partial body so callers never mistake capped
+            // bytes for the full payload. The raw SSL event remains the evidence.
+            let declared_over_cap = parsed_message
+                .headers
+                .get("content-length")
+                .and_then(|v| v.parse::<usize>().ok())
+                .is_some_and(|len| len > MAX_HTTP_BODY_BYTES);
+            if declared_over_cap {
+                parsed_message.body = None;
+            }
+
             websocket.observe_handshake(&event, &parsed_message);
-            return vec![Self::create_http_event(
+            let mut events = vec![Self::create_http_event(
                 tid,
                 parsed_message,
                 &event,
                 include_raw_data,
             )];
+            // Without a connection identifier the bytes after a complete HTTP/1
+            // message inside one SSL write cannot be attributed to a specific
+            // connection, so keep the raw event rather than dropping pipelined data.
+            if expected_len.is_some_and(|expected| expected < data_bytes.len()) {
+                events.push(event);
+            }
+            return events;
         }
 
         if let Some(events) = websocket.handle_event(&event, &data_bytes, include_raw_data) {
@@ -456,14 +484,24 @@ fn http1_expected_len(message: &HTTPMessage, bytes: &[u8]) -> Option<usize> {
     header_end.checked_add(content_length)
 }
 
+/// Evict the oldest pending HTTP/1 messages in deterministic FIFO order once the
+/// map exceeds its bound. Iteration order of `HashMap` keys is not stable, so a
+/// separate insertion-order log is the source of truth for eviction.
 fn evict_http1_over_capacity(
     map: &mut HashMap<(u32, u64, HTTP2Direction), PendingHTTP1Message>,
+    order: &mut VecDeque<(u32, u64, HTTP2Direction)>,
 ) {
     while map.len() > MAX_HTTP1_PENDING_MESSAGES {
-        let Some(key) = map.keys().next().copied() else {
+        let Some(key) = order.pop_front() else {
             break;
         };
+        // Keys removed by completion or restart may still linger in the log.
         map.remove(&key);
+    }
+    // Drop any log entries whose keys are no longer pending so the log cannot
+    // grow without bound across many completed messages.
+    while order.front().is_some_and(|key| !map.contains_key(key)) {
+        order.pop_front();
     }
 }
 
@@ -1337,6 +1375,118 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert_eq!(calls[0].session_id.as_deref(), Some("sess-h2"));
         assert_eq!(calls[0].call_kind.as_deref(), Some("chat"));
         assert_eq!(calls[0].finish_reason.as_deref(), Some("stop"));
+    }
+
+    #[tokio::test]
+    async fn drops_body_of_over_limit_http1_message() {
+        // A body larger than the retained cap must not be surfaced as a complete
+        // payload: the capped bytes are discarded and the declared length is kept so
+        // consumers can still see the message was over-limit.
+        let body = vec![b'x'; MAX_HTTP_BODY_BYTES + 16];
+        let mut request = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        )
+        .into_bytes();
+        request.extend_from_slice(&body[..1024]);
+
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", request)]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].source, "http_parser");
+        assert_eq!(
+            output[0].data["content_length"].as_u64(),
+            Some(body.len() as u64),
+            "the declared length must remain visible"
+        );
+        assert!(
+            output[0].data["body"].is_null(),
+            "a capped partial body must not be presented as the message body"
+        );
+        assert_eq!(parser.http1.pending.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn does_not_buffer_head_or_304_responses() {
+        for head in [
+            "HEAD /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\n\r\n",
+            "HTTP/1.1 304 Not Modified\r\nHost: api.openai.com\r\n\r\n",
+        ] {
+            let input: EventStream =
+                Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", head.as_bytes().to_vec())]));
+            let mut parser = HTTPParser::new();
+            let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+            assert_eq!(
+                parser.http1.pending.len(),
+                0,
+                "no-body message must not remain pending: {head:?}"
+            );
+            assert_eq!(output.len(), 1, "no-body message must still emit one event");
+        }
+    }
+
+    #[tokio::test]
+    async fn retains_pipelined_bytes_after_a_completed_message() {
+        // Two pipelined requests in one write: the first must be parsed into an HTTP
+        // event, and the trailing bytes must not be silently dropped.
+        let body = b"{\"input\":\"pipelined\"}";
+        let first = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        let mut combined = first.into_bytes();
+        combined.extend_from_slice(body);
+        combined.extend_from_slice(b"POST /v1/responses HTTP/1.1\r\n");
+
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", combined)]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        let http_events: Vec<&Event> = output.iter().filter(|e| e.source == "http_parser").collect();
+        assert_eq!(http_events.len(), 1);
+        assert_eq!(http_events[0].data["content_length"], body.len());
+        // The unparseable trailing bytes must survive as raw evidence rather than vanish.
+        assert!(
+            output.iter().any(|e| e.source == "ssl"),
+            "pipelined trailing bytes must be preserved as raw SSL evidence"
+        );
+    }
+
+    #[test]
+    fn evicts_oldest_pending_http1_messages_deterministically() {
+        let mut map: HashMap<(u32, u64, HTTP2Direction), PendingHTTP1Message> = HashMap::new();
+        let mut order: VecDeque<(u32, u64, HTTP2Direction)> = VecDeque::new();
+        for index in 0..(MAX_HTTP1_PENDING_MESSAGES as u64 + 5) {
+            let key = (4242, index, HTTP2Direction::Request);
+            map.insert(
+                key,
+                PendingHTTP1Message {
+                    bytes: Vec::new(),
+                    expected_len: 1,
+                    original_event: Event::new_with_timestamp(
+                        index,
+                        "ssl".to_string(),
+                        4242,
+                        "node".to_string(),
+                        json!({}),
+                    ),
+                },
+            );
+            order.push_back(key);
+        }
+        evict_http1_over_capacity(&mut map, &mut order);
+
+        assert_eq!(map.len(), MAX_HTTP1_PENDING_MESSAGES);
+        // The five oldest keys are evicted; the newest keys are retained.
+        for index in 0..5u64 {
+            assert!(!map.contains_key(&(4242, index, HTTP2Direction::Request)));
+        }
+        for index in 5..(MAX_HTTP1_PENDING_MESSAGES as u64 + 5) {
+            assert!(map.contains_key(&(4242, index, HTTP2Direction::Request)));
+        }
     }
 
     #[test]
