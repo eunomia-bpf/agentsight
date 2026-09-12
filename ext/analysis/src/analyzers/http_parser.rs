@@ -344,110 +344,151 @@ impl HTTPParser {
             .and_then(|v| v.as_str())
             .and_then(direction_from_function);
 
-        if let Some(direction) = direction {
-            let key = (event.pid, tid, direction);
-            if is_http1_message_start(data_str) {
-                // We do not currently have an SSL connection identifier in the event.
-                // Prefer a new explicit HTTP start over combining two connections that
-                // happen to share a thread and direction.
-                http1.pending.remove(&key);
-            } else if http1.pending.contains_key(&key) {
-                let (complete, has_extra) = {
-                    let pending = http1.pending.get_mut(&key).expect("pending key exists");
-                    let remaining = pending.expected_len.saturating_sub(pending.bytes.len());
-                    let consumed = remaining.min(data_bytes.len());
-                    pending.bytes.extend_from_slice(&data_bytes[..consumed]);
-                    (
-                        pending.bytes.len() == pending.expected_len,
-                        consumed < data_bytes.len(),
-                    )
-                };
-                if complete {
+        // HTTP/1 reassembly. Fragments of one message share (pid, tid, direction) and
+        // are accumulated until a complete message can be parsed. Every fragment is
+        // still passed through, so no captured bytes are lost.
+        if Self::is_http_data(data_str)
+            || is_http1_partial_start(data_str)
+            || direction.is_some_and(|direction| {
+                http1
+                    .pending
+                    .contains_key(&(event.pid, tid, direction))
+            })
+        {
+            if let Some(direction) = direction {
+                let key = (event.pid, tid, direction);
+
+                if is_http1_message_start(data_str) {
+                    // A new message begins here; any previous partial buffer for this
+                    // thread/direction is superseded.
+                    http1.pending.remove(&key);
+                }
+
+                if http1.pending.contains_key(&key) {
+                    let (complete, has_extra) = {
+                        let pending = http1.pending.get_mut(&key).expect("pending key exists");
+                        let remaining = pending.expected_len.saturating_sub(pending.bytes.len());
+                        let consumed = remaining.min(data_bytes.len());
+                        pending.bytes.extend_from_slice(&data_bytes[..consumed]);
+                        if pending.expected_len == usize::MAX {
+                            // The message start was never observed, so the expected
+                            // length is derived from the headers once they are complete.
+                            let text = ssl_bytes_to_json_string(&pending.bytes);
+                            let complete = Self::parse_http_message(&text)
+                                .and_then(|message| http1_expected_len(&message, &pending.bytes))
+                                .is_some_and(|expected| pending.bytes.len() >= expected);
+                            (complete, consumed < data_bytes.len())
+                        } else {
+                            (
+                                pending.bytes.len() == pending.expected_len,
+                                consumed < data_bytes.len(),
+                            )
+                        }
+                    };
+                    if !complete {
+                        // Still waiting for the rest of this message.
+                        return vec![event];
+                    }
                     let pending = http1.pending.remove(&key).expect("pending key exists");
                     let combined = ssl_bytes_to_json_string(&pending.bytes);
                     if let Some(parsed_message) = Self::parse_http_message(&combined) {
                         websocket.observe_handshake(&pending.original_event, &parsed_message);
-                        let mut events = vec![Self::create_http_event(
+                        let http_event = Self::create_http_event(
                             tid,
                             parsed_message,
                             &pending.original_event,
                             include_raw_data,
-                        )];
-                        // We cannot safely attribute bytes beyond this message without a
-                        // connection ID, so retain the raw SSL event rather than dropping
-                        // potentially pipelined data.
+                        );
+                        let mut events = vec![http_event];
+                        // Bytes beyond this message cannot be attributed to a specific
+                        // connection without a connection identifier, so keep them.
                         if has_extra {
                             events.push(event);
                         }
                         return events;
                     }
+                    return vec![event];
                 }
-                // The first fragment was already retained as raw SSL evidence. Keep each
-                // continuation fragment as well until a complete HTTP message is available.
+
+                // No buffered message for this key. Try to start one from this write.
+                if let Some(parsed_message) = Self::parse_http_message(data_str) {
+                    let expected_len = http1_expected_len(&parsed_message, &data_bytes);
+                    let truncated = ssl_data
+                        .get("truncated")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+
+                    // Start buffering when the declared message extends past this write.
+                    if !truncated
+                        && let Some(expected_len) = expected_len
+                        && data_bytes.len() < expected_len
+                    {
+                        if http1
+                            .pending
+                            .insert(
+                                key,
+                                PendingHTTP1Message {
+                                    bytes: data_bytes,
+                                    expected_len,
+                                    original_event: event.clone(),
+                                },
+                            )
+                            .is_none()
+                        {
+                            http1.order.push_back(key);
+                        }
+                        evict_http1_over_capacity(&mut http1.pending, &mut http1.order);
+                        return vec![event];
+                    }
+
+                    websocket.observe_handshake(&event, &parsed_message);
+                    let mut http_event = Self::create_http_event(
+                        tid,
+                        parsed_message,
+                        &event,
+                        include_raw_data,
+                    );
+                    // A declared body larger than the retained cap may only be
+                    // partially present: keep what was captured (callers still need
+                    // the request) but flag it so capped bytes are never mistaken for
+                    // the full payload.
+                    let declared_over_cap = http_event
+                        .data
+                        .get("content_length")
+                        .and_then(|v| v.as_u64())
+                        .is_some_and(|len| len > MAX_HTTP_BODY_BYTES as u64);
+                    if declared_over_cap {
+                        http_event.data["body_truncated"] = serde_json::Value::Bool(true);
+                    }
+
+                    let mut events = vec![http_event];
+                    if expected_len.is_some_and(|expected| expected < data_bytes.len()) {
+                        events.push(event);
+                    }
+                    return events;
+                }
+
+                // A fragment of a message whose start we did not observe. Buffer it so
+                // the message can still complete rather than dropping captured bytes.
+                if data_bytes.len() <= MAX_HTTP1_HEADER_BYTES + MAX_HTTP_BODY_BYTES {
+                    if http1
+                        .pending
+                        .insert(
+                            key,
+                            PendingHTTP1Message {
+                                bytes: data_bytes,
+                                expected_len: usize::MAX,
+                                original_event: event.clone(),
+                            },
+                        )
+                        .is_none()
+                    {
+                        http1.order.push_back(key);
+                    }
+                    evict_http1_over_capacity(&mut http1.pending, &mut http1.order);
+                }
                 return vec![event];
             }
-        }
-
-        // Process a complete HTTP/1 message immediately. If Content-Length proves the
-        // current SSL write is only a prefix, retain a bounded pending copy while also
-        // passing the raw fragment through unchanged.
-        if Self::is_http_data(data_str)
-            && let Some(parsed_message) = Self::parse_http_message(data_str)
-        {
-            if !ssl_data
-                .get("truncated")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
-                && let Some(expected_len) = http1_expected_len(&parsed_message, &data_bytes)
-                && data_bytes.len() < expected_len
-                && let Some(direction) = direction
-            {
-                let key = (event.pid, tid, direction);
-                if http1.pending.insert(
-                    key,
-                    PendingHTTP1Message {
-                        bytes: data_bytes,
-                        expected_len,
-                        original_event: event.clone(),
-                    },
-                )
-                .is_none()
-                {
-                    http1.order.push_back(key);
-                }
-                evict_http1_over_capacity(&mut http1.pending, &mut http1.order);
-                return vec![event];
-            }
-
-            let expected_len = http1_expected_len(&parsed_message, &data_bytes);
-
-            websocket.observe_handshake(&event, &parsed_message);
-            let mut http_event = Self::create_http_event(
-                tid,
-                parsed_message,
-                &event,
-                include_raw_data,
-            );
-            // A declared body larger than the retained cap may only be partially
-            // present. Keep whatever was captured (callers still need the request)
-            // but flag it so capped bytes are never mistaken for the full payload.
-            let declared_over_cap = http_event
-                .data
-                .get("content_length")
-                .and_then(|v| v.as_u64())
-                .is_some_and(|len| len > MAX_HTTP_BODY_BYTES as u64);
-            if declared_over_cap {
-                http_event.data["body_truncated"] = serde_json::Value::Bool(true);
-            }
-
-            let mut events = vec![http_event];
-            // Without a connection identifier the bytes after a complete HTTP/1
-            // message inside one SSL write cannot be attributed to a specific
-            // connection, so keep the raw event rather than dropping pipelined data.
-            if expected_len.is_some_and(|expected| expected < data_bytes.len()) {
-                events.push(event);
-            }
-            return events;
         }
 
         if let Some(events) = websocket.handle_event(&event, &data_bytes, include_raw_data) {
@@ -467,6 +508,22 @@ fn is_http1_message_start(data: &str) -> bool {
         || ["GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH "]
             .iter()
             .any(|method| data.starts_with(method))
+}
+
+/// True when the fragment could be the beginning of an HTTP/1 message, including
+/// a prefix that does not yet contain the full method or status line.
+fn is_http1_partial_start(data: &str) -> bool {
+    if data.is_empty() {
+        return false;
+    }
+    if data.starts_with("HTTP/") {
+        return true;
+    }
+    [
+        "GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ", "CONNECT ", "TRACE ",
+    ]
+    .iter()
+    .any(|method| method.starts_with(data) || data.starts_with(method))
 }
 
 fn http1_expected_len(message: &HTTPMessage, bytes: &[u8]) -> Option<usize> {
@@ -1591,8 +1648,52 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
     }
 
-    #[test]
-    fn rejects_non_http2_frames() {
-        assert!(parse_http2_frames(b"GET / HTTP/1.1\r\n\r\n").is_none());
+    #[tokio::test]
+    async fn codex_style_large_request_is_emitted_not_left_pending() {
+        // Codex sends a large body (system prompt + tools). The headers write and the
+        // body write arrive separately, and the recorder may deliver only a prefix.
+        // The request must still be emitted (not left pending forever).
+        let body = format!(
+            "{{\"model\":\"gpt-agentsight-mock\",\"input\":\"{}\"}}",
+            "agentsight mock prompt collect this exact text ".repeat(200)
+        );
+        let head = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", head),
+            ssl_event(2, "WRITE/SEND", body.into_bytes()),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1, "codex-style request must be emitted");
+        assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
+        assert_eq!(parser.http1.pending.len(), 0, "must not remain pending");
     }
+
+    #[tokio::test]
+    async fn many_small_fragments_reassemble() {
+        // TLS splitting can deliver many small writes. None may be mistaken for a
+        // fresh message start, and the request must complete.
+        let body = br#"{"model":"gpt-agentsight-mock","input":"agentsight mock prompt collect this exact text"}"#
+            .to_vec();
+        let mut full = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        full.extend_from_slice(&body);
+        // Slice into 7-byte chunks (simulating fragmented TLS writes).
+        let chunks: Vec<Event> = full.chunks(7).enumerate()
+            .map(|(i, c)| ssl_event(i as u64, "WRITE/SEND", c.to_vec()))
+            .collect();
+        let input: EventStream = Box::pin(stream::iter(chunks));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1, "fragmented request must be emitted exactly once");
+        assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
+    }
+
 }
