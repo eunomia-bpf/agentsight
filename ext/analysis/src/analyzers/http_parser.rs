@@ -392,7 +392,7 @@ impl HTTPParser {
         // current SSL write is only a prefix, retain a bounded pending copy while also
         // passing the raw fragment through unchanged.
         if Self::is_http_data(data_str)
-            && let Some(mut parsed_message) = Self::parse_http_message(data_str)
+            && let Some(parsed_message) = Self::parse_http_message(data_str)
         {
             if !ssl_data
                 .get("truncated")
@@ -421,25 +421,26 @@ impl HTTPParser {
 
             let expected_len = http1_expected_len(&parsed_message, &data_bytes);
 
-            // A declared body larger than the retained cap cannot be presented as a
-            // complete message: drop the partial body so callers never mistake capped
-            // bytes for the full payload. The raw SSL event remains the evidence.
-            let declared_over_cap = parsed_message
-                .headers
-                .get("content-length")
-                .and_then(|v| v.parse::<usize>().ok())
-                .is_some_and(|len| len > MAX_HTTP_BODY_BYTES);
-            if declared_over_cap {
-                parsed_message.body = None;
-            }
-
             websocket.observe_handshake(&event, &parsed_message);
-            let mut events = vec![Self::create_http_event(
+            let mut http_event = Self::create_http_event(
                 tid,
                 parsed_message,
                 &event,
                 include_raw_data,
-            )];
+            );
+            // A declared body larger than the retained cap may only be partially
+            // present. Keep whatever was captured (callers still need the request)
+            // but flag it so capped bytes are never mistaken for the full payload.
+            let declared_over_cap = http_event
+                .data
+                .get("content_length")
+                .and_then(|v| v.as_u64())
+                .is_some_and(|len| len > MAX_HTTP_BODY_BYTES as u64);
+            if declared_over_cap {
+                http_event.data["body_truncated"] = serde_json::Value::Bool(true);
+            }
+
+            let mut events = vec![http_event];
             // Without a connection identifier the bytes after a complete HTTP/1
             // message inside one SSL write cannot be attributed to a specific
             // connection, so keep the raw event rather than dropping pipelined data.
@@ -1378,10 +1379,9 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
     }
 
     #[tokio::test]
-    async fn drops_body_of_over_limit_http1_message() {
-        // A body larger than the retained cap must not be surfaced as a complete
-        // payload: the capped bytes are discarded and the declared length is kept so
-        // consumers can still see the message was over-limit.
+    async fn flags_over_limit_http1_message_while_keeping_captured_body() {
+        // A body larger than the retained cap must not be presented as complete, but
+        // the captured prefix is still needed by downstream request reconstruction.
         let body = vec![b'x'; MAX_HTTP_BODY_BYTES + 16];
         let mut request = format!(
             "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
@@ -1401,9 +1401,10 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
             Some(body.len() as u64),
             "the declared length must remain visible"
         );
-        assert!(
-            output[0].data["body"].is_null(),
-            "a capped partial body must not be presented as the message body"
+        assert_eq!(
+            output[0].data["body_truncated"],
+            serde_json::Value::Bool(true),
+            "an over-limit body must be flagged as truncated"
         );
         assert_eq!(parser.http1.pending.len(), 0);
     }
@@ -1487,6 +1488,107 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         for index in 5..(MAX_HTTP1_PENDING_MESSAGES as u64 + 5) {
             assert!(map.contains_key(&(4242, index, HTTP2Direction::Request)));
         }
+    }
+
+    #[tokio::test]
+    async fn whole_write_request_keeps_body_for_llm_call() {
+        let body = br#"{"model":"gpt-agentsight-mock","input":"agentsight mock prompt collect this exact text"}"#;
+        let mut req = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        req.extend_from_slice(body);
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", req)]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1);
+        assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
+    }
+
+    #[tokio::test]
+    async fn split_across_many_writes_reassembles_for_llm_call() {
+        // Mimic a real client: request line+headers in write 1, body split over 2 more.
+        let body = br#"{"model":"gpt-agentsight-mock","input":"agentsight mock prompt collect this exact text"}"#;
+        let head = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        let b1 = body[..20].to_vec();
+        let b2 = body[20..].to_vec();
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", head),
+            ssl_event(2, "WRITE/SEND", b1),
+            ssl_event(3, "WRITE/SEND", b2),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1, "one parsed HTTP request expected");
+        assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"), "body must contain prompt");
+    }
+
+    #[tokio::test]
+    async fn continuation_containing_post_text_does_not_restart() {
+        // The JSON body contains the literal text "POST " inside a string. A
+        // continuation fragment must NOT be treated as a new message start, or the
+        // buffered request is discarded and the LLM call loses its body.
+        let body = br#"{"model":"gpt","input":"please POST this text to /v1/responses"}"#;
+        let head = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        let b1 = body[..25].to_vec();
+        let b2 = body[25..].to_vec();
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", head),
+            ssl_event(2, "WRITE/SEND", b1),
+            ssl_event(3, "WRITE/SEND", b2),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1);
+        assert!(http[0].data["body"].as_str().unwrap().contains("POST this text"));
+    }
+
+    #[tokio::test]
+    async fn request_with_trailing_bytes_still_emits_parsed_request() {
+        // The real client may include additional bytes after the body (e.g. a
+        // following request or extra whitespace). The parsed request must still be
+        // emitted, and the trailing bytes kept as raw evidence.
+        let body = br#"{"model":"gpt","input":"agentsight mock prompt collect this exact text"}"#;
+        let mut req = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        req.extend_from_slice(body);
+        req.extend_from_slice(b"0\r\n\r\n");
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", req)]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1);
+        assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
+    }
+
+    #[tokio::test]
+    async fn headers_only_then_body_write_emits_request() {
+        // Exactly matching how sslsniff splits: headers write, then the body write.
+        let body = br#"{"model":"gpt","input":"agentsight mock prompt collect this exact text"}"#;
+        let head = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        ).into_bytes();
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", head),
+            ssl_event(2, "WRITE/SEND", body.to_vec()),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let http: Vec<&Event> = output.iter().filter(|e| e.source=="http_parser").collect();
+        assert_eq!(http.len(), 1, "request must be emitted");
+        assert!(http[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
     }
 
     #[test]
