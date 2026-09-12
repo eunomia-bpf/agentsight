@@ -410,7 +410,9 @@ impl HTTPParser {
                     return vec![event];
                 }
 
-                // No buffered message for this key. Try to start one from this write.
+                // No buffered message for this key. Parse this write on its own, exactly
+                // as the non-reassembling path does, so a complete message is never
+                // delayed by buffering.
                 if let Some(parsed_message) = Self::parse_http_message(data_str) {
                     let expected_len = http1_expected_len(&parsed_message, &data_bytes);
                     let truncated = ssl_data
@@ -418,11 +420,13 @@ impl HTTPParser {
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false);
 
-                    // Start buffering when the declared message extends past this write.
-                    if !truncated
-                        && let Some(expected_len) = expected_len
-                        && data_bytes.len() < expected_len
-                    {
+                    // A write that is only a prefix of a larger declared message must be
+                    // buffered instead of emitted as if it were complete. The raw
+                    // fragment still passes through unchanged.
+                    let is_prefix = !truncated
+                        && expected_len.is_some_and(|expected| data_bytes.len() < expected);
+                    if is_prefix {
+                        let expected_len = expected_len.expect("checked above");
                         if http1
                             .pending
                             .insert(
@@ -463,6 +467,8 @@ impl HTTPParser {
 
                     let mut events = vec![http_event];
                     if expected_len.is_some_and(|expected| expected < data_bytes.len()) {
+                        // Bytes beyond this message cannot be attributed to a specific
+                        // connection without a connection identifier, so keep them.
                         events.push(event);
                     }
                     return events;
