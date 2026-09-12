@@ -15,22 +15,30 @@ Generate meaningful flamegraphs from local Codex/Claude Code sessions by iterati
 
 ### 1. Initial Discovery
 
-Run agentpprof without rules to see diagnostics:
+Run agentpprof without rules to see diagnostics. Every successful run prints a
+JSON status record to stdout and writes exactly one `.pb` or `.pb.gz` pprof:
 
 ```bash
 agentpprof \
   --project-root /path/to/project \
   --view tokens \
-  -o initial.json \
-  --format json \
-  --include-previews
+  -o initial.pb.gz
 ```
 
-The output includes:
-- `tagging.total_prompts`: total prompts found
-- `tagging.unmatched_prompts`: prompts without tags
-- `tagging.unmatched_samples`: sample unmatched prompts (up to 20)
+The status record includes:
+- `tagging.prompts.total` / `tagging.prompts.unmatched`
+- `tagging.sessions.total` / `tagging.sessions.unmatched`
+- `tagging.llm_calls.total` / `tagging.llm_calls.unmatched`
+- `tagging.unmatched_samples`: sample unmatched items (up to 30)
 - `tagging.hint`: suggested next step
+
+Inspect the profile with the standard Go pprof viewer:
+
+```bash
+go tool pprof -top initial.pb.gz
+go tool pprof -tags initial.pb.gz
+go tool pprof -http=:0 initial.pb.gz
+```
 
 ### 2. Analyze Unmatched Prompts
 
@@ -51,7 +59,7 @@ agentpprof \
   --tag-rule 'prompt:debug=(?i)fix|bug|error|broken' \
   --tag-rule 'prompt:git=(?i)commit|push|pull|git' \
   --view tokens \
-  -o iter1.folded
+  -o iter1.pb.gz
 ```
 
 Rule syntax: `KIND:TAG=REGEX`
@@ -70,14 +78,12 @@ Rule syntax: `KIND:TAG=REGEX`
 
 ### 4. Check Coverage
 
-Each run shows diagnostics and warnings:
-```
-Warning: 150/1000 prompts unmatched. Add prompt tag rules.
-```
+Each run prints a JSON status record and per-kind distribution analysis to
+stderr. Check coverage from the status JSON:
 
-Check detailed coverage:
 ```bash
-agentpprof --project-root . -o out.json --format json 2>&1 | jq '.tagging'
+agentpprof --project-root . -o out.pb.gz --view tokens > status.json
+jq '.tagging.prompts, .tagging.sessions, .tagging.llm_calls' status.json
 ```
 
 **Definition of "well-tagged":**
@@ -111,12 +117,15 @@ Warnings are shown if metrics are poor:
 
 **Spot-check unmatched samples:**
 ```bash
-jq '.tagging.unmatched_samples | map(select(.kind == "prompt")) | .[0:10]' out.json
+jq '.tagging.unmatched_samples | map(select(.kind == "prompt")) | .[0:10]' status.json
 ```
 
 If unmatched prompts share patterns, add rules. **Continue iterating until ALL categories have < 5% unmatched.** Avoid vague catch-all tags like `misc` — use specific semantic tags that describe the activity.
 
-### 5. Generate Final Flamegraphs
+### 5. Generate Final Profiles
+
+AgentPProf writes one pprof profile per invocation and has no SVG or folded
+output. Generate one profile per view and visualize with existing pprof tools:
 
 ```bash
 for view in tokens files network; do
@@ -124,12 +133,13 @@ for view in tokens files network; do
     --project-root /path/to/project \
     "${TAG_RULES[@]}" \
     --view "$view" \
-    --svg-width 1200 \
-    -o "project-${view}.svg"
+    -o "project-${view}.pb.gz"
+  go tool pprof -top "project-${view}.pb.gz"
 done
 ```
 
-**SVG width**: Use `--svg-width` to adjust flamegraph width (default: 1200px). Narrower widths (800-1000) improve readability for deep flamegraphs; wider (1600-2000) for shallow ones with many tags.
+Open an interactive flamegraph with `go tool pprof -http=:0 <profile>`. The
+viewer is standard Go pprof, not an AgentPProf frontend.
 
 ## Views
 
@@ -181,7 +191,7 @@ agentpprof \
   --project-name my-project \
   "${TAG_RULES[@]}" \
   --view tokens \
-  -o output.svg
+  -o output.pb.gz
 ```
 
 ## What Can You Learn?
@@ -204,4 +214,6 @@ agentpprof \
 
 ## Example Script
 
-See `docs/flamegraph-example/agentsight.sh` for a complete example with AgentSight's own development traces.
+See `docs/flamegraph-example/agentsight.sh` for the tag rules AgentSight's own
+development traces required. It writes one `.pb.gz` profile per view; render
+them with `go tool pprof`.

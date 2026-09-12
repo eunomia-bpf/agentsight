@@ -1,3 +1,9 @@
+> **Status: historical design note (superseded).** The product now writes
+> exactly one pprof `.pb`/`.pb.gz` artifact per invocation and rejects folded,
+> SVG, and JSON output paths. The folded-stack, SVG, and JSON outputs described
+> below are no longer produced by the shipped CLI. See `agentpprof/README.md`
+> for the current contract.
+
 # Semantic Operation Profiling
 
 This note defines the minimal model behind `agentpprof` and the semantic

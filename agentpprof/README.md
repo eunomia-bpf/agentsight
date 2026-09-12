@@ -22,6 +22,45 @@ session time. AgentPProf's product artifact is the pprof profile; visualization,
 search, focus, comparison, and drilldown belong to existing pprof-compatible
 tools rather than a custom AgentPProf frontend.
 
+## Attribution And Input Contract
+
+The profile links intent and system-effect activity through the fields the input
+already records; the CLI does not invent a join:
+
+- session identity comes from the source record; prompt identity is the parse
+  order of the prompts in that session;
+- a tool call carries the recorded `call_id`, and an LLM response is attributed
+  to the prompt its index names;
+- file, network, process, and effect attributes are derived from the tool call's
+  own arguments and command text (`path_groups`, `domains`, `process_chain`,
+  `effect`), not from an independent system-event recording;
+- in the recursive annotation workspace, a tool call without a timestamp stays
+  at prompt level, and otherwise attaches to the nearest LLM call by timestamp;
+- unique session, prompt, call, and event identifiers stay pprof `source_session`,
+  `source_prompt`, `call_id`, and `evidence_id` labels rather than visible frames,
+  so equal semantic prefixes fold across sessions.
+
+AgentSight recordings are not read directly. Convert them into a supported input
+first: a portable `agentsight.agent-session.trace.v1` trace (`--trace-file`),
+Chrome/Perfetto Trace Event JSON (`--standard-trace-file`), or normalized
+operation JSONL (`--operation-file`). Verified cross-layer process/file
+attribution for live capture is an AgentSight-side property, not an `agentpprof`
+guarantee.
+
+Requirements and failure behavior are strict and fail closed:
+
+- operation JSONL requires no field; `value` defaults to 1 and absent fields
+  simply contribute no frame;
+- `--induce-operation-stack` requires exactly one nonempty `session` and `action`
+  per operation, and errors on a missing field, no transitions, or a degenerate
+  score distribution;
+- `--operation-mark-file` requires declared sequence/ID fields, one unique source
+  ID per operation, a mark at the first operation, ordered marks, and a
+  non-empty path whose names all exist in the name pool;
+- `--annotation-file` requires every source root to begin a session-level
+  operation, every prompt to begin a prompt-level operation, and every node to be
+  covered by nested, non-crossing ranges.
+
 ## Install
 
 From this repository, matching the checked artifact smoke:
@@ -88,8 +127,24 @@ workspace/annotation.json
 workspace/stacks.folded
 ```
 
-The backend reads the current trace and writes only `annotation.json`.
-AgentPProf validates and applies that file with one additional CLI argument:
+Create the workspace from local sessions, an explicit `--session-file`, or a
+portable `--trace-file` with `--workspace-out`, then have the backend write only
+`annotation.json`:
+
+```bash
+agentpprof \
+  --workspace-out workspace \
+  --project-root . \
+  --session-file ~/.codex/sessions/.../session.jsonl
+```
+
+`--workspace-out` refuses to overwrite an existing workspace file and cannot be
+combined with pprof output, annotation replay, tagging, mappings, filters, marks,
+induction, stack overrides, or normalized/standard trace inputs. It initializes
+`annotation.json` to an empty object and `stacks.folded` to an empty file.
+
+AgentPProf then validates and applies the backend's `annotation.json` with one
+additional CLI argument:
 
 ```bash
 agentpprof \
@@ -97,6 +152,10 @@ agentpprof \
   --view tokens \
   -o tokens.pb.gz
 ```
+
+Pass `--deterministic-output` with `--annotation-file` to zero the profile
+timestamp and write a byte-stable artifact. The flag is not accepted with
+`--workspace-out`.
 
 Every source root must begin a session-level operation and every prompt must
 begin a prompt-level operation. Optional nested annotations refine either scope
@@ -167,13 +226,16 @@ agentpprof -o network.pb.gz --view network
 agentpprof -o time.pb.gz --view time
 ```
 
-`--view` chooses which operation samples are measured and how they are weighted:
+`--view` chooses which operation samples are measured and how they are weighted.
+`tokens` is the default when `--view` is omitted:
 
 - `operations`: operation count across prompts, LLM calls, tools, or external operation JSONL.
 - `tokens`: token count when reported by the agent log.
 - `files`: file/path effect count.
 - `network`: network/domain effect count.
-- `time`: elapsed session time.
+- `time`: elapsed time to the next recorded event. The built-in view sums the gap
+  to the next timestamped event in the session, floored at one second per event;
+  it is not an independently measured operation duration.
 
 The view is independent from `--stack`. For example, the same operations can be
 weighted by tokens and folded by prompt tags, or weighted by operation count and
@@ -425,6 +487,11 @@ mapping and before stack construction; multiple predicates are ANDed.
 Diagnostic selection belongs in the explicit mapped fields and `--where`
 predicate; visualization and interactive ranking belong to the pprof consumer.
 
+The stack examples below pass explicit `--stack` values that name `session` and
+`prompt` for readability. The built-in default stack is task-first and does not
+include `project`, `agent`, `session`, or `prompt`; those remain pprof evidence
+labels unless a stack explicitly names them.
+
 Token profile:
 
 ```text
@@ -448,8 +515,9 @@ Drop `prompt` from `--stack` when several prompts should fold into one inferred
 task, or add more stack frames when a task should recursively fold into
 subtasks or phases.
 
-The Python pprof exporter reverses semantic stacks when serializing samples
-because pprof stores the leaf frame first.
+An external Python pprof exporter under `docs/visexp/agentpprof-python/` reverses
+semantic stacks when serializing samples because pprof stores the leaf frame
+first. It is archived research material, not an AgentPProf product path.
 
 ## Development
 

@@ -46,7 +46,7 @@ agentpprof \
 ## Views
 
 `--view` selects the measured quantity; `--stack` independently selects its
-semantic hierarchy.
+semantic hierarchy. `tokens` is the default when `--view` is omitted.
 
 | View | Sample weight |
 |---|---|
@@ -54,7 +54,7 @@ semantic hierarchy.
 | `tokens` | reported input, output, cache, or reasoning tokens |
 | `files` | file/path effects |
 | `network` | domain/network effects |
-| `time` | elapsed time inferred from source timestamps |
+| `time` | elapsed time to the next recorded event (gap-summed, floored at 1 s per event), not an independently measured operation duration |
 
 Examples:
 
@@ -113,6 +113,12 @@ its output must still be one `.pb` or `.pb.gz` pprof.
 
 All input adapters normalize records into operations before profiling. They do
 not create additional profiler abstractions or outputs.
+
+AgentSight recordings are not read directly. Convert an AgentSight capture into
+one of the inputs above first. Live cross-layer process/file attribution is an
+AgentSight-side property; within a profile, file, network, process, and effect
+attributes are derived from the tool call's own recorded arguments and command
+text.
 
 ## Differential Profile
 

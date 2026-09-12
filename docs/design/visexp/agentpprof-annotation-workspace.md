@@ -181,7 +181,22 @@ view changes the folded weights and profile, not the semantic annotation.
 
 ## CLI Responsibility
 
-Semantic annotation adds one CLI input only:
+The CLI initializes the workspace from local sessions, an explicit
+`--session-file`, or a portable `--trace-file`:
+
+```bash
+agentpprof \
+  --workspace-out workspace \
+  --project-root . \
+  --session-file ~/.codex/sessions/.../session.jsonl
+```
+
+`--workspace-out` refuses to overwrite an existing workspace file and cannot be
+combined with pprof output, annotation replay, tagging, mappings, filters, marks,
+induction, stack overrides, or normalized/standard trace inputs. It writes
+`annotation.json` as an empty object and `stacks.folded` as an empty file.
+
+Semantic annotation then adds one CLI input:
 
 ```bash
 agentpprof \
@@ -193,6 +208,10 @@ agentpprof \
 The annotation path identifies the workspace. The CLI finds the sibling
 `trace.jsonl`, updates that file's derived `path` fields, and rewrites the
 sibling `stacks.folded`. It then emits the requested standard pprof.
+
+Pass `--deterministic-output` with `--annotation-file` to zero the profile
+timestamp and write a byte-stable artifact. The flag is not accepted with
+`--workspace-out`.
 
 The CLI does not provide a model runner, annotation editor, tagger loop,
 backend registry, or custom frontend. It performs five deterministic actions:

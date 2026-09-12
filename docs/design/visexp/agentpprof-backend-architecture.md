@@ -1,3 +1,8 @@
+> **Status: historical design note (superseded).** The product now writes
+> exactly one pprof `.pb`/`.pb.gz` artifact per invocation and rejects folded,
+> SVG, and JSON output paths. The pprof/SVG/JSON pipeline below is no longer the
+> shipped contract. See `agentpprof/README.md` for the current boundary.
+
 # AgentPProf Backend Architecture
 
 This note defines the backend boundary for the minimal weighted operation tree

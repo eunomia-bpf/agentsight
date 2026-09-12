@@ -1,6 +1,6 @@
 #!/bin/bash
-# Generate flamegraphs for agentsight project
-# This script demonstrates the iterative tagging workflow for agentpprof
+# Generate semantic pprof profiles for the agentsight project.
+# This script demonstrates the iterative tagging workflow for agentpprof.
 
 set -e
 
@@ -84,8 +84,10 @@ TAG_RULES=(
   --tag-rule 'llm:usage=(?i)^token report$'
 )
 
-echo "Generating flamegraphs for agentsight..."
+echo "Generating pprof profiles for agentsight..."
 
+# AgentPProf writes exactly one .pb.gz pprof per invocation and rejects SVG and
+# folded output paths. Render flamegraphs with the standard Go pprof viewer.
 for view in tokens files network time; do
   echo "  $view..."
   "$AGENTPPROF" \
@@ -93,15 +95,9 @@ for view in tokens files network time; do
     --project-name agentsight \
     "${TAG_RULES[@]}" \
     --view "$view" \
-    -o "$OUTPUT_DIR/agentsight-${view}.svg"
-
-  "$AGENTPPROF" \
-    --project-root "$PROJECT_ROOT" \
-    --project-name agentsight \
-    "${TAG_RULES[@]}" \
-    --view "$view" \
-    -o "$OUTPUT_DIR/agentsight-${view}.folded"
+    -o "$OUTPUT_DIR/agentsight-${view}.pb.gz"
 done
 
 echo "Done. Generated:"
-ls -la "$OUTPUT_DIR"/agentsight-*.svg "$OUTPUT_DIR"/agentsight-*.folded 2>/dev/null || true
+ls -la "$OUTPUT_DIR"/agentsight-*.pb.gz 2>/dev/null || true
+echo "Render with: go tool pprof -http=:0 $OUTPUT_DIR/agentsight-tokens.pb.gz"

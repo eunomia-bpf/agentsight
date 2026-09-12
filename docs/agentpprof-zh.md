@@ -39,7 +39,8 @@ agentpprof \
 
 ## Profile 视图
 
-`--view` 选择度量，`--stack` 独立选择语义层级。
+`--view` 选择度量，`--stack` 独立选择语义层级。省略 `--view` 时默认为
+`tokens`。
 
 | View | 宽度含义 |
 |---|---|
@@ -47,7 +48,7 @@ agentpprof \
 | `tokens` | 输入、输出、缓存或推理 token |
 | `files` | 文件或路径 effect |
 | `network` | 域名或网络 effect |
-| `time` | 根据源时间戳推导的经过时间 |
+| `time` | 到下一个已记录事件为止的经过时间（逐事件间隔求和，每个事件至少 1 秒），不是独立测量的 operation 时长 |
 
 ```bash
 agentpprof --view operations -o operations.pb.gz
@@ -100,6 +101,11 @@ agentpprof \
 
 所有适配器先把输入转换成 operation，再进行 profiling；它们不会增加新的
 profiler 抽象或产品输出。
+
+AgentPProf 不直接读取 AgentSight recording；请先把 AgentSight 采集结果转换成
+上述任一输入。实时跨层 process/file 归因是 AgentSight 侧的属性；在 profile
+中，file、network、process 和 effect 属性来自 tool call 自身记录的参数与命令
+文本。
 
 ## 差分 pprof
 
