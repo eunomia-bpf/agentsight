@@ -278,20 +278,34 @@ impl HTTPParser {
             .get("transfer-encoding")
             .map(|v| v.to_lowercase().contains("chunked"))
             .unwrap_or(false);
-        let has_body = parsed_message.body.is_some();
-        let body_hex = parsed_message
-            .body
+
+        // Semantics that imply no message body, per RFC 9110: HEAD responses,
+        // 1xx/204/304 responses, and any response that cannot carry a body must not
+        // be treated as pending and must not report a body.
+        let method_is_head = parsed_message
+            .method
             .as_deref()
-            .map(ssl_json_string_to_bytes)
-            .map(hex::encode);
+            .is_some_and(|m| m.eq_ignore_ascii_case("HEAD"));
+        let status_is_bodyless = parsed_message
+            .status_code
+            .is_some_and(|code| (100..200).contains(&code) || code == 204 || code == 304);
+        let bodyless = method_is_head || status_is_bodyless;
+
+        // A declared body beyond the retained cap is incomplete: it must be flagged
+        // so a capped prefix is never presented as the complete payload.
+        let body_incomplete = content_length.is_some_and(|len| len > MAX_HTTP_BODY_BYTES);
+
+        let body = if bodyless { None } else { parsed_message.body };
+        let has_body = body.is_some();
+        let body_hex = body.as_deref().map(ssl_json_string_to_bytes).map(hex::encode);
 
         // Calculate total size from parsed components
         let total_size = parsed_message.first_line.len() +
             parsed_message.headers.iter().map(|(k, v)| k.len() + v.len() + 4).sum::<usize>() + // +4 for ": \r\n"
-            parsed_message.body.as_ref().map(|b| b.len()).unwrap_or(0) +
+            body.as_ref().map(|b| b.len()).unwrap_or(0) +
             4; // +4 for \r\n\r\n separator
 
-        HTTPEvent {
+        let event = HTTPEvent {
             tid,
             message_type: message_type_str.to_string(),
             first_line: parsed_message.first_line,
@@ -301,7 +315,7 @@ impl HTTPParser {
             status_code: parsed_message.status_code,
             status_text: parsed_message.status_text,
             headers: parsed_message.headers,
-            body: parsed_message.body,
+            body,
             body_hex,
             total_size,
             has_body,
@@ -310,7 +324,19 @@ impl HTTPParser {
             original_source: "ssl".to_string(),
             raw_data: include_raw_data.then_some(parsed_message.raw_data),
         }
-        .to_event(original_event)
+        .to_event(original_event);
+
+        if bodyless || body_incomplete {
+            let mut event = event;
+            if bodyless {
+                event.data["bodyless"] = serde_json::Value::Bool(true);
+            }
+            if body_incomplete {
+                event.data["body_incomplete"] = serde_json::Value::Bool(true);
+            }
+            return event;
+        }
+        event
     }
 
     /// Handle SSL events (HTTP request/response data)
@@ -1288,24 +1314,57 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert!(output[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
         assert!(output[0].data.get("body_truncated").is_none());
     }
+    #[tokio::test]
+    async fn head_and_304_responses_are_marked_bodyless() {
+        for raw in [
+            "HEAD /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\n\r\n",
+            "HTTP/1.1 304 Not Modified\r\nHost: api.openai.com\r\n\r\n",
+            "HTTP/1.1 204 No Content\r\nHost: api.openai.com\r\n\r\n",
+        ] {
+            let input: EventStream =
+                Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw.as_bytes().to_vec())]));
+            let mut parser = HTTPParser::new();
+            let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+            let http: Vec<&Event> = output.iter().filter(|e| e.source == "http_parser").collect();
+            assert_eq!(http.len(), 1, "no-body message must still emit: {raw:?}");
+            assert_eq!(http[0].data["has_body"], serde_json::Value::Bool(false));
+            assert_eq!(http[0].data["bodyless"], serde_json::Value::Bool(true));
+        }
+    }
 
     #[tokio::test]
-    async fn over_limit_declared_body_is_flagged_but_body_is_kept() {
-        let body = vec![b'x'; MAX_HTTP_BODY_BYTES + 16];
-        let mut req = format!(
-            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
-            body.len()
-        ).into_bytes();
-        req.extend_from_slice(&body[..1024]);
-        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", req)]));
+    async fn oversized_declared_body_is_marked_incomplete() {
+        let declared = MAX_HTTP_BODY_BYTES + 4096;
+        let mut raw = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {declared}\r\n\r\n"
+        )
+        .into_bytes();
+        raw.extend_from_slice(&vec![b'x'; 512]);
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw)]));
         let mut parser = HTTPParser::new();
         let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-        assert_eq!(output.len(), 1);
         assert_eq!(output[0].source, "http_parser");
-        assert_eq!(output[0].data["body_truncated"], serde_json::Value::Bool(true));
         assert_eq!(
-            output[0].data["content_length"].as_u64(),
-            Some(body.len() as u64)
+            output[0].data["body_incomplete"],
+            serde_json::Value::Bool(true),
+            "a body beyond the cap must be explicitly marked incomplete"
         );
+    }
+
+    #[tokio::test]
+    async fn ordinary_request_is_not_marked_bodyless_or_incomplete() {
+        let body = br#"{"input":"hello"}"#;
+        let mut raw = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        )
+        .into_bytes();
+        raw.extend_from_slice(body);
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw)]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert!(output[0].data.get("bodyless").is_none());
+        assert!(output[0].data.get("body_incomplete").is_none());
+        assert_eq!(output[0].data["has_body"], serde_json::Value::Bool(true));
     }
 }
