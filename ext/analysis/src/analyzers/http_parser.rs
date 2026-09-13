@@ -327,11 +327,6 @@ impl HTTPParser {
             Some(s) => s,
             None => return vec![event],
         };
-        let data_bytes = ssl_data
-            .get("data_hex")
-            .and_then(|v| v.as_str())
-            .and_then(|v| hex::decode(v).ok())
-            .unwrap_or_else(|| ssl_json_string_to_bytes(data_str));
         let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
         let direction = ssl_data
             .get("function")
@@ -372,6 +367,11 @@ impl HTTPParser {
             return vec![http_event];
         }
 
+        let data_bytes = ssl_data
+            .get("data_hex")
+            .and_then(|v| v.as_str())
+            .and_then(|v| hex::decode(v).ok())
+            .unwrap_or_else(|| ssl_json_string_to_bytes(data_str));
         if let Some(events) = websocket.handle_event(&event, &data_bytes, include_raw_data) {
             return events;
         }
