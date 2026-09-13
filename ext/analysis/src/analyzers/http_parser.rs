@@ -1367,4 +1367,8 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert!(output[0].data.get("body_incomplete").is_none());
         assert_eq!(output[0].data["has_body"], serde_json::Value::Bool(true));
     }
+    #[test]
+    fn rejects_non_http2_frames() {
+        assert!(parse_http2_frames(b"GET / HTTP/1.1\r\n\r\n").is_none());
+    }
 }
