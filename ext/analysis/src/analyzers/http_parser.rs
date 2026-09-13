@@ -9,9 +9,8 @@ use async_trait::async_trait;
 use flate2::{Decompress, FlushDecompress};
 use futures::{stream, stream::StreamExt};
 use hpack::Decoder as HpackDecoder;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
-const MAX_HTTP1_PENDING_MESSAGES: usize = 64;
 const MAX_HTTP2_STREAMS: usize = 1024;
 const MAX_HTTP2_PENDING_HEADERS: usize = 1024;
 const MAX_HTTP_BODY_BYTES: usize = 1024 * 1024;
@@ -21,24 +20,14 @@ const MAX_HTTP2_HEADER_BLOCK_BYTES: usize = 64 * 1024;
 pub struct HTTPParser {
     /// Flag to include raw data in parsed events (default: true)
     include_raw_data: bool,
-    http1: HTTP1State,
     http2: HTTP2State,
     websocket: WebSocketState,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HTTP2Direction {
     Request,
     Response,
-}
-
-#[derive(Default)]
-struct HTTP1State {
-    /// Most recently observed HTTP/1 messages per (pid, tid, direction), retained
-    /// in insertion order so eviction is deterministic FIFO rather than dependent
-    /// on `HashMap` iteration order.
-    pending: HashMap<(u32, u64, HTTP2Direction), ()>,
-    order: VecDeque<(u32, u64, HTTP2Direction)>,
 }
 
 #[derive(Default)]
@@ -126,7 +115,6 @@ impl HTTPParser {
     pub fn new() -> Self {
         HTTPParser {
             include_raw_data: true,
-            http1: HTTP1State::default(),
             http2: HTTP2State::default(),
             websocket: WebSocketState::default(),
         }
@@ -278,34 +266,20 @@ impl HTTPParser {
             .get("transfer-encoding")
             .map(|v| v.to_lowercase().contains("chunked"))
             .unwrap_or(false);
-
-        // Semantics that imply no message body, per RFC 9110: HEAD responses,
-        // 1xx/204/304 responses, and any response that cannot carry a body must not
-        // be treated as pending and must not report a body.
-        let method_is_head = parsed_message
-            .method
+        let has_body = parsed_message.body.is_some();
+        let body_hex = parsed_message
+            .body
             .as_deref()
-            .is_some_and(|m| m.eq_ignore_ascii_case("HEAD"));
-        let status_is_bodyless = parsed_message
-            .status_code
-            .is_some_and(|code| (100..200).contains(&code) || code == 204 || code == 304);
-        let bodyless = method_is_head || status_is_bodyless;
-
-        // A declared body beyond the retained cap is incomplete: it must be flagged
-        // so a capped prefix is never presented as the complete payload.
-        let body_incomplete = content_length.is_some_and(|len| len > MAX_HTTP_BODY_BYTES);
-
-        let body = if bodyless { None } else { parsed_message.body };
-        let has_body = body.is_some();
-        let body_hex = body.as_deref().map(ssl_json_string_to_bytes).map(hex::encode);
+            .map(ssl_json_string_to_bytes)
+            .map(hex::encode);
 
         // Calculate total size from parsed components
         let total_size = parsed_message.first_line.len() +
             parsed_message.headers.iter().map(|(k, v)| k.len() + v.len() + 4).sum::<usize>() + // +4 for ": \r\n"
-            body.as_ref().map(|b| b.len()).unwrap_or(0) +
+            parsed_message.body.as_ref().map(|b| b.len()).unwrap_or(0) +
             4; // +4 for \r\n\r\n separator
 
-        let event = HTTPEvent {
+        HTTPEvent {
             tid,
             message_type: message_type_str.to_string(),
             first_line: parsed_message.first_line,
@@ -315,7 +289,7 @@ impl HTTPParser {
             status_code: parsed_message.status_code,
             status_text: parsed_message.status_text,
             headers: parsed_message.headers,
-            body,
+            body: parsed_message.body,
             body_hex,
             total_size,
             has_body,
@@ -324,24 +298,11 @@ impl HTTPParser {
             original_source: "ssl".to_string(),
             raw_data: include_raw_data.then_some(parsed_message.raw_data),
         }
-        .to_event(original_event);
-
-        if bodyless || body_incomplete {
-            let mut event = event;
-            if bodyless {
-                event.data["bodyless"] = serde_json::Value::Bool(true);
-            }
-            if body_incomplete {
-                event.data["body_incomplete"] = serde_json::Value::Bool(true);
-            }
-            return event;
-        }
-        event
+        .to_event(original_event)
     }
 
     /// Handle SSL events (HTTP request/response data)
     fn handle_ssl_event(
-        http1: &mut HTTP1State,
         http2: &mut HTTP2State,
         websocket: &mut WebSocketState,
         event: Event,
@@ -353,44 +314,19 @@ impl HTTPParser {
             Some(s) => s,
             None => return vec![event],
         };
-        let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
-        let direction = ssl_data
-            .get("function")
-            .and_then(|v| v.as_str())
-            .and_then(direction_from_function);
 
-        // Process a write that is HTTP data and parses as a complete message. This
-        // matches the non-reassembling behavior exactly: one event per parseable
-        // write, so a complete request is never delayed or dropped.
+        // Only process if it's HTTP data AND can be parsed as a complete HTTP message
         if Self::is_http_data(data_str)
             && let Some(parsed_message) = Self::parse_http_message(data_str)
         {
             websocket.observe_handshake(&event, &parsed_message);
-            let mut http_event =
-                Self::create_http_event(tid, parsed_message, &event, include_raw_data);
-            // A declared body larger than the retained cap may only be partially
-            // present: keep what was captured (callers still need the request) but
-            // flag it so capped bytes are never mistaken for the full payload.
-            let declared_over_cap = http_event
-                .data
-                .get("content_length")
-                .and_then(|v| v.as_u64())
-                .is_some_and(|len| len > MAX_HTTP_BODY_BYTES as u64);
-            if declared_over_cap {
-                http_event.data["body_truncated"] = serde_json::Value::Bool(true);
-            }
-
-            // Track bounded per-stream bookkeeping for observability without altering
-            // what is emitted. The raw bytes are retained only to support the
-            // deterministic eviction bound.
-            if let Some(direction) = direction {
-                let key = (event.pid, tid, direction);
-                if http1.pending.insert(key, ()).is_none() {
-                    http1.order.push_back(key);
-                }
-                evict_http1_over_capacity(&mut http1.pending, &mut http1.order);
-            }
-            return vec![http_event];
+            let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
+            return vec![Self::create_http_event(
+                tid,
+                parsed_message,
+                &event,
+                include_raw_data,
+            )];
         }
 
         let data_bytes = ssl_data
@@ -409,31 +345,6 @@ impl HTTPParser {
         vec![event]
     }
 }
-
-
-
-
-/// Evict the oldest pending HTTP/1 messages in deterministic FIFO order once the
-/// map exceeds its bound. Iteration order of `HashMap` keys is not stable, so a
-/// separate insertion-order log is the source of truth for eviction.
-fn evict_http1_over_capacity(
-    map: &mut HashMap<(u32, u64, HTTP2Direction), ()>,
-    order: &mut VecDeque<(u32, u64, HTTP2Direction)>,
-) {
-    while map.len() > MAX_HTTP1_PENDING_MESSAGES {
-        let Some(key) = order.pop_front() else {
-            break;
-        };
-        // Keys removed by completion or restart may still linger in the log.
-        map.remove(&key);
-    }
-    // Drop any log entries whose keys are no longer pending so the log cannot
-    // grow without bound across many completed messages.
-    while order.front().is_some_and(|key| !map.contains_key(key)) {
-        order.pop_front();
-    }
-}
-
 
 impl WebSocketState {
     fn observe_handshake(&mut self, event: &Event, message: &HTTPMessage) {
@@ -968,19 +879,12 @@ fn ssl_json_string_to_bytes(data: &str) -> Vec<u8> {
 impl Analyzer for HTTPParser {
     async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
         let include_raw_data = self.include_raw_data;
-        let mut http1 = std::mem::take(&mut self.http1);
         let mut http2 = std::mem::take(&mut self.http2);
         let mut websocket = std::mem::take(&mut self.websocket);
 
         let processed_stream = stream.flat_map(move |event| {
             let events = if event.source == "ssl" {
-                Self::handle_ssl_event(
-                    &mut http1,
-                    &mut http2,
-                    &mut websocket,
-                    event,
-                    include_raw_data,
-                )
+                Self::handle_ssl_event(&mut http2, &mut websocket, event, include_raw_data)
             } else {
                 vec![event]
             };
@@ -1274,97 +1178,7 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
     }
 
     #[test]
-    fn evicts_oldest_pending_http1_messages_deterministically() {
-        let mut map: HashMap<(u32, u64, HTTP2Direction), ()> = HashMap::new();
-        let mut order: VecDeque<(u32, u64, HTTP2Direction)> = VecDeque::new();
-        for index in 0..(MAX_HTTP1_PENDING_MESSAGES as u64 + 5) {
-            let key = (4242, index, HTTP2Direction::Request);
-            map.insert(key, ());
-            order.push_back(key);
-        }
-        evict_http1_over_capacity(&mut map, &mut order);
-
-        assert_eq!(map.len(), MAX_HTTP1_PENDING_MESSAGES);
-        // The five oldest keys are evicted; the newest keys are retained.
-        for index in 0..5u64 {
-            assert!(!map.contains_key(&(4242, index, HTTP2Direction::Request)));
-        }
-        for index in 5..(MAX_HTTP1_PENDING_MESSAGES as u64 + 5) {
-            assert!(map.contains_key(&(4242, index, HTTP2Direction::Request)));
-        }
-    }
-
-    #[tokio::test]
-    async fn complete_write_emits_one_parsed_request_with_body() {
-        // Master parity: one write containing a whole request yields exactly one
-        // http_parser event carrying the path and the JSON body.
-        let body = br#"{"model":"gpt-agentsight-mock","input":"agentsight mock prompt collect this exact text"}"#;
-        let mut req = format!(
-            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
-            body.len()
-        ).into_bytes();
-        req.extend_from_slice(body);
-        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", req)]));
-        let mut parser = HTTPParser::new();
-        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-        assert_eq!(output.len(), 1, "exactly one event, matching the non-reassembling path");
-        assert_eq!(output[0].source, "http_parser");
-        assert_eq!(output[0].data["path"], "/v1/responses");
-        assert_eq!(output[0].data["message_type"], "request");
-        assert!(output[0].data["body"].as_str().unwrap().contains("agentsight mock prompt"));
-        assert!(output[0].data.get("body_truncated").is_none());
-    }
-    #[tokio::test]
-    async fn head_and_304_responses_are_marked_bodyless() {
-        for raw in [
-            "HEAD /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\n\r\n",
-            "HTTP/1.1 304 Not Modified\r\nHost: api.openai.com\r\n\r\n",
-            "HTTP/1.1 204 No Content\r\nHost: api.openai.com\r\n\r\n",
-        ] {
-            let input: EventStream =
-                Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw.as_bytes().to_vec())]));
-            let mut parser = HTTPParser::new();
-            let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-            let http: Vec<&Event> = output.iter().filter(|e| e.source == "http_parser").collect();
-            assert_eq!(http.len(), 1, "no-body message must still emit: {raw:?}");
-            assert_eq!(http[0].data["has_body"], serde_json::Value::Bool(false));
-            assert_eq!(http[0].data["bodyless"], serde_json::Value::Bool(true));
-        }
-    }
-
-    #[tokio::test]
-    async fn oversized_declared_body_is_marked_incomplete() {
-        let declared = MAX_HTTP_BODY_BYTES + 4096;
-        let mut raw = format!(
-            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {declared}\r\n\r\n"
-        )
-        .into_bytes();
-        raw.extend_from_slice(&vec![b'x'; 512]);
-        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw)]));
-        let mut parser = HTTPParser::new();
-        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-        assert_eq!(output[0].source, "http_parser");
-        assert_eq!(
-            output[0].data["body_incomplete"],
-            serde_json::Value::Bool(true),
-            "a body beyond the cap must be explicitly marked incomplete"
-        );
-    }
-
-    #[tokio::test]
-    async fn ordinary_request_is_not_marked_bodyless_or_incomplete() {
-        let body = br#"{"input":"hello"}"#;
-        let mut raw = format!(
-            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n",
-            body.len()
-        )
-        .into_bytes();
-        raw.extend_from_slice(body);
-        let input: EventStream = Box::pin(stream::iter(vec![ssl_event(1, "WRITE/SEND", raw)]));
-        let mut parser = HTTPParser::new();
-        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-        assert!(output[0].data.get("bodyless").is_none());
-        assert!(output[0].data.get("body_incomplete").is_none());
-        assert_eq!(output[0].data["has_body"], serde_json::Value::Bool(true));
+    fn rejects_non_http2_frames() {
+        assert!(parse_http2_frames(b"GET / HTTP/1.1\r\n\r\n").is_none());
     }
 }
