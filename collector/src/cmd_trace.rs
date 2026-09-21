@@ -627,7 +627,9 @@ pub(crate) fn add_http_analyzers(
     http_filter: &[String],
     disable_auth_removal: bool,
 ) -> BinaryRunner {
-    let mut runner = runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
+    let mut runner = runner.add_analyzer(Box::new(
+        SSEProcessor::new_with_timeout(30000).defer_transport_to_http(),
+    ));
     let parser = if include_raw_data {
         HTTPParser::new()
     } else {
@@ -635,7 +637,9 @@ pub(crate) fn add_http_analyzers(
     };
     runner = runner.add_analyzer(Box::new(parser));
     runner = runner.add_analyzer(Box::new(HTTPDecompressor::new()));
-    runner = runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
+    runner = runner.add_analyzer(Box::new(
+        SSEProcessor::new_with_timeout(30000).defer_transport_to_http(),
+    ));
     if !http_filter.is_empty() {
         runner = runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter.to_vec())));
     }

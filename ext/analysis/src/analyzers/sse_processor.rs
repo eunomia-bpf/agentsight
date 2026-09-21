@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use super::capture_metadata::CaptureMetadataAccumulator;
+use super::connection_registry::has_transport_identity;
 use super::{Analyzer, AnalyzerError};
 use crate::event::Event;
 use crate::runners::EventStream;
@@ -19,6 +20,7 @@ pub struct SSEProcessor {
     sse_buffers: Arc<Mutex<HashMap<String, SSEAccumulator>>>,
     timeout_ms: u64,
     max_buffers: usize,
+    defer_transport_to_http: bool,
 }
 
 impl Default for SSEProcessor {
@@ -29,6 +31,7 @@ impl Default for SSEProcessor {
 
 struct SSEAccumulator {
     capture_metadata: CaptureMetadataAccumulator,
+    template_event: Event,
     message_id: Option<String>,
     accumulated_text: String,
     accumulated_json: String,
@@ -70,6 +73,7 @@ impl SSEProcessor {
             sse_buffers: Arc::new(Mutex::new(HashMap::new())),
             timeout_ms,
             max_buffers: MAX_BUFFERS,
+            defer_transport_to_http: false,
         }
     }
 
@@ -144,8 +148,20 @@ impl SSEProcessor {
         Self::parse_sse_events_from_chunk(sse_data)
     }
 
-    fn sse_payload(event: &Event) -> Option<(&str, bool)> {
+    /// Use in an HTTP analyzer chain; standalone raw SSE mode stays compatible.
+    pub fn defer_transport_to_http(mut self) -> Self {
+        self.defer_transport_to_http = true;
+        self
+    }
+
+    fn sse_payload(event: &Event, defer_transport_to_http: bool) -> Option<(&str, bool)> {
         if event.source == "ssl" {
+            // Exact-identity captures must be reconstructed by HTTPParser first.
+            // Parsing them here would bypass connection/stream correlation and
+            // collapse concurrent responses back onto the legacy pid/tid key.
+            if defer_transport_to_http && has_transport_identity(event) {
+                return None;
+            }
             return event
                 .data
                 .get("data")
@@ -154,7 +170,10 @@ impl SSEProcessor {
         }
 
         if event.source != "http_parser"
-            || event.data.get("message_type").and_then(|v| v.as_str()) != Some("response")
+            || !matches!(
+                event.data.get("message_type").and_then(|v| v.as_str()),
+                Some("response")
+            )
         {
             return None;
         }
@@ -227,6 +246,15 @@ impl SSEProcessor {
     }
 
     fn generate_connection_id(event: &Event, sse_events: &[SSEEvent]) -> String {
+        if let Some(http_exchange_id) = event
+            .data
+            .get("http_exchange_id")
+            .and_then(|value| value.as_str())
+            .filter(|value| !value.is_empty())
+        {
+            return http_exchange_id.to_string();
+        }
+
         let pid = event.data.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
         let tid = event.data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
 
@@ -687,6 +715,7 @@ impl SSEProcessor {
         accumulator: &SSEAccumulator,
         original_event: &Event,
     ) -> Event {
+        let metadata_event = &accumulator.template_event;
         let json_content = Self::merged_json_content(accumulator);
 
         let text_content = accumulator.accumulated_text.clone();
@@ -707,37 +736,97 @@ impl SSEProcessor {
 
         let total_size = json_content.len() + text_content.len();
 
+        let tls_connection_id = metadata_event
+            .data
+            .get("connection_id")
+            .and_then(Value::as_str)
+            .unwrap_or(&connection_id)
+            .to_string();
+        let http_exchange_id = metadata_event
+            .data
+            .get("http_exchange_id")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+
         SSEProcessorEvent {
             capture_metadata: accumulator.capture_metadata.finish(),
-            connection_id,
+            connection_id: tls_connection_id,
+            connection_generation: metadata_event
+                .data
+                .get("connection_generation")
+                .and_then(Value::as_u64)
+                .and_then(|value| u32::try_from(value).ok()),
+            stream_id: metadata_event
+                .data
+                .get("stream_id")
+                .and_then(Value::as_u64)
+                .and_then(|value| u32::try_from(value).ok()),
+            http_exchange_id,
+            response_id: accumulator.message_id.clone(),
+            correlation_method: metadata_event
+                .data
+                .get("correlation_method")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            correlation_status: metadata_event
+                .data
+                .get("correlation_status")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            confidence: metadata_event
+                .data
+                .get("confidence")
+                .and_then(Value::as_f64)
+                .map(|value| value as f32),
+            correlation_version: metadata_event
+                .data
+                .get("correlation_version")
+                .and_then(Value::as_u64)
+                .and_then(|value| u16::try_from(value).ok()),
+            completion_reason: original_event
+                .data
+                .get("completion_reason")
+                .and_then(Value::as_str)
+                .or_else(|| {
+                    metadata_event
+                        .data
+                        .get("completion_reason")
+                        .and_then(Value::as_str)
+                })
+                .map(str::to_string),
+            protocol: metadata_event
+                .data
+                .get("protocol")
+                .and_then(Value::as_str)
+                .map(str::to_string),
             message_id: accumulator.message_id.clone(),
             start_time: accumulator.start_time,
             end_time: accumulator.end_time,
             duration_ns: accumulator.end_time.saturating_sub(accumulator.start_time),
-            original_source: original_event.source.clone(),
-            host: Self::event_host(original_event),
-            method: original_event
+            original_source: metadata_event.source.clone(),
+            host: Self::event_host(metadata_event),
+            method: metadata_event
                 .data
                 .get("method")
                 .and_then(|v| v.as_str())
                 .map(str::to_string),
-            path: original_event
+            path: metadata_event
                 .data
                 .get("path")
                 .and_then(|v| v.as_str())
                 .map(str::to_string),
-            status_code: original_event
+            status_code: metadata_event
                 .data
                 .get("status_code")
                 .and_then(|v| v.as_u64())
                 .map(|v| v as u16),
-            function: original_event
+            function: metadata_event
                 .data
                 .get("function")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown")
                 .to_string(),
-            tid: original_event
+            tid: metadata_event
                 .data
                 .get("tid")
                 .and_then(|v| v.as_u64())
@@ -856,12 +945,15 @@ impl Analyzer for SSEProcessor {
         let sse_buffers = Arc::clone(&self.sse_buffers);
         let timeout_ms = self.timeout_ms;
         let max_buffers = self.max_buffers;
+        let defer_transport_to_http = self.defer_transport_to_http;
 
         let processed_stream = stream.filter_map(move |event| {
             let buffers = Arc::clone(&sse_buffers);
 
             async move {
-                let Some((data_str, allow_json_fragment)) = Self::sse_payload(&event) else {
+                let Some((data_str, allow_json_fragment)) =
+                    Self::sse_payload(&event, defer_transport_to_http)
+                else {
                     return Some(event);
                 };
 
@@ -913,11 +1005,19 @@ impl Analyzer for SSEProcessor {
 
                 let mut final_connection_id = connection_id.clone();
 
-                if let Some(message_id) = Self::extract_message_id(&sse_events) {
+                let has_exact_exchange = event
+                    .data
+                    .get("http_exchange_id")
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| !value.is_empty());
+
+                if !has_exact_exchange
+                    && let Some(message_id) = Self::extract_message_id(&sse_events)
+                {
                     let pid = event.data.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
                     let tid = event.data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
                     final_connection_id = format!("{}:{}:{}", pid, tid, message_id);
-                } else {
+                } else if !has_exact_exchange {
                     let pid = event.data.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
                     let tid = event.data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
                     let conn_prefix = format!("{}:{}:", pid, tid);
@@ -940,6 +1040,7 @@ impl Analyzer for SSEProcessor {
                     .entry(final_connection_id.clone())
                     .or_insert_with(|| SSEAccumulator {
                         capture_metadata: CaptureMetadataAccumulator::default(),
+                        template_event: event.clone(),
                         message_id: None,
                         accumulated_text: String::new(),
                         accumulated_json: String::new(),
@@ -962,7 +1063,10 @@ impl Analyzer for SSEProcessor {
                 let terminal_finish_completes_http_body = !allow_json_fragment
                     && sse_events.iter().any(Self::sse_event_has_terminal_finish);
 
-                if Self::is_sse_complete(accumulator) || terminal_finish_completes_http_body {
+                if Self::is_sse_complete(accumulator)
+                    || terminal_finish_completes_http_body
+                    || (event.source == "http_parser" && event.data["end_stream"] == true)
+                {
                     let result_event = if Self::has_meaningful_content(accumulator) {
                         Some(Self::create_merged_event(
                             final_connection_id.clone(),

@@ -55,6 +55,15 @@ pub struct CanonicalEvent {
     pub provider: Option<String>,
     pub model: Option<String>,
     pub request_id: Option<String>,
+    pub response_id: Option<String>,
+    pub protocol: Option<String>,
+    pub connection_id: Option<String>,
+    pub stream_id: Option<u32>,
+    pub http_exchange_id: Option<String>,
+    pub correlation_method: Option<String>,
+    pub correlation_status: Option<String>,
+    pub correlation_version: Option<u16>,
+    pub completion_reason: Option<String>,
     pub confidence: Option<f32>,
     pub attributes: Value,
 }
@@ -89,6 +98,43 @@ pub fn normalize_event(event: &Event, raw_event_id: String) -> CanonicalEvent {
         })
         .map(String::from);
     let request_id = extract_request_id(data);
+    let response_id = data
+        .get("response_id")
+        .or_else(|| data.get("message_id"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let protocol = data
+        .get("protocol")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let connection_id = data
+        .get("connection_id")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let stream_id = data
+        .get("stream_id")
+        .and_then(Value::as_u64)
+        .map(|value| value as u32);
+    let http_exchange_id = data
+        .get("http_exchange_id")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let correlation_method = data
+        .get("correlation_method")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let correlation_status = data
+        .get("correlation_status")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let correlation_version = data
+        .get("correlation_version")
+        .and_then(Value::as_u64)
+        .map(|value| value as u16);
+    let completion_reason = data
+        .get("completion_reason")
+        .and_then(Value::as_str)
+        .map(str::to_string);
 
     let message_type = data.get("message_type").and_then(|v| v.as_str());
     let provider = host.as_deref().map(provider_from_host);
@@ -195,7 +241,20 @@ pub fn normalize_event(event: &Event, raw_event_id: String) -> CanonicalEvent {
         provider,
         model,
         request_id,
-        confidence: Some(0.75),
+        response_id,
+        protocol,
+        connection_id,
+        stream_id,
+        http_exchange_id,
+        correlation_method,
+        correlation_status,
+        correlation_version,
+        completion_reason,
+        confidence: data
+            .get("confidence")
+            .and_then(Value::as_f64)
+            .map(|value| value as f32)
+            .or(Some(0.75)),
         attributes: data.clone(),
     }
 }

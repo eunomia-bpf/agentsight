@@ -45,6 +45,11 @@ impl SqliteStore {
         self.conn.pragma_update(None, "foreign_keys", "ON")?;
         self.conn.execute_batch(SCHEMA)?;
         self.ensure_llm_call_columns()?;
+        self.conn.execute_batch(
+            "CREATE INDEX IF NOT EXISTS idx_llm_calls_exchange ON llm_calls(http_exchange_id);
+             CREATE INDEX IF NOT EXISTS idx_llm_calls_connection_stream
+             ON llm_calls(connection_id, stream_id);",
+        )?;
         self.ensure_audit_event_columns()?;
         Ok(())
     }
@@ -59,6 +64,16 @@ impl SqliteStore {
             ("finish_reason", "TEXT"),
             ("view_source", "TEXT NOT NULL DEFAULT 'unknown'"),
             ("confidence", "REAL"),
+            ("protocol", "TEXT"),
+            ("connection_id", "TEXT"),
+            ("stream_id", "INTEGER"),
+            ("http_exchange_id", "TEXT"),
+            ("request_id", "TEXT"),
+            ("response_id", "TEXT"),
+            ("correlation_method", "TEXT"),
+            ("correlation_status", "TEXT"),
+            ("correlation_version", "INTEGER"),
+            ("completion_reason", "TEXT"),
         ] {
             if !self.has_column("llm_calls", column) {
                 self.conn.execute(
@@ -132,8 +147,10 @@ impl SqliteStore {
                 id, session_id, conversation_id, start_timestamp_ms, end_timestamp_ms,
                 pid, comm, provider, model, call_kind, status, error_type, finish_reason,
                 host, path, status_code, request_body_json, response_body_json,
-                view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
+                view_source, confidence, protocol, connection_id, stream_id,
+                http_exchange_id, request_id, response_id, correlation_method,
+                correlation_status, correlation_version, completion_reason
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
             params![
                 call.id,
                 call.session_id.as_deref(),
@@ -155,6 +172,16 @@ impl SqliteStore {
                 call.response.to_string(),
                 call.view_source,
                 call.confidence,
+                call.protocol.as_deref(),
+                call.connection_id.as_deref(),
+                call.stream_id.map(i64::from),
+                call.http_exchange_id.as_deref(),
+                call.request_id.as_deref(),
+                call.response_id.as_deref(),
+                call.correlation_method.as_deref(),
+                call.correlation_status.as_deref(),
+                call.correlation_version.map(i64::from),
+                call.completion_reason.as_deref(),
             ],
         )?;
         Ok(())
@@ -313,10 +340,33 @@ impl SqliteStore {
             })
             .collect::<Vec<_>>()
             .join(", ");
+        let correlation_cols = [
+            ("protocol", "NULL AS protocol"),
+            ("connection_id", "NULL AS connection_id"),
+            ("stream_id", "NULL AS stream_id"),
+            ("http_exchange_id", "NULL AS http_exchange_id"),
+            ("request_id", "NULL AS request_id"),
+            ("response_id", "NULL AS response_id"),
+            ("correlation_method", "NULL AS correlation_method"),
+            ("correlation_status", "NULL AS correlation_status"),
+            ("correlation_version", "NULL AS correlation_version"),
+            ("completion_reason", "NULL AS completion_reason"),
+        ]
+        .iter()
+        .map(|(column, fallback)| {
+            if self.has_column("llm_calls", column) {
+                (*column).to_string()
+            } else {
+                (*fallback).to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
         let mut stmt = self.conn.prepare(&format!(
             "SELECT id, {optional_select}, start_timestamp_ms, end_timestamp_ms, pid, comm,
                     provider, model, host, path, status_code,
-                    COALESCE(request_body_json, '{{}}'), COALESCE(response_body_json, '{{}}')
+                    COALESCE(request_body_json, '{{}}'), COALESCE(response_body_json, '{{}}'),
+                    {correlation_cols}
              FROM llm_calls
              ORDER BY start_timestamp_ms DESC"
         ))?;
@@ -577,6 +627,16 @@ fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
         total_tokens: 0,
         request: parse_json_value(&request_json),
         response: parse_json_value(&response_json),
+        protocol: row.get(20)?,
+        connection_id: row.get(21)?,
+        stream_id: row.get::<_, Option<i64>>(22)?.map(|value| value as u32),
+        http_exchange_id: row.get(23)?,
+        request_id: row.get(24)?,
+        response_id: row.get(25)?,
+        correlation_method: row.get(26)?,
+        correlation_status: row.get(27)?,
+        correlation_version: row.get::<_, Option<i64>>(28)?.map(|value| value as u16),
+        completion_reason: row.get(29)?,
     })
 }
 
@@ -660,7 +720,17 @@ CREATE TABLE IF NOT EXISTS llm_calls (
   request_body_json TEXT,
   response_body_json TEXT,
   view_source TEXT,
-  confidence REAL
+  confidence REAL,
+  protocol TEXT,
+  connection_id TEXT,
+  stream_id INTEGER,
+  http_exchange_id TEXT,
+  request_id TEXT,
+  response_id TEXT,
+  correlation_method TEXT,
+  correlation_status TEXT,
+  correlation_version INTEGER,
+  completion_reason TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_llm_calls_time ON llm_calls(start_timestamp_ms);
@@ -834,6 +904,16 @@ mod tests {
             "finish_reason",
             "view_source",
             "confidence",
+            "protocol",
+            "connection_id",
+            "stream_id",
+            "http_exchange_id",
+            "request_id",
+            "response_id",
+            "correlation_method",
+            "correlation_status",
+            "correlation_version",
+            "completion_reason",
         ] {
             assert!(store.has_column("llm_calls", column), "{column}");
         }
@@ -903,5 +983,48 @@ mod tests {
         let rows = store.all_audit_event_rows().unwrap();
         assert_eq!(rows[0].view_source, "view");
         assert_eq!(rows[0].confidence, Some(0.75));
+    }
+
+    #[test]
+    fn llm_call_round_trips_correlation_evidence() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("correlation.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .llm_call(&LlmCallRow {
+                id: "llm-correlation".to_string(),
+                start_timestamp_ms: 1_000,
+                end_timestamp_ms: Some(2_000),
+                status: "complete".to_string(),
+                request: serde_json::json!({"model": "gpt-test"}),
+                response: serde_json::json!({"id": "chatcmpl-1"}),
+                view_source: "view".to_string(),
+                confidence: Some(1.0),
+                protocol: Some("HTTP/2".to_string()),
+                connection_id: Some("conn-1".to_string()),
+                stream_id: Some(3),
+                http_exchange_id: Some("exchange-1".to_string()),
+                request_id: Some("request-1".to_string()),
+                response_id: Some("chatcmpl-1".to_string()),
+                correlation_method: Some("h2_stream".to_string()),
+                correlation_status: Some("exact".to_string()),
+                correlation_version: Some(2),
+                completion_reason: Some("done".to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+
+        let rows = store.all_llm_call_rows().unwrap();
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!(row.protocol.as_deref(), Some("HTTP/2"));
+        assert_eq!(row.connection_id.as_deref(), Some("conn-1"));
+        assert_eq!(row.stream_id, Some(3));
+        assert_eq!(row.http_exchange_id.as_deref(), Some("exchange-1"));
+        assert_eq!(row.response_id.as_deref(), Some("chatcmpl-1"));
+        assert_eq!(row.correlation_method.as_deref(), Some("h2_stream"));
+        assert_eq!(row.correlation_status.as_deref(), Some("exact"));
+        assert_eq!(row.correlation_version, Some(2));
+        assert_eq!(row.completion_reason.as_deref(), Some("done"));
     }
 }

@@ -16,8 +16,9 @@ use crate::view::{
 use crate::view::{MaterializedView, PendingRequest};
 use serde_json::Value;
 
-const PENDING_REQUEST_TTL_MS: u64 = 5 * 60 * 1000;
+const PENDING_REQUEST_TTL_MS: u64 = 5 * 60 * 1_000;
 const MAX_PENDING_REQUESTS_PER_STREAM: usize = 16;
+const MAX_PENDING_EXCHANGES: usize = 16_384;
 
 impl MaterializedView {
     pub fn ingest_event(&mut self, event: &Event) -> ViewResult<()> {
@@ -30,7 +31,18 @@ impl MaterializedView {
             self.next_seq
         );
         let canonical = normalize_event(event, raw_id);
-        self.prune_pending(canonical.timestamp_ms);
+        self.prune_pending(canonical.timestamp_ms)?;
+        if event.source == "http_correlation" {
+            if let Some(exchange_id) = canonical.http_exchange_id.as_deref()
+                && let Some(request) = self.pending_by_exchange.remove(exchange_id)
+            {
+                self.mark_pending_terminal(
+                    &request,
+                    canonical.completion_reason.as_deref().unwrap_or("partial"),
+                )?;
+            }
+            return Ok(());
+        }
         if let Some(sample) = resource_sample_from_event(&canonical) {
             self.emit_resource_sample(sample)?;
         }
@@ -76,16 +88,51 @@ impl MaterializedView {
             host: event.host.clone(),
             path: event.path.clone(),
             request_id: event.request_id.clone(),
+            protocol: event.protocol.clone(),
+            connection_id: event.connection_id.clone(),
+            stream_id: event.stream_id,
+            http_exchange_id: event.http_exchange_id.clone(),
+            correlation_method: event.correlation_method.clone(),
+            correlation_status: event.correlation_status.clone(),
+            correlation_version: event.correlation_version,
             body_json: body_json(&event.attributes),
         };
         if req.body_json.is_none() && req.model.is_none() {
             return Ok(());
         }
         self.insert_orphan_llm_request(&req)?;
-        let requests = self.pending.entry((pid, tid)).or_default();
-        requests.push_back(req);
-        while requests.len() > MAX_PENDING_REQUESTS_PER_STREAM {
-            requests.pop_front();
+        if let Some(exchange_id) = req.http_exchange_id.clone() {
+            if let Some(replaced) = self.pending_by_exchange.insert(exchange_id, req) {
+                self.mark_pending_terminal(&replaced, "ambiguous")?;
+            }
+            while self.pending_by_exchange.len() > MAX_PENDING_EXCHANGES {
+                let oldest = self
+                    .pending_by_exchange
+                    .iter()
+                    .min_by_key(|(_, request)| request.timestamp_ms)
+                    .map(|(exchange_id, _)| exchange_id.clone());
+                let Some(oldest) = oldest else {
+                    break;
+                };
+                if let Some(evicted) = self.pending_by_exchange.remove(&oldest) {
+                    self.mark_pending_terminal(&evicted, "evicted")?;
+                }
+            }
+            return Ok(());
+        }
+        let evicted = {
+            let requests = self.pending.entry((pid, tid)).or_default();
+            requests.push_back(req);
+            let mut evicted = Vec::new();
+            while requests.len() > MAX_PENDING_REQUESTS_PER_STREAM {
+                if let Some(request) = requests.pop_front() {
+                    evicted.push(request);
+                }
+            }
+            evicted
+        };
+        for request in evicted {
+            self.mark_pending_terminal(&request, "evicted")?;
         }
         Ok(())
     }
@@ -94,6 +141,23 @@ impl MaterializedView {
         let Some(pid) = event.pid else {
             return Ok(());
         };
+        if let Some(exchange_id) = event.http_exchange_id.as_deref()
+            && let Some(req) = self.pending_by_exchange.remove(exchange_id)
+        {
+            let confidence = event.confidence.unwrap_or_else(|| {
+                if event.correlation_method.as_deref() == Some("h2_stream") {
+                    1.0
+                } else {
+                    0.98
+                }
+            });
+            return self.upsert_llm_pair(req, event, confidence);
+        }
+        // Explicit HTTP identity must never silently fall back to a different
+        // pending request on the same worker thread.
+        if event.http_exchange_id.is_some() || event.correlation_version == Some(2) {
+            return self.insert_orphan_llm_response(event);
+        }
         if let Some(tid) = event.tid
             && let Some((req, confidence)) = self.take_matching_request(pid, tid, event)
         {
@@ -103,6 +167,16 @@ impl MaterializedView {
     }
 
     fn has_pending_llm_request(&self, event: &CanonicalEvent) -> bool {
+        if event
+            .http_exchange_id
+            .as_ref()
+            .is_some_and(|exchange_id| self.pending_by_exchange.contains_key(exchange_id))
+        {
+            return true;
+        }
+        if event.http_exchange_id.is_some() || event.correlation_version == Some(2) {
+            return false;
+        }
         let (Some(pid), Some(tid)) = (event.pid, event.tid) else {
             return false;
         };
@@ -146,17 +220,47 @@ impl MaterializedView {
         Some((req, confidence))
     }
 
-    fn prune_pending(&mut self, now_ms: u64) {
+    fn prune_pending(&mut self, now_ms: u64) -> ViewResult<()> {
         let cutoff = now_ms.saturating_sub(PENDING_REQUEST_TTL_MS);
+        let expired_exchange_ids = self
+            .pending_by_exchange
+            .iter()
+            .filter(|(_, request)| request.timestamp_ms < cutoff)
+            .map(|(exchange_id, _)| exchange_id.clone())
+            .collect::<Vec<_>>();
+        let mut expired = expired_exchange_ids
+            .into_iter()
+            .filter_map(|exchange_id| self.pending_by_exchange.remove(&exchange_id))
+            .collect::<Vec<_>>();
         self.pending.retain(|_, requests| {
             while requests
                 .front()
                 .is_some_and(|req| req.timestamp_ms < cutoff)
             {
-                requests.pop_front();
+                if let Some(request) = requests.pop_front() {
+                    expired.push(request);
+                }
             }
             !requests.is_empty()
         });
+        for request in expired {
+            self.mark_pending_terminal(&request, "timeout")?;
+        }
+        Ok(())
+    }
+
+    fn mark_pending_terminal(
+        &mut self,
+        request: &PendingRequest,
+        completion_reason: &str,
+    ) -> ViewResult<()> {
+        let id = format!("llm-{}", request.event_id);
+        let Some(mut row) = self.llm_calls.get(&id).cloned() else {
+            return Ok(());
+        };
+        row.correlation_status = Some("unlinked".to_string());
+        row.completion_reason = Some(completion_reason.to_string());
+        self.emit_llm_call(row)
     }
 
     fn upsert_llm_pair(
@@ -193,6 +297,28 @@ impl MaterializedView {
             response_body.as_ref(),
             confidence,
         );
+        call_row.protocol = req.protocol.clone().or_else(|| resp.protocol.clone());
+        call_row.connection_id = req
+            .connection_id
+            .clone()
+            .or_else(|| resp.connection_id.clone());
+        call_row.stream_id = req.stream_id.or(resp.stream_id);
+        call_row.http_exchange_id = req
+            .http_exchange_id
+            .clone()
+            .or_else(|| resp.http_exchange_id.clone());
+        call_row.request_id = req.request_id.clone();
+        call_row.response_id = resp.response_id.clone();
+        call_row.correlation_method = resp
+            .correlation_method
+            .clone()
+            .or_else(|| req.correlation_method.clone());
+        call_row.correlation_status = resp
+            .correlation_status
+            .clone()
+            .or_else(|| req.correlation_status.clone());
+        call_row.correlation_version = resp.correlation_version.or(req.correlation_version);
+        call_row.completion_reason = resp.completion_reason.clone();
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
             &llm_call_id,
@@ -234,7 +360,7 @@ impl MaterializedView {
             .provider
             .clone()
             .or_else(|| req.host.as_deref().map(provider_from_host));
-        let call_row = llm_call_row(
+        let mut call_row = llm_call_row(
             &llm_call_id,
             req.timestamp_ms,
             None,
@@ -249,6 +375,14 @@ impl MaterializedView {
             None,
             0.75,
         );
+        call_row.protocol = req.protocol.clone();
+        call_row.connection_id = req.connection_id.clone();
+        call_row.stream_id = req.stream_id;
+        call_row.http_exchange_id = req.http_exchange_id.clone();
+        call_row.request_id = req.request_id.clone();
+        call_row.correlation_method = req.correlation_method.clone();
+        call_row.correlation_status = Some("unlinked".to_string());
+        call_row.correlation_version = req.correlation_version;
         emit_llm_audit(
             self,
             &llm_call_id,
@@ -295,6 +429,16 @@ impl MaterializedView {
             response_body.as_ref(),
             0.35,
         );
+        call_row.protocol = resp.protocol.clone();
+        call_row.connection_id = resp.connection_id.clone();
+        call_row.stream_id = resp.stream_id;
+        call_row.http_exchange_id = resp.http_exchange_id.clone();
+        call_row.request_id = resp.request_id.clone();
+        call_row.response_id = resp.response_id.clone();
+        call_row.correlation_method = resp.correlation_method.clone();
+        call_row.correlation_status = Some("unlinked".to_string());
+        call_row.correlation_version = resp.correlation_version;
+        call_row.completion_reason = resp.completion_reason.clone();
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
             &llm_call_id,
@@ -943,6 +1087,16 @@ fn llm_call_row(
         response: response_body.cloned().unwrap_or(Value::Null),
         view_source: "view".to_string(),
         confidence: Some(confidence),
+        protocol: None,
+        connection_id: None,
+        stream_id: None,
+        http_exchange_id: None,
+        request_id: None,
+        response_id: None,
+        correlation_method: None,
+        correlation_status: None,
+        correlation_version: None,
+        completion_reason: None,
     }
 }
 
@@ -1289,5 +1443,147 @@ mod tests {
         let calls = view.llm_call_rows(10);
         assert_eq!(calls[0].status, "error");
         assert_eq!(calls[0].error_type.as_deref(), Some("http_429"));
+    }
+
+    #[test]
+    fn exchange_id_pairs_cross_thread_response_before_legacy_fallback() {
+        let mut view = MaterializedView::new();
+        let request = Event::new_with_timestamp(
+            1_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/chat/completions",
+                "protocol": "HTTP/2",
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"model\":\"gpt-test\"}",
+                "connection_id": "conn-1",
+                "stream_id": 3,
+                "http_exchange_id": "exchange-1",
+                "correlation_method": "h2_stream",
+                "correlation_status": "exact",
+                "correlation_version": 2,
+                "confidence": 1.0
+            }),
+        );
+        let response = Event::new_with_timestamp(
+            2_000,
+            "sse_processor".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 99,
+                "protocol": "HTTP/2",
+                "connection_id": "conn-1",
+                "stream_id": 3,
+                "http_exchange_id": "exchange-1",
+                "response_id": "chatcmpl-1",
+                "correlation_method": "h2_stream",
+                "correlation_status": "exact",
+                "correlation_version": 2,
+                "confidence": 1.0,
+                "completion_reason": "done",
+                "text_content": "ok",
+                "json_content": "",
+                "sse_events": [
+                    { "parsed_data": { "usage": { "prompt_tokens": 2, "completion_tokens": 3 } } }
+                ]
+            }),
+        );
+
+        view.ingest_event(&request).unwrap();
+        view.ingest_event(&response).unwrap();
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].http_exchange_id.as_deref(), Some("exchange-1"));
+        assert_eq!(calls[0].connection_id.as_deref(), Some("conn-1"));
+        assert_eq!(calls[0].stream_id, Some(3));
+        assert_eq!(calls[0].response_id.as_deref(), Some("chatcmpl-1"));
+        assert_eq!(calls[0].correlation_method.as_deref(), Some("h2_stream"));
+        assert_eq!(calls[0].confidence, Some(1.0));
+        assert_eq!(calls[0].total_tokens, 5);
+    }
+
+    #[test]
+    fn expired_exchange_is_persisted_with_timeout_reason() {
+        let mut view = MaterializedView::new();
+        let request = Event::new_with_timestamp(
+            1_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/chat/completions",
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"model\":\"gpt-test\"}",
+                "connection_id": "conn-timeout",
+                "stream_id": 1,
+                "http_exchange_id": "exchange-timeout",
+                "correlation_method": "h2_stream",
+                "correlation_status": "exact",
+                "correlation_version": 2,
+                "confidence": 1.0
+            }),
+        );
+        let later_event = Event::new_with_timestamp(
+            1_000 + PENDING_REQUEST_TTL_MS + 1,
+            "system".to_string(),
+            0,
+            "system".to_string(),
+            json!({ "cpu_percent": 1.0 }),
+        );
+
+        view.ingest_event(&request).unwrap();
+        view.ingest_event(&later_event).unwrap();
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].status, "pending");
+        assert_eq!(calls[0].correlation_status.as_deref(), Some("unlinked"));
+        assert_eq!(calls[0].completion_reason.as_deref(), Some("timeout"));
+    }
+
+    #[test]
+    fn explicit_exchange_miss_cannot_consume_legacy_thread_request() {
+        let mut view = MaterializedView::new();
+        let request = Event::new_with_timestamp(
+            1000,
+            "http_parser".into(),
+            42,
+            "agent".into(),
+            json!({
+                "tid": 7, "message_type": "request", "method": "POST", "path": "/v1/messages",
+                "body": "{\"model\":\"test\"}"
+            }),
+        );
+        let response = Event::new_with_timestamp(
+            2000,
+            "sse_processor".into(),
+            42,
+            "agent".into(),
+            json!({
+                "tid": 7, "http_exchange_id": "another-exchange", "correlation_version": 2,
+                "text_content": "unrelated", "json_content": "{}"
+            }),
+        );
+        view.ingest_event(&request).unwrap();
+        view.ingest_event(&response).unwrap();
+        let rows = view.llm_call_rows(10);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(view.pending.get(&(42, 7)).unwrap().len(), 1);
+        assert!(
+            rows.iter()
+                .any(|row| row.status == "pending" && row.http_exchange_id.is_none())
+        );
+        assert!(rows.iter().any(
+            |row| row.http_exchange_id.as_deref() == Some("another-exchange")
+                && row.correlation_status.as_deref() == Some("unlinked")
+        ));
     }
 }

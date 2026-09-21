@@ -863,6 +863,7 @@ fn llm_row_for_session(
         response: Value::Null,
         view_source: AGENT_NATIVE_SOURCE.to_string(),
         confidence: Some(0.95),
+        ..Default::default()
     }
 }
 
