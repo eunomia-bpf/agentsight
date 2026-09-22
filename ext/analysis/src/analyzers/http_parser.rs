@@ -815,15 +815,12 @@ impl HTTP1ConnectionState {
             HTTP2Direction::Response => (&mut self.response_buffer, &mut self.response_metadata),
         };
         metadata.push(bytes.len(), event);
-        loop {
-            let Some((message, consumed)) = parse_next_http1_message(
-                buffer,
-                direction,
-                self.pending.front().is_some_and(|(_, head)| *head),
-                false,
-            ) else {
-                break;
-            };
+        while let Some((message, consumed)) = parse_next_http1_message(
+            buffer,
+            direction,
+            self.pending.front().is_some_and(|(_, head)| *head),
+            false,
+        ) {
             buffer.drain(..consumed);
             let mut capture = MessageMetadata::default();
             metadata.consume(consumed, &mut capture);
