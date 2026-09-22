@@ -31,7 +31,7 @@ use std::sync::Arc;
 /// Default OTLP/HTTP receiver endpoint (OpenTelemetry Collector).
 const DEFAULT_OTLP_ENDPOINT: &str = "http://localhost:4318";
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct SpanInput {
     start_unix_nano: u128,
     provider: String,
@@ -41,6 +41,17 @@ struct SpanInput {
     max_tokens: Option<i64>,
     temperature: Option<f64>,
     top_p: Option<f64>,
+    protocol: Option<String>,
+    connection_id: Option<String>,
+    stream_id: Option<u32>,
+    http_exchange_id: Option<String>,
+    request_id: Option<String>,
+    response_id: Option<String>,
+    correlation_method: Option<String>,
+    correlation_status: Option<String>,
+    correlation_version: Option<u16>,
+    completion_reason: Option<String>,
+    confidence: Option<f32>,
     /// Opt-in: the request messages, captured only when content capture is on.
     input_messages: Option<String>,
 }
@@ -200,6 +211,53 @@ fn build_otlp_payload(
     if let Some(p) = req.top_p {
         attributes.push(attr_double("gen_ai.request.top_p", p));
     }
+    if let Some(protocol) = req.protocol.as_deref() {
+        let (name, version) = protocol
+            .split_once('/')
+            .map(|(name, version)| (name.to_ascii_lowercase(), Some(version)))
+            .unwrap_or_else(|| (protocol.to_ascii_lowercase(), None));
+        attributes.push(attr_str("network.protocol.name", &name));
+        if let Some(version) = version {
+            attributes.push(attr_str("network.protocol.version", version));
+        }
+    }
+    for (key, value) in [
+        ("agentsight.connection.id", req.connection_id.as_deref()),
+        (
+            "agentsight.http.exchange.id",
+            req.http_exchange_id.as_deref(),
+        ),
+        ("http.request.id", req.request_id.as_deref()),
+        ("gen_ai.response.id", req.response_id.as_deref()),
+        (
+            "agentsight.correlation.method",
+            req.correlation_method.as_deref(),
+        ),
+        (
+            "agentsight.correlation.status",
+            req.correlation_status.as_deref(),
+        ),
+        (
+            "agentsight.completion.reason",
+            req.completion_reason.as_deref(),
+        ),
+    ] {
+        if let Some(value) = value {
+            attributes.push(attr_str(key, value));
+        }
+    }
+    if let Some(stream_id) = req.stream_id {
+        attributes.push(attr_int("agentsight.http.stream_id", stream_id as i64));
+    }
+    if let Some(version) = req.correlation_version {
+        attributes.push(attr_int("agentsight.correlation.version", version as i64));
+    }
+    if let Some(confidence) = req.confidence {
+        attributes.push(attr_double(
+            "agentsight.correlation.confidence",
+            confidence as f64,
+        ));
+    }
 
     // Response-derived attributes.
     let mut span_status = json!({ "code": 1 }); // STATUS_CODE_OK
@@ -297,6 +355,17 @@ impl SpanInput {
                 .and_then(Value::as_i64),
             temperature: request.get("temperature").and_then(Value::as_f64),
             top_p: request.get("top_p").and_then(Value::as_f64),
+            protocol: call.protocol.clone(),
+            connection_id: call.connection_id.clone(),
+            stream_id: call.stream_id,
+            http_exchange_id: call.http_exchange_id.clone(),
+            request_id: call.request_id.clone(),
+            response_id: call.response_id.clone(),
+            correlation_method: call.correlation_method.clone(),
+            correlation_status: call.correlation_status.clone(),
+            correlation_version: call.correlation_version,
+            completion_reason: call.completion_reason.clone(),
+            confidence: call.confidence,
             input_messages: capture_content
                 .then(|| {
                     request
@@ -423,6 +492,7 @@ mod tests {
             response: Value::Null,
             view_source: "view".to_string(),
             confidence: Some(0.75),
+            ..Default::default()
         }
     }
 
@@ -483,6 +553,7 @@ mod tests {
             temperature: Some(0.7),
             top_p: None,
             input_messages: None,
+            ..Default::default()
         };
         let response = json!({
             "model": "gpt-4o-2024",
@@ -561,6 +632,7 @@ mod tests {
             temperature: None,
             top_p: None,
             input_messages: None,
+            ..Default::default()
         };
         let payload = build_otlp_payload("agentsight", "t", "s", &req, 2, Some(429), None, false);
         let span = &payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0];

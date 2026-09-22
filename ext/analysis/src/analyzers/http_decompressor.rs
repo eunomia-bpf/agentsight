@@ -186,7 +186,11 @@ mod tests {
                 },
                 "body": bytes_to_http_body_string(&body),
                 "has_body": true,
-                "is_chunked": false
+                "is_chunked": false,
+                "transport_handle": "0xabc",
+                "capture_fragment_count": 2,
+                "capture_original_len": 200,
+                "capture_metadata_complete": true
             }),
         )
     }
@@ -210,6 +214,10 @@ mod tests {
             "data: {\"usage\":{\"input_tokens\":1}}\n\n"
         );
         assert!(event.data["headers"].get("content-encoding").is_none());
+        assert_eq!(event.data["transport_handle"], "0xabc");
+        assert_eq!(event.data["capture_fragment_count"], 2);
+        assert_eq!(event.data["capture_original_len"], 200);
+        assert_eq!(event.data["capture_metadata_complete"], true);
     }
 
     #[test]

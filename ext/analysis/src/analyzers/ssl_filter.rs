@@ -188,10 +188,21 @@ fn eval_condition(field: &str, operator: &str, expected: &str, data: &Value) -> 
         return false;
     }
     match field {
-        "is_handshake" | "truncated" => {
-            data.get(field).and_then(|v| v.as_bool()).unwrap_or(false) == (expected == "true")
-        }
-        "len" | "pid" | "tid" | "uid" | "timestamp_ns" => data
+        "is_handshake" | "truncated" | "connection_closed" => data
+            .get(field)
+            .and_then(|v| v.as_bool())
+            .map(|value| cmp_bool(value, operator, expected))
+            .unwrap_or(false),
+        "len"
+        | "buf_size"
+        | "pid"
+        | "tid"
+        | "uid"
+        | "timestamp_ns"
+        | "capture_seq"
+        | "process_start_ns"
+        | "ringbuf_reserve_failures"
+        | "bytes_lost" => data
             .get(field)
             .and_then(|v| v.as_u64())
             .map(|n| cmp_num(n, operator, expected))
@@ -216,6 +227,17 @@ fn cmp_str(actual: &str, op: &str, expected: &str) -> bool {
         "contains" => actual.contains(expected),
         "prefix" => actual.starts_with(expected),
         "suffix" => actual.ends_with(expected),
+        _ => false,
+    }
+}
+
+fn cmp_bool(actual: bool, op: &str, expected: &str) -> bool {
+    let Ok(expected) = expected.parse::<bool>() else {
+        return false;
+    };
+    match op {
+        "exact" => actual == expected,
+        "not_equal" => actual != expected,
         _ => false,
     }
 }
@@ -274,6 +296,19 @@ mod tests {
         let expr = SslFilterExpr::parse("len<10");
         assert!(expr.evaluate(&json!({"len": 5})));
         assert!(!expr.evaluate(&json!({"len": 15})));
+    }
+
+    #[test]
+    fn test_capture_metadata_filtering() {
+        let close = SslFilterExpr::parse("connection_closed=true");
+        assert!(close.evaluate(&json!({"connection_closed": true})));
+        assert!(!close.evaluate(&json!({"connection_closed": false})));
+        assert!(!close.evaluate(&json!({})));
+
+        let loss = SslFilterExpr::parse("ringbuf_reserve_failures>0");
+        assert!(loss.evaluate(&json!({"ringbuf_reserve_failures": 2})));
+        assert!(!loss.evaluate(&json!({"ringbuf_reserve_failures": 0})));
+        assert!(!loss.evaluate(&json!({})));
     }
 
     #[test]
