@@ -20,6 +20,9 @@ Current extensions:
 - `vis`: repository-evolution visualization.
 - `web`: built-in product presentation components; the trusted frontend shell
   remains in `frontend/`.
+- `memcode`: an [external correlation sample](memcode/README.md) for content-free
+  save/recall metadata, using `session` discovery/matching and sample SQLite/OTEL
+  projections. It adds no native capture hook or runtime extension routing.
 
 Only `session` currently exports and executes a WebAssembly Component. The
 analysis, pprof, vis, and web directories establish native or build-time product
