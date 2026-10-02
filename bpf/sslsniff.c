@@ -910,10 +910,11 @@ int main(int argc, char **argv) {
 		goto cleanup;
 	}
 
-	/* Do not scan ~/.codex standalone releases here. A pinned
-	 * --binary-path is already the ELF record will exec; attaching
-	 * extra 250MB copies blocks ring_buffer__poll through the short
-	 * Codex TLS burst and silently drops plaintext. */
+	/* A pinned --binary-path already scopes the ELF; scanning extra Codex
+	 * copies can delay the first TLS burst. */
+	/* Signal readiness after probes, ring buffer, and signal handler exist. */
+	fprintf(stderr, "AGENTSIGHT_SSL_READY\n");
+	fflush(stderr);
 
 	while (!exiting) {
 		err = ring_buffer__poll(rb, PERF_POLL_TIMEOUT_MS);
