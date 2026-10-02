@@ -37,6 +37,7 @@ impl MaterializedView {
         if let Some(target) = network_target_from_event(&canonical) {
             self.emit_network_target(target)?;
         }
+        self.ingest_media_event(&canonical)?;
         self.ingest(&canonical)
     }
 
