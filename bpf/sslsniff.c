@@ -848,6 +848,11 @@ int main(int argc, char **argv) {
 		goto cleanup;
 	}
 
+	/* The collector must not resume a launched client until its probes and
+	 * ring buffer are ready to receive the first TLS write. */
+	fprintf(stderr, "AGENTSIGHT_SSL_READY\n");
+	fflush(stderr);
+
 	while (!exiting) {
 		err = ring_buffer__poll(rb, PERF_POLL_TIMEOUT_MS);
 		if (err < 0 && err != -EINTR) {
