@@ -16,8 +16,20 @@ static inline void sslsniff_print_payload_fields(const char *buf,
 	printf("\"data\":");
 	json_print_escaped_quoted(buf, len);
 	printf(",\"data_hex\":\"");
-	for (unsigned int i = 0; i < len; i++)
-		printf("%02x", (unsigned char)buf[i]);
+	static const char digits[] = "0123456789abcdef";
+	char chunk[512];
+	unsigned int used = 0;
+	for (unsigned int i = 0; i < len; i++) {
+		unsigned char byte = (unsigned char)buf[i];
+		chunk[used++] = digits[byte >> 4];
+		chunk[used++] = digits[byte & 15];
+		if (used == sizeof(chunk)) {
+			fwrite(chunk, 1, used, stdout);
+			used = 0;
+		}
+	}
+	if (used)
+		fwrite(chunk, 1, used, stdout);
 	printf("\",");
 }
 
