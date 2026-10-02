@@ -10,3 +10,8 @@ back to bytes can corrupt a binary header block.
 `data_hex` contains only the bytes copied by the probe. Check `buf_size`,
 `len`, and `truncated` before treating it as a complete SSL operation. The
 field contains plaintext and should receive the same handling as `data`.
+
+If an HPACK header block is malformed, the HTTP/2 parser drops that block and
+resets its decoder state. Later independently decodable headers can still be
+captured; headers that depend on the lost dynamic table may remain unavailable
+until the peer sends a fresh representation.

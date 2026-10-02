@@ -1,0 +1,30 @@
+[package]
+
+name = "hpack"
+version = "0.3.0"
+authors = ["Marko Lalic <marko.lalic@gmail.com>"]
+
+exclude = [
+    "fixtures/*",
+]
+
+description = "A library implementing HPACK coding"
+repository = "https://github.com/mlalic/hpack-rs"
+homepage = "https://github.com/mlalic/hpack-rs"
+readme = "README.md"
+license = "MIT"
+keywords = ["hpack", "http2", "encoding", "decoding"]
+documentation = "https://mlalic.github.io/hpack-rs/hpack/index.html"
+
+[features]
+
+# A feature defining some interop tests between the HPACK decoder and
+# headers encoded by other libraries. It is only ever used in test builds!
+interop_tests = ["rustc-serialize"]
+
+[dependencies]
+log = "^0.3"
+
+[dependencies.rustc-serialize]
+version = "^0.3"
+optional = true

@@ -642,7 +642,16 @@ impl HTTP2State {
             HTTP2Direction::Request => &mut self.request_decoder,
             HTTP2Direction::Response => &mut self.response_decoder,
         };
-        let decoded = decoder.decode(block).ok()?;
+        let decoded = match decoder.decode(block) {
+            Ok(headers) => headers,
+            Err(_) => {
+                // The decoder may have indexed headers before reaching the
+                // malformed representation. Its dynamic table cannot be
+                // trusted for later blocks after an error.
+                *decoder = HpackDecoder::new();
+                return None;
+            }
+        };
         let mut headers = HashMap::new();
         for (name, value) in decoded {
             let name = String::from_utf8_lossy(&name).to_ascii_lowercase();
@@ -1141,6 +1150,46 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert_eq!(output[0].source, "http_parser");
         assert_eq!(output[0].data["path"], "/status");
         assert_eq!(output[0].data["headers"]["x-note"], "café");
+    }
+
+    #[tokio::test]
+    async fn malformed_hpack_size_update_does_not_stop_later_http2_capture() {
+        let malformed = frame(0x1, 0x5, 1, &[0x3f]);
+        let valid = frame(0x1, 0x5, 3, &[0x82, 0x84]);
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", malformed),
+            ssl_event(2, "WRITE/SEND", valid),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["message_type"], "request");
+        assert_eq!(output[0].data["path"], "/");
+        assert_eq!(output[0].data["headers"][":method"], "GET");
+    }
+
+    #[tokio::test]
+    async fn malformed_hpack_after_indexing_does_not_poison_later_streams() {
+        let mut encoder = HpackEncoder::new();
+        let mut block = encoder.encode([(&b"x-temp"[..], &b"value"[..])]);
+        assert_eq!(block[0], 0x40); // This entry is indexed before the error.
+        block.push(0x3f); // Truncated dynamic-table-size update.
+        let malformed = frame(0x1, 0x5, 1, &block);
+        let stale_dynamic_index = frame(0x1, 0x5, 3, &[0xbe]);
+        let valid = frame(0x1, 0x5, 5, &[0x82, 0x84]);
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", malformed),
+            ssl_event(2, "WRITE/SEND", stale_dynamic_index),
+            ssl_event(3, "WRITE/SEND", valid),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["message_type"], "request");
+        assert_eq!(output[0].data["path"], "/");
+        assert_eq!(output[0].data["headers"][":method"], "GET");
     }
 
     #[tokio::test]
