@@ -34,6 +34,19 @@ static void add_writev_signature(uint8_t *data, size_t offset,
 	       sizeof(codex_rustls_writev_copy));
 }
 
+static void add_writev_signature_v2(uint8_t *data, size_t offset,
+				    uint8_t first_branch, uint8_t second_branch)
+{
+	memcpy(data + offset, codex_rustls_writev_prefix,
+	       sizeof(codex_rustls_writev_prefix));
+	data[offset + 18] = first_branch;
+	memcpy(data + offset + 19, codex_rustls_writev_iov_v2,
+	       sizeof(codex_rustls_writev_iov_v2));
+	data[offset + 30] = second_branch;
+	memcpy(data + offset + 31, codex_rustls_writev_copy,
+	       sizeof(codex_rustls_writev_copy));
+}
+
 static char *write_fixture(bool valid)
 {
 	char template[] = "/tmp/agentsight-codex-offsets-test.XXXXXX";
@@ -45,7 +58,7 @@ static char *write_fixture(bool valid)
 	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
 	add_writev_signature(data, 256, 0x24, 0x23);
 	if (valid) {
-		add_writev_signature(data, 1024, 0x23, 0x22);
+		add_writev_signature_v2(data, 1024, 0x26, 0x22);
 		memcpy(data + 1536, codex_rustls_write_prefix,
 		       sizeof(codex_rustls_write_prefix));
 	} else {
@@ -74,7 +87,7 @@ static void test_signature_detection(void)
 	check(offsets.entries[0].offset == 256 && offsets.entries[0].vectored
 	      && offsets.entries[1].offset == 1024 && offsets.entries[1].vectored
 	      && offsets.entries[2].offset == 1536 && !offsets.entries[2].vectored,
-	      "classifies direct and vectored writes");
+	      "classifies legacy, Codex 0.160, and direct writes");
 	check(codex_binary_has_tls_markers(path), "requires Codex and rustls markers");
 	unlink(path);
 	free(path);
