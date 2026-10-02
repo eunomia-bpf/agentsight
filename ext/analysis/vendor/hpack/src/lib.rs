@@ -2,6 +2,11 @@
 //! performing the encoding and decoding of header sets, according to the
 //! HPACK spec.
 
+// This upstream 0.3.0 snapshot predates these compiler lints. Keep the
+// compatibility allowances scoped to the vendored crate; AgentSight's code
+// continues to build with warnings denied in CI.
+#![allow(deprecated, unused_parens, dead_code, mismatched_lifetime_syntaxes)]
+
 #[macro_use] extern crate log;
 #[cfg(feature="interop_tests")]
 extern crate rustc_serialize;
