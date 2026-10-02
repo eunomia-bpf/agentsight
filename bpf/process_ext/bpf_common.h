@@ -35,6 +35,16 @@ static __always_inline bool is_event_tracked(void)
 
 static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 bytes)
 {
+	/* A PID can be reused inside the aggregation window. Derive the same
+	 * process-instance key used by TLS capture from the group leader. */
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct task_struct *leader = BPF_CORE_READ(task, group_leader);
+	if (!leader)
+		leader = task;
+	if (bpf_core_field_exists(leader->start_boottime))
+		key->process_start_ns = BPF_CORE_READ(leader, start_boottime);
+	else
+		key->process_start_ns = BPF_CORE_READ(leader, start_time);
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, key);
 	if (val) {
 		__sync_fetch_and_add(&val->count, count);
@@ -60,90 +70,21 @@ static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 b
 	}
 }
 
-/* Format "fd=N" into a detail buffer without bpf_snprintf */
+/* Format "fd=N" into a detail buffer. */
 static __always_inline void format_fd_detail(char *buf, int buf_len, int fd)
 {
-	/* "fd=" prefix */
-	if (buf_len < 4) return;
-	buf[0] = 'f'; buf[1] = 'd'; buf[2] = '=';
-
-	/* Convert fd to decimal string */
-	int pos = 3;
-	bool neg = false;
-	unsigned int ufd;
-	if (fd < 0) {
-		neg = true;
-		ufd = (unsigned int)(-fd);
-	} else {
-		ufd = (unsigned int)fd;
-	}
-
-	/* Write digits in reverse */
-	char digits[12];
-	int dlen = 0;
-	if (ufd == 0) {
-		digits[dlen++] = '0';
-	} else {
-		while (ufd > 0 && dlen < 11) {
-			digits[dlen++] = '0' + (ufd % 10);
-			ufd /= 10;
-		}
-	}
-
-	if (neg && pos < buf_len - 1)
-		buf[pos++] = '-';
-
-	for (int i = dlen - 1; i >= 0 && pos < buf_len - 1; i--)
-		buf[pos++] = digits[i];
-
-	buf[pos] = '\0';
+	u64 args[1] = { (u64)(s64)fd };
+	bpf_snprintf(buf, buf_len, "fd=%d", args, sizeof(args));
 }
 
-/* Format "N.N.N.N:PORT" for IPv4 addresses without bpf_snprintf */
-/* Fully unrolled for BPF verifier (no loops / back-edges) */
-static __always_inline void write_octet(char *buf, int buf_len, int *pos, u8 val)
-{
-	if (val >= 100 && *pos < buf_len - 1) buf[(*pos)++] = '0' + val / 100;
-	if (val >= 10  && *pos < buf_len - 1) buf[(*pos)++] = '0' + (val / 10) % 10;
-	if (*pos < buf_len - 1)               buf[(*pos)++] = '0' + val % 10;
-}
-
+/* Format "N.N.N.N:PORT" for IPv4 addresses. */
 static __always_inline void format_ipv4_port(char *buf, int buf_len, u32 ip, u16 port)
 {
-	int pos = 0;
-	u8 o0 = ip & 0xFF;
-	u8 o1 = (ip >> 8) & 0xFF;
-	u8 o2 = (ip >> 16) & 0xFF;
-	u8 o3 = (ip >> 24) & 0xFF;
-
-	/* Octet 0 */
-	write_octet(buf, buf_len, &pos, o0);
-	/* Octet 1 */
-	if (pos < buf_len - 1) buf[pos++] = '.';
-	write_octet(buf, buf_len, &pos, o1);
-	/* Octet 2 */
-	if (pos < buf_len - 1) buf[pos++] = '.';
-	write_octet(buf, buf_len, &pos, o2);
-	/* Octet 3 */
-	if (pos < buf_len - 1) buf[pos++] = '.';
-	write_octet(buf, buf_len, &pos, o3);
-
-	/* :PORT — max 5 digits, write manually */
-	if (pos < buf_len - 1) buf[pos++] = ':';
-	unsigned int p = port;
-	/* Extract each digit (max 65535 = 5 digits) */
-	char d4 = '0' + (p / 10000) % 10;
-	char d3 = '0' + (p / 1000) % 10;
-	char d2 = '0' + (p / 100) % 10;
-	char d1 = '0' + (p / 10) % 10;
-	char d0 = '0' + p % 10;
-	if (p >= 10000 && pos < buf_len - 1) buf[pos++] = d4;
-	if (p >= 1000  && pos < buf_len - 1) buf[pos++] = d3;
-	if (p >= 100   && pos < buf_len - 1) buf[pos++] = d2;
-	if (p >= 10    && pos < buf_len - 1) buf[pos++] = d1;
-	if (pos < buf_len - 1) buf[pos++] = d0;
-
-	buf[pos] = '\0';
+	/* The helper avoids variable stack-pointer arithmetic which some verifier
+	 * versions reject after Clang folds the hand-written decimal formatter. */
+	u64 args[5] = { ip & 255, (ip >> 8) & 255, (ip >> 16) & 255,
+			(ip >> 24) & 255, port };
+	bpf_snprintf(buf, buf_len, "%d.%d.%d.%d:%d", args, sizeof(args));
 }
 
 #endif /* __PROCESS_EXT_BPF_COMMON_H */

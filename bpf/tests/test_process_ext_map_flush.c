@@ -74,6 +74,8 @@ static void test_event_type_name_known_types(void)
 	            "NET_LISTEN(21) -> \"NET_LISTEN\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_NET_CONNECT),    "NET_CONNECT")    == 0,
 	            "NET_CONNECT(22) -> \"NET_CONNECT\"");
+	test_assert(strcmp(event_type_name(EVENT_TYPE_NET_ACCEPT),     "NET_ACCEPT")     == 0,
+	            "NET_ACCEPT(23) -> \"NET_ACCEPT\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_PGRP_CHANGE),    "PGRP_CHANGE")    == 0,
 	            "PGRP_CHANGE(30) -> \"PGRP_CHANGE\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_SESSION_CREATE), "SESSION_CREATE") == 0,
@@ -277,6 +279,32 @@ static void test_print_summary_json_basic_fields(void)
 	            "output contains correct count");
 }
 
+static void test_network_summary_endpoint_fields(void)
+{
+	struct agg_key key = {0};
+	struct agg_value val = {0};
+	char buf[1024];
+	key.pid = 42;
+	key.process_start_ns = 123456;
+	val.count = 1;
+	val.last_ts = 789;
+	strncpy(val.comm, "agent", TASK_COMM_LEN - 1);
+
+	key.event_type = EVENT_TYPE_NET_LISTEN;
+	strncpy(key.detail, "127.0.0.1:8080", DETAIL_LEN - 1);
+	capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(strstr(buf, "\"process_start_ns\":123456") != NULL,
+		    "network summary includes process instance");
+	test_assert(strstr(buf, "\"local_endpoint\":\"127.0.0.1:8080\"") != NULL,
+		    "listener summary has local endpoint");
+
+	key.event_type = EVENT_TYPE_NET_ACCEPT;
+	strncpy(key.detail, "127.0.0.1:54321", DETAIL_LEN - 1);
+	capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(strstr(buf, "\"peer_endpoint\":\"127.0.0.1:54321\"") != NULL,
+		    "accept summary has peer endpoint");
+}
+
 static void test_print_summary_json_optional_total_bytes(void)
 {
 	printf("\n" BLUE "Testing print_summary_json() — optional total_bytes field:" RESET "\n");
@@ -427,6 +455,7 @@ int main(void)
 
 	/* print_summary_json */
 	test_print_summary_json_basic_fields();
+	test_network_summary_endpoint_fields();
 	test_print_summary_json_optional_total_bytes();
 	test_print_summary_json_optional_extra();
 	test_print_summary_json_escaped_fields();
