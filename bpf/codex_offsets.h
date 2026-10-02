@@ -42,6 +42,13 @@ static const uint8_t codex_rustls_writev_prefix[] = {
 static const uint8_t codex_rustls_writev_iov[] = {
 	0x49, 0x89, 0xfe, 0x48, 0x83, 0xfa, 0x01, 0x75,
 };
+/* Codex CLI 0.160.0 emits an additional saved-register move before the same
+ * iovec copy. The second argument remains the iovec pointer in rsi and the
+ * third remains its count in rdx, as required by probe_rustls_write_vectored. */
+static const uint8_t codex_rustls_writev_iov_v2[] = {
+	0x48, 0x89, 0xd3, 0x49, 0x89, 0xff,
+	0x48, 0x83, 0xfa, 0x01, 0x75,
+};
 static const uint8_t codex_rustls_writev_copy[] = {
 	0xf3, 0x0f, 0x6f, 0x06, 0xf3, 0x0f, 0x7f, 0x44,
 	0x24, 0x10,
@@ -135,12 +142,19 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 		if (relative == (size_t)-1)
 			break;
 		size_t offset = search + relative;
-		if (offset + 28 + sizeof(codex_rustls_writev_copy)
+		bool old_layout = offset + 28 + sizeof(codex_rustls_writev_copy)
 				<= (size_t)st.st_size
-		    && memcmp(data + offset + 19, codex_rustls_writev_iov,
-			      sizeof(codex_rustls_writev_iov)) == 0
-		    && memcmp(data + offset + 28, codex_rustls_writev_copy,
-			      sizeof(codex_rustls_writev_copy)) == 0) {
+			&& memcmp(data + offset + 19, codex_rustls_writev_iov,
+				  sizeof(codex_rustls_writev_iov)) == 0
+			&& memcmp(data + offset + 28, codex_rustls_writev_copy,
+				  sizeof(codex_rustls_writev_copy)) == 0;
+		bool new_layout = offset + 31 + sizeof(codex_rustls_writev_copy)
+				<= (size_t)st.st_size
+			&& memcmp(data + offset + 19, codex_rustls_writev_iov_v2,
+				  sizeof(codex_rustls_writev_iov_v2)) == 0
+			&& memcmp(data + offset + 31, codex_rustls_writev_copy,
+				  sizeof(codex_rustls_writev_copy)) == 0;
+		if (old_layout || new_layout) {
 			if (!codex_add_rustls_offset(out, offset, true))
 				break;
 		}

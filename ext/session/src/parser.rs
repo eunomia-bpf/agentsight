@@ -856,6 +856,37 @@ fn parse_jsonl(
                     acc.model = Some(name.to_string());
                 }
             }
+            (AGENT_CODEX, "token_usage_record") => {
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                if let Some(usage) = payload
+                    .get("thread_token_usage")
+                    .or_else(|| payload.get("usage"))
+                {
+                    let name = if codex_model.is_empty() {
+                        "unknown"
+                    } else {
+                        &codex_model
+                    };
+                    let usage = codex_token_usage(usage);
+                    acc.set_usage(
+                        name,
+                        usage.input_tokens,
+                        usage.output_tokens,
+                        0,
+                        usage.cache_read_tokens,
+                        usage.total_tokens,
+                    );
+                }
+                if let Some(usage) = payload.get("usage")
+                    && let Some(last) = events.llm_responses.last_mut()
+                    && last.total_tokens == 0
+                {
+                    last.input_tokens = json_u64(usage, "input_tokens");
+                    last.output_tokens = json_u64(usage, "output_tokens");
+                    last.cache_tokens = json_u64(usage, "cached_input_tokens");
+                    last.total_tokens = json_u64(usage, "total_tokens");
+                }
+            }
             (AGENT_CODEX, "event_msg") => {
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
@@ -2642,12 +2673,20 @@ pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
     content.lines().rev().find_map(|line| {
         let obj: Value = serde_json::from_str(line).ok()?;
         let payload = obj.get("payload")?;
-        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
-            return None;
+        match obj.get("type").and_then(Value::as_str) {
+            Some("token_usage_record") => payload
+                .get("thread_token_usage")
+                .or_else(|| payload.get("usage"))
+                .map(codex_token_usage),
+            Some("event_msg")
+                if payload.get("type").and_then(Value::as_str) == Some("token_count") =>
+            {
+                payload
+                    .pointer("/info/total_token_usage")
+                    .map(codex_token_usage)
+            }
+            _ => None,
         }
-        payload
-            .pointer("/info/total_token_usage")
-            .map(codex_token_usage)
     })
 }
 
@@ -5108,6 +5147,33 @@ mod tests {
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
         assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_latest_token_usage_records_update_live_session_totals() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"check build"}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":10,"cached_input_tokens":4,"output_tokens":5,"total_tokens":15},"thread_token_usage":{"input_tokens":21,"cached_input_tokens":4,"output_tokens":9,"total_tokens":30}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 17);
+        assert_eq!(session.usage.cache_read_tokens, 4);
+        assert_eq!(session.usage.output_tokens, 9);
+        assert_eq!(session.usage.total_tokens, 30);
+        assert_eq!(codex_total_token_usage(content), Some(session.usage));
     }
 
     #[test]
