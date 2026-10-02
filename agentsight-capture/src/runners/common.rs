@@ -18,6 +18,16 @@ use tokio::sync::oneshot;
 
 const SSL_READY_MARKER: &str = "AGENTSIGHT_SSL_READY";
 
+fn ssl_probe_reports_readiness(binary_path: &str) -> bool {
+    // Direct `cargo build` can still embed the older vendored loader. Keep
+    // its startup delay until `make build` refreshes the bundled BPF binary.
+    std::fs::read(binary_path).is_ok_and(|bytes| {
+        bytes
+            .windows(SSL_READY_MARKER.len())
+            .any(|window| window == SSL_READY_MARKER.as_bytes())
+    })
+}
+
 /// Type alias for JSON stream
 pub type JsonStream = Pin<Box<dyn Stream<Item = serde_json::Value> + Send>>;
 const RUNNER_ERROR_TYPE: &str = "runner_error";
@@ -302,7 +312,8 @@ impl BinaryExecutor {
         // Wait for sslsniff's readiness marker before releasing a launched
         // client. A fixed delay can expire while a large static binary is
         // still being scanned for probe offsets.
-        let wait_for_ssl_ready = runner_name.as_deref() == Some("SSL");
+        let wait_for_ssl_ready =
+            runner_name.as_deref() == Some("SSL") && ssl_probe_reports_readiness(&self.binary_path);
         let (ready_tx, ready_rx) = oneshot::channel();
         let stderr_label = label.clone();
         tokio::spawn(async move {
