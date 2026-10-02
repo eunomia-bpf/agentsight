@@ -316,14 +316,15 @@ All events follow a common base schema with event-specific fields:
 **Network SUMMARY fields (`--trace-net`):**
 - `type`: `NET_BIND`, `NET_LISTEN`, `NET_CONNECT`, or `NET_ACCEPT`
 - `detail`: Requested bind/connect address, successful listener's local endpoint, or accepted TCP peer endpoint
-- `local_endpoint`: Successful `NET_LISTEN` local endpoint (also present in `detail`)
+- `local_endpoint`: Successful `NET_LISTEN` local endpoint (also present in `detail`), or the local endpoint of a `NET_ACCEPT` socket
 - `peer_endpoint`: `NET_ACCEPT` peer endpoint (also present in `detail`)
 - `process_start_ns`: Thread-group leader start time in nanoseconds since boot; pair with `pid` to distinguish PID reuse
 - `count`: Number of matching observations in the flush interval
 
 `NET_BIND` and `NET_CONNECT` describe syscall attempts; `NET_LISTEN` and
-`NET_ACCEPT` describe successful TCP operations. Listener and peer endpoints
-are process evidence. They do not imply a match to an SSL or HTTP connection.
+`NET_ACCEPT` describe successful TCP operations. Accepted rows carry both socket
+endpoints. Listener and peer endpoints are process evidence. They do not imply
+a match to an SSL or HTTP connection.
 IPv6 endpoints use bracketed, uncompressed hexadecimal notation.
 
 ### Process Tracer JSON Events

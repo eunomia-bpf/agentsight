@@ -103,7 +103,8 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 	if (key->event_type == EVENT_TYPE_NET_LISTEN)
 		printf(",\"local_endpoint\":\"%s\"", detail_esc);
 	else if (key->event_type == EVENT_TYPE_NET_ACCEPT)
-		printf(",\"peer_endpoint\":\"%s\"", detail_esc);
+		printf(",\"local_endpoint\":\"%s\",\"peer_endpoint\":\"%s\"",
+		       key->local_endpoint, detail_esc);
 
 	if (key->event_type == EVENT_TYPE_WRITE && parsed_fd) {
 		printf(",\"fd\":%d", fd);

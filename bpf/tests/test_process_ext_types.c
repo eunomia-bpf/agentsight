@@ -84,6 +84,8 @@ static void test_agg_key_field_sizes(void)
 	            "agg_key.event_type is 4 bytes");
 	test_assert(sizeof(((struct agg_key *)0)->detail) == DETAIL_LEN,
 	            "agg_key.detail is DETAIL_LEN bytes");
+	test_assert(sizeof(((struct agg_key *)0)->local_endpoint) == DETAIL_LEN,
+	            "agg_key.local_endpoint is DETAIL_LEN bytes");
 }
 
 static void test_agg_key_total_size(void)
@@ -95,11 +97,11 @@ static void test_agg_key_total_size(void)
 	 * There should be no interior padding since the first two fields are
 	 * 4-byte aligned and the char array follows them.
 	 */
-	size_t expected = 4 + 4 + 8 + DETAIL_LEN;
+	size_t expected = 4 + 4 + 8 + DETAIL_LEN * 2;
 	printf("  sizeof(struct agg_key) = %zu (expected %zu)\n",
 	       sizeof(struct agg_key), expected);
 	test_assert(sizeof(struct agg_key) == expected,
-	            "sizeof(agg_key) == 4+4+8+DETAIL_LEN");
+	            "sizeof(agg_key) == 4+4+8+2*DETAIL_LEN");
 }
 
 static void test_agg_key_field_offsets(void)
@@ -114,6 +116,8 @@ static void test_agg_key_field_offsets(void)
 	            "agg_key.process_start_ns is at offset 8");
 	test_assert(offsetof(struct agg_key, detail) == 16,
 	            "agg_key.detail is at offset 16");
+	test_assert(offsetof(struct agg_key, local_endpoint) == 16 + DETAIL_LEN,
+	            "agg_key.local_endpoint follows detail");
 }
 
 static void test_agg_key_zero_initialisation(void)

@@ -13,6 +13,8 @@ struct agg_key {
 	/* Same thread-group leader discriminator as TLS capture (PR #210). */
 	__u64 process_start_ns;
 	char detail[DETAIL_LEN];
+	/* Local endpoint of an accepted socket; disambiguates multiple listeners. */
+	char local_endpoint[DETAIL_LEN];
 };
 
 struct agg_value {

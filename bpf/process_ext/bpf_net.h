@@ -169,6 +169,8 @@ int BPF_KRETPROBE(trace_inet_accept, struct sock *accepted)
 	key.pid = bpf_get_current_pid_tgid() >> 32;
 	key.event_type = EVENT_TYPE_NET_ACCEPT;
 	format_sock_endpoint(accepted, true, key.detail, sizeof(key.detail));
+	format_sock_endpoint(accepted, false, key.local_endpoint,
+			     sizeof(key.local_endpoint));
 	update_agg_map(&key, 1, 0);
 	return 0;
 }

@@ -283,6 +283,9 @@ def test_trace_net_summary_events():
                     "listener must expose structured local endpoint")
         assert_true(any(e.get("peer_endpoint") == f"127.0.0.1:{peer[1]}" for e in matched),
                     "accept must expose structured peer endpoint")
+        assert_true(any(e.get("local_endpoint") == f"127.0.0.1:{port}" and
+                        e.get("peer_endpoint") == f"127.0.0.1:{peer[1]}" for e in accepts),
+                    "accept must identify both endpoints of the accepted socket")
         assert_true(all(e.get("process_start_ns", 0) > 0 for e in matched),
                     "network summaries need process-instance attribution")
         assert_true(len({(e.get("pid"), e.get("process_start_ns")) for e in matched}) == 1,

@@ -300,7 +300,10 @@ static void test_network_summary_endpoint_fields(void)
 
 	key.event_type = EVENT_TYPE_NET_ACCEPT;
 	strncpy(key.detail, "127.0.0.1:54321", DETAIL_LEN - 1);
+	strncpy(key.local_endpoint, "127.0.0.1:8080", DETAIL_LEN - 1);
 	capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(strstr(buf, "\"local_endpoint\":\"127.0.0.1:8080\"") != NULL,
+		    "accept summary has local endpoint");
 	test_assert(strstr(buf, "\"peer_endpoint\":\"127.0.0.1:54321\"") != NULL,
 		    "accept summary has peer endpoint");
 }
