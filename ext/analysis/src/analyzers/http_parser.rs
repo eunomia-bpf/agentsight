@@ -1109,6 +1109,41 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
     }
 
     #[tokio::test]
+    async fn http2_hpack_uses_exact_ssl_bytes_when_json_text_changes_utf8() {
+        let mut encoder = HpackEncoder::new();
+        let header_block = encoder.encode([
+            (&b":method"[..], &b"GET"[..]),
+            (&b":path"[..], &b"/status"[..]),
+            (&b"x-note"[..], &b"caf\xc3\xa9"[..]),
+        ]);
+        assert!(header_block.windows(2).any(|bytes| bytes == b"\xc3\xa9"));
+        let bytes = frame(0x1, 0x5, 1, &header_block);
+        // The userspace JSON encoder keeps valid UTF-8 pairs as one character.
+        // Its data string therefore cannot reconstruct the original HPACK bytes.
+        let text = String::from_utf8_lossy(&bytes).to_string();
+        let event = Event::new_with_timestamp(
+            1,
+            "ssl".to_string(),
+            4242,
+            "node".to_string(),
+            json!({
+                "tid": 7,
+                "function": "WRITE/SEND",
+                "data": text,
+                "data_hex": hex::encode(&bytes),
+            }),
+        );
+        let input: EventStream = Box::pin(stream::iter(vec![event]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].source, "http_parser");
+        assert_eq!(output[0].data["path"], "/status");
+        assert_eq!(output[0].data["headers"]["x-note"], "café");
+    }
+
+    #[tokio::test]
     async fn http2_gzip_sse_capture_pipeline_reaches_materialized_view() {
         let mut request_encoder = HpackEncoder::new();
         let mut response_encoder = HpackEncoder::new();
