@@ -144,7 +144,7 @@ static const struct argp_option opts[] = {
 	{ "mode", 'm', "FILTER-MODE", 0, "Filter mode: 0=all, 1=proc, 2=filter (default=1)" },
 	{ "all", 'a', NULL, 0, "Deprecated: use -m 0 instead" },
 	{ "trace-fs", OPT_TRACE_FS, NULL, 0, "Trace filesystem mutations (delete, rename, mkdir, write, truncate, chdir)" },
-	{ "trace-net", OPT_TRACE_NET, NULL, 0, "Trace network operations (bind, listen, connect)" },
+	{ "trace-net", OPT_TRACE_NET, NULL, 0, "Trace network operations (bind, listen, connect, accept)" },
 	{ "trace-signals", OPT_TRACE_SIGNALS, NULL, 0, "Trace process coordination (setpgid, setsid, kill, fork)" },
 	{ "trace-mem", OPT_TRACE_MEM, NULL, 0, "Trace shared memory mappings (mmap MAP_SHARED)" },
 	{ "trace-cow", OPT_TRACE_COW, NULL, 0, "Trace CoW page faults (kprobe/do_wp_page, high overhead)" },
@@ -385,8 +385,10 @@ static void configure_optional_programs(struct process_bpf *skel)
 	SET_AUTOLOAD(trace_writev_exit, env.trace_fs);
 
 	SET_AUTOLOAD(trace_bind, env.trace_net);
-	SET_AUTOLOAD(trace_listen, env.trace_net);
 	SET_AUTOLOAD(trace_connect, env.trace_net);
+	SET_AUTOLOAD(trace_inet_listen_enter, env.trace_net);
+	SET_AUTOLOAD(trace_inet_listen_exit, env.trace_net);
+	SET_AUTOLOAD(trace_inet_accept, env.trace_net);
 
 	SET_AUTOLOAD(trace_setpgid, env.trace_signals);
 	SET_AUTOLOAD(trace_setsid, env.trace_signals);

@@ -258,7 +258,7 @@ def test_trace_net_summary_events():
 
         client = socket.socket()
         client.connect(("127.0.0.1", port))
-        conn, _ = server.accept()
+        conn, peer = server.accept()
         client.close()
         conn.close()
         server.close()
@@ -266,8 +266,30 @@ def test_trace_net_summary_events():
         time.sleep(0.5)
         sess.stop()
         types = summary_types(sess.events())
-        required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT"}
+        required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT", "NET_ACCEPT"}
         assert_true(required.issubset(types), f"missing net SUMMARY types: {sorted(required - types)}")
+        # The tracer sees host PIDs, which can differ from os.getpid() inside
+        # a PID namespace. The two ephemeral endpoint ports identify this run.
+        rows = [e for e in sess.events() if e.get("event") == "SUMMARY"]
+        listens = [e for e in rows if e.get("type") == "NET_LISTEN"]
+        accepts = [e for e in rows if e.get("type") == "NET_ACCEPT"]
+        assert_true(any(e.get("detail") == f"127.0.0.1:{port}" for e in listens),
+                    "listener endpoint must contain the kernel-assigned port")
+        assert_true(any(e.get("detail") == f"127.0.0.1:{peer[1]}" for e in accepts),
+                    "accepted peer endpoint must contain the client port")
+        matched = [e for e in listens if e.get("detail") == f"127.0.0.1:{port}"] + [
+            e for e in accepts if e.get("detail") == f"127.0.0.1:{peer[1]}"]
+        assert_true(any(e.get("local_endpoint") == f"127.0.0.1:{port}" for e in matched),
+                    "listener must expose structured local endpoint")
+        assert_true(any(e.get("peer_endpoint") == f"127.0.0.1:{peer[1]}" for e in matched),
+                    "accept must expose structured peer endpoint")
+        assert_true(any(e.get("local_endpoint") == f"127.0.0.1:{port}" and
+                        e.get("peer_endpoint") == f"127.0.0.1:{peer[1]}" for e in accepts),
+                    "accept must identify both endpoints of the accepted socket")
+        assert_true(all(e.get("process_start_ns", 0) > 0 for e in matched),
+                    "network summaries need process-instance attribution")
+        assert_true(len({(e.get("pid"), e.get("process_start_ns")) for e in matched}) == 1,
+                    "listener and accepted peer must share a process instance")
     finally:
         sess.cleanup()
 

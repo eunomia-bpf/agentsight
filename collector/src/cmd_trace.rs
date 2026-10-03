@@ -60,6 +60,7 @@ pub(crate) struct TraceConfig {
     pub(crate) ssl_http: bool,
     pub(crate) ssl_raw_data: bool,
     pub(crate) process: bool,
+    pub(crate) trace_net: bool,
     pub(crate) process_seed_pids: Vec<PidSeed>,
     pub(crate) stdio: bool,
     pub(crate) stdio_uid: Option<u32>,
@@ -89,6 +90,7 @@ impl TraceConfig {
             ssl_filter: Vec::new(),
             ssl_http: true,
             process: true,
+            trace_net: true,
             stdio_max_bytes: DEFAULT_RECORD_STDIO_MAX_BYTES,
             system: true,
             system_interval: 2,
@@ -290,6 +292,9 @@ fn build_ssl_args(cfg: &TraceConfig) -> Vec<String> {
 
 fn build_process_args(cfg: &TraceConfig) -> Vec<String> {
     let mut args = Vec::new();
+    if cfg.trace_net {
+        args.push("--trace-net".to_string());
+    }
     if let Some(pid) = cfg.pid {
         args.extend(["-p".to_string(), pid.to_string()]);
     }
