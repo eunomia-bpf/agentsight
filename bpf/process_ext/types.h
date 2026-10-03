@@ -10,7 +10,11 @@
 struct agg_key {
 	__u32 pid;
 	__u32 event_type;
+	/* Same thread-group leader discriminator as TLS capture (PR #210). */
+	__u64 process_start_ns;
 	char detail[DETAIL_LEN];
+	/* Local endpoint of an accepted socket; disambiguates multiple listeners. */
+	char local_endpoint[DETAIL_LEN];
 };
 
 struct agg_value {
@@ -36,6 +40,7 @@ enum process_ext_event_type {
 	EVENT_TYPE_NET_BIND = 20,
 	EVENT_TYPE_NET_LISTEN = 21,
 	EVENT_TYPE_NET_CONNECT = 22,
+	EVENT_TYPE_NET_ACCEPT = 23,
 	EVENT_TYPE_PGRP_CHANGE = 30,
 	EVENT_TYPE_SESSION_CREATE = 31,
 	EVENT_TYPE_SIGNAL_SEND = 32,
