@@ -107,6 +107,14 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 		printf(",\"protocol\":\"%s\",\"port\":%u", protocol, key->port);
 	}
 
+	if (key->event_type == EVENT_TYPE_NET_LISTEN)
+		printf(",\"local_endpoint\":\"%s\"", detail_esc);
+	else if (key->event_type == EVENT_TYPE_NET_ACCEPT) {
+		char local_esc[DETAIL_LEN * 2];
+		json_escape(key->local_endpoint, local_esc, sizeof(local_esc));
+		printf(",\"local_endpoint\":\"%s\",\"peer_endpoint\":\"%s\"", local_esc, detail_esc);
+	}
+
 	if (key->event_type == EVENT_TYPE_WRITE && parsed_fd) {
 		printf(",\"fd\":%d", fd);
 		printf(",\"path_resolved\":%s", resolved_path ? "true" : "false");

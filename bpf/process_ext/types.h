@@ -13,6 +13,7 @@ struct agg_key {
 	char detail[DETAIL_LEN];
 	__u16 port;      /* assigned local port for successful datagram binds */
 	__u8 protocol;   /* IP protocol; zero for existing summary records */
+	char local_endpoint[DETAIL_LEN];
 };
 
 struct agg_value {

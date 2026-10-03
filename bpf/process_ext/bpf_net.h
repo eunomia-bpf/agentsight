@@ -109,6 +109,93 @@ int trace_listen(struct trace_event_raw_sys_enter *ctx)
 	return 0;
 }
 
+static __always_inline void format_ipv6_port(char *detail, int detail_len,
+					     const struct in6_addr *addr, u16 port)
+{
+	const char hex[] = "0123456789abcdef";
+	int pos = 0;
+	if (pos < detail_len - 1) detail[pos++] = '[';
+#pragma unroll
+	for (int i = 0; i < 16; i++) {
+		u8 byte = addr->in6_u.u6_addr8[i];
+		if (pos < detail_len - 1) detail[pos++] = hex[byte >> 4];
+		if (pos < detail_len - 1) detail[pos++] = hex[byte & 15];
+		if ((i & 1) && i != 15 && pos < detail_len - 1)
+			detail[pos++] = ':';
+	}
+	if (pos < detail_len - 1) detail[pos++] = ']';
+	if (pos < detail_len - 1) detail[pos++] = ':';
+	unsigned int p = port;
+	if (p >= 10000 && pos < detail_len - 1) detail[pos++] = '0' + (p / 10000) % 10;
+	if (p >= 1000 && pos < detail_len - 1) detail[pos++] = '0' + (p / 1000) % 10;
+	if (p >= 100 && pos < detail_len - 1) detail[pos++] = '0' + (p / 100) % 10;
+	if (p >= 10 && pos < detail_len - 1) detail[pos++] = '0' + (p / 10) % 10;
+	if (pos < detail_len - 1) detail[pos++] = '0' + p % 10;
+	detail[pos] = '\0';
+}
+
+static __always_inline void format_sock_endpoint(struct sock *sk, bool peer,
+						  char *detail, int detail_len)
+{
+	u16 family = BPF_CORE_READ(sk, __sk_common.skc_family);
+	if (family == 2) { /* AF_INET */
+		u32 ip = peer ? BPF_CORE_READ(sk, __sk_common.skc_daddr)
+			      : BPF_CORE_READ(sk, __sk_common.skc_rcv_saddr);
+		u16 port = peer ? __builtin_bswap16(BPF_CORE_READ(sk, __sk_common.skc_dport))
+				: BPF_CORE_READ(sk, __sk_common.skc_num);
+		format_ipv4_port(detail, detail_len, ip, port);
+	} else if (family == 10) { /* AF_INET6 */
+		struct in6_addr addr = {};
+		if (peer)
+			BPF_CORE_READ_INTO(&addr, sk, __sk_common.skc_v6_daddr);
+		else
+			BPF_CORE_READ_INTO(&addr, sk, __sk_common.skc_v6_rcv_saddr);
+		u16 port = peer ? __builtin_bswap16(BPF_CORE_READ(sk, __sk_common.skc_dport))
+				: BPF_CORE_READ(sk, __sk_common.skc_num);
+		format_ipv6_port(detail, detail_len, &addr, port);
+	} else {
+		format_family(detail, detail_len, family);
+	}
+}
+
+SEC("kprobe/inet_listen")
+int BPF_KPROBE(trace_inet_listen_enter, struct socket *sock)
+{
+	if (!trace_network || !is_event_tracked())
+		return 0;
+	u64 tid = bpf_get_current_pid_tgid();
+	u64 ptr = (u64)sock;
+	bpf_map_update_elem(&listen_socket_map, &tid, &ptr, BPF_ANY);
+	return 0;
+}
+
+SEC("kretprobe/inet_listen")
+int BPF_KRETPROBE(trace_inet_listen_exit, int ret)
+{
+	u64 tid = bpf_get_current_pid_tgid();
+	u64 *ptr = bpf_map_lookup_elem(&listen_socket_map, &tid);
+	if (!ptr)
+		return 0;
+	u64 sock_ptr = *ptr;
+	bpf_map_delete_elem(&listen_socket_map, &tid);
+	if (ret != 0)
+		return 0;
+	struct sock *sk = BPF_CORE_READ((struct socket *)sock_ptr, sk);
+	if (!sk)
+		return 0;
+
+
+	struct agg_key key = {};
+	key.pid = tid >> 32;
+	key.event_type = EVENT_TYPE_NET_LISTEN;
+	key.port = BPF_CORE_READ(sk, __sk_common.skc_num);
+	key.protocol = 6;
+	format_sock_endpoint(sk, false, key.detail, sizeof(key.detail));
+
+	update_agg_map(&key, 1, 0);
+	return 0;
+}
+
 SEC("tp/syscalls/sys_enter_connect")
 int trace_connect(struct trace_event_raw_sys_enter *ctx)
 {
@@ -232,6 +319,7 @@ int BPF_PROG(trace_accept_peer, struct sock *sk)
 	key.event_type = EVENT_TYPE_NET_ACCEPT;
 	key.port = peer.port;
 	key.protocol = 6; /* TCP */
+	format_sock_endpoint(child, false, key.local_endpoint, sizeof(key.local_endpoint));
 	if (peer.family == 2)
 		format_ipv4_port(key.detail, sizeof(key.detail), *(u32 *)peer.peer, peer.port);
 	else

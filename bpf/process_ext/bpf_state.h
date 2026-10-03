@@ -61,6 +61,15 @@ struct {
 	__type(value, int);
 } write_ctx_map SEC(".maps");
 
+/* Keep the socket across inet_listen entry/return so only successful listens
+ * are reported, with the assigned port (including implicit/ephemeral binds). */
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 4096);
+	__type(key, u64);
+	__type(value, u64);
+} listen_socket_map SEC(".maps");
+
 const volatile bool filter_pids = false;
 const volatile bool filter_cgroup = false;
 const volatile bool filter_cgroup_children = false;
