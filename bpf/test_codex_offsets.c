@@ -148,12 +148,74 @@ static void test_grok_signature_detection(void)
 	unlink(template);
 }
 
+static void test_codex_buffer_plaintext_signature(void)
+{
+	char template[] = "/tmp/agentsight-codex-plaintext-test.XXXXXX";
+	uint8_t data[2048] = {};
+	size_t offset = 0;
+	int fd = mkstemp(template);
+
+	check(fd >= 0, "created Codex buffer_plaintext fixture");
+	if (fd < 0)
+		return;
+	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
+	memcpy(data + 256, codex_rustls_buffer_plaintext_prefix,
+	       sizeof(codex_rustls_buffer_plaintext_prefix));
+	memcpy(data + 256 + CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET,
+	       codex_rustls_buffer_plaintext_sentinel,
+	       sizeof(codex_rustls_buffer_plaintext_sentinel));
+	check(write(fd, data, sizeof(data)) == sizeof(data),
+	      "wrote Codex buffer_plaintext fixture");
+	close(fd);
+
+	check(codex_find_rustls_buffer_plaintext_offset(template, &offset)
+		      && offset == 256,
+	      "finds Codex/rustls buffer_plaintext signature");
+
+	data[256 + CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET] ^= 0xff;
+	fd = open(template, O_WRONLY | O_TRUNC);
+	check(fd >= 0, "opened Codex plaintext fixture for corruption");
+	if (fd >= 0) {
+		check(write(fd, data, sizeof(data)) == sizeof(data),
+		      "wrote corrupted Codex plaintext fixture");
+		close(fd);
+		check(!codex_find_rustls_buffer_plaintext_offset(template, &offset),
+		      "rejects a Codex signature with a changed sentinel");
+	}
+	unlink(template);
+}
+
+static void test_live_codex_buffer_plaintext(void)
+{
+	static const char *const paths[] = {
+		"/root/.codex/packages/standalone/releases/0.144.5-x86_64-unknown-linux-musl/bin/codex",
+		"/root/.codex/packages/standalone/releases/0.151.0-x86_64-unknown-linux-musl/bin/codex",
+		"/root/.codex/packages/standalone/releases/0.152.0-x86_64-unknown-linux-musl/bin/codex",
+	};
+	size_t i;
+
+	for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
+		size_t offset = 0;
+		char name[256];
+
+		if (access(paths[i], R_OK) != 0)
+			continue;
+		snprintf(name, sizeof(name),
+			 "finds buffer_plaintext in installed %s", paths[i]);
+		check(codex_find_rustls_buffer_plaintext_offset(paths[i], &offset)
+			      && offset != 0,
+		      name);
+	}
+}
+
 int main(void)
 {
 	printf("===== Codex offset tests =====\n");
 	test_signature_detection();
 	test_marker_detection();
 	test_grok_signature_detection();
+	test_codex_buffer_plaintext_signature();
+	test_live_codex_buffer_plaintext();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;

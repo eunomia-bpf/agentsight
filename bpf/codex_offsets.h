@@ -47,6 +47,24 @@ static const uint8_t codex_rustls_writev_copy[] = {
 	0x24, 0x10,
 };
 
+/*
+ * rustls 0.23 CommonState::buffer_plaintext as compiled into Codex
+ * 0.144.5 / 0.151.0 / 0.152.0 (musl, rustc != Grok's 1.92 layout).
+ * write() is often inlined; this function remains the single plaintext
+ * funnel from both write and write_vectored.
+ */
+static const uint8_t codex_rustls_buffer_plaintext_prefix[] = {
+	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
+	0x54, 0x53, 0x48, 0x83, 0xec, 0x28, 0x49, 0x89,
+	0xd6, 0x48, 0x89, 0xf3, 0x4c, 0x8b, 0xa7, 0x08,
+	0x03, 0x00, 0x00,
+};
+#define CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET 0x1b
+static const uint8_t codex_rustls_buffer_plaintext_sentinel[] = {
+	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x80,
+};
+
 /* rustls 0.23 CommonState::buffer_plaintext, as emitted by rustc 1.92.
  * This stable prefix is shared by the supported stripped Grok binaries. */
 static const uint8_t grok_rustls_buffer_plaintext_prefix[] = {
@@ -162,6 +180,45 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 	munmap(data, (size_t)st.st_size);
 	close(fd);
 	return out->count > 0;
+}
+
+static bool codex_find_rustls_buffer_plaintext_offset(const char *binary_path,
+						       size_t *offset)
+{
+	struct stat st;
+	uint8_t *data;
+	size_t found;
+	int fd;
+
+	fd = open(binary_path, O_RDONLY);
+	if (fd < 0)
+		return false;
+	if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+		close(fd);
+		return false;
+	}
+	data = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == MAP_FAILED) {
+		close(fd);
+		return false;
+	}
+	found = codex_find_pattern(data, (size_t)st.st_size,
+				   codex_rustls_buffer_plaintext_prefix,
+				   sizeof(codex_rustls_buffer_plaintext_prefix));
+	if (found == (size_t)-1
+	    || found > (size_t)st.st_size
+		       - CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET
+		       - sizeof(codex_rustls_buffer_plaintext_sentinel)
+	    || memcmp(data + found + CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET,
+		      codex_rustls_buffer_plaintext_sentinel,
+		      sizeof(codex_rustls_buffer_plaintext_sentinel)) != 0)
+		found = (size_t)-1;
+	munmap(data, (size_t)st.st_size);
+	close(fd);
+	if (found == (size_t)-1)
+		return false;
+	*offset = found;
+	return true;
 }
 
 static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,

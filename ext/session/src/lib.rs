@@ -4,7 +4,8 @@
 //! Portable session IR, parsers, discovery, and process matching for local AI
 //! coding-agent transcripts.
 //!
-//! The crate currently normalizes Claude Code, Codex, and Gemini CLI sessions.
+//! The crate currently normalizes Claude Code, Codex, Gemini CLI, Cursor, and
+//! CodeBuddy CLI sessions.
 //! It intentionally stops at session data and process/session correlation; UI,
 //! database storage, eBPF collection, and OpenTelemetry export belong in
 //! extensions that consume this crate.
@@ -19,6 +20,7 @@ pub const AGENT_CLAUDE: &str = "claude";
 pub const AGENT_CODEX: &str = "codex";
 pub const AGENT_GEMINI: &str = "gemini";
 pub const AGENT_CURSOR: &str = "cursor";
+pub const AGENT_CODEBUDDY: &str = "codebuddy";
 
 pub const TRACE_EBPF_FILE: &str = "ebpf_file";
 pub const TRACE_PROC_FD: &str = "proc_fd";
