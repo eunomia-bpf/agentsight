@@ -24,6 +24,7 @@
 #include "container_info.h"
 #include "codex_offsets.h"
 #include "jsonl.h"
+#include "sslsniff_output.h"
 
 #define INVALID_UID -1
 #define INVALID_PID -1
@@ -625,19 +626,9 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Always include handshake field
 	printf("\"is_handshake\":%s,", event->is_handshake ? "true" : "false");
 
-	// Preserve exact bytes for masked WebSocket frames alongside readable text.
+	// Preserve exact TLS plaintext bytes for binary protocols such as HTTP/2.
 	if (buf_size > 0) {
-		// Text data
-		printf("\"data\":");
-		json_print_escaped_quoted(event_buf, buf_size);
-		printf(",");
-		if (buf_size >= 2 && (event_buf[0] & 0x80) && !(event_buf[0] & 0x30)
-		    && (event_buf[0] & 0x0f) <= 2 && (event_buf[1] & 0x80)) {
-			printf("\"data_hex\":\"");
-			for (unsigned int i = 0; i < buf_size; i++)
-				printf("%02x", (unsigned char)event_buf[i]);
-			printf("\",");
-		}
+		sslsniff_print_payload_fields(event_buf, buf_size);
 
 		// Add truncated info if data was truncated
 		if (buf_size < event->len) {
