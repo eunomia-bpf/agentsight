@@ -6,6 +6,7 @@
 
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -23,8 +24,28 @@ class RuntimeErrorWithContext(AssertionError):
     pass
 
 
+class SkipRuntimeTest(Exception):
+    pass
+
+
 def seed_pid_arg(pid):
     return ["--seed-pid", f"{pid}:0"]
+
+
+def has_hidden_host_pids():
+    """Detect a container PID namespace using the kernel's trace PID."""
+    marker = f"agentsight-pid-namespace-{uuid.uuid4().hex}"
+    try:
+        with open("/sys/kernel/tracing/trace_marker", "w") as trace:
+            trace.write(marker)
+        with open("/sys/kernel/tracing/trace", encoding="utf-8") as trace:
+            for line in trace:
+                if marker in line:
+                    match = re.search(r"-(\d+)\s+\[", line)
+                    return bool(match and int(match.group(1)) != os.getpid())
+    except OSError:
+        pass
+    return False
 
 
 class TracerSession:
@@ -158,6 +179,8 @@ def test_json_escaping_exec():
 
 
 def test_pid_filter_tracks_target_tree_only():
+    if has_hidden_host_pids():
+        raise SkipRuntimeTest("PID filter requires the host PID namespace")
     tempdir, target, trigger, done, marker = run_controlled_parent()
     unrelated = f"agentsight-unrelated-{uuid.uuid4().hex}"
     sess = None
@@ -180,6 +203,8 @@ def test_pid_filter_tracks_target_tree_only():
 
 
 def test_session_filter_tracks_session_tree_only():
+    if has_hidden_host_pids():
+        raise SkipRuntimeTest("session filter requires the host PID namespace")
     tempdir, target, trigger, done, marker = run_controlled_parent(preexec_fn=os.setsid)
     unrelated = f"agentsight-session-unrelated-{uuid.uuid4().hex}"
     sess = None
@@ -321,8 +346,10 @@ def test_resolved_file_access():
         time.sleep(0.5)
         sess.stop()
         events = sess.events()
+        # The unique temporary path identifies this process even when BPF
+        # reports a host PID and Python sees a container namespace PID.
         files = [e for e in events if e.get("event") == "FILE_OPEN"
-                 and e.get("pid") == os.getpid() and e.get("filepath") == path]
+                 and e.get("filepath") == path]
         assert_true(len([e for e in files if e.get("read")]) == 1,
                     f"expected one deduplicated read: {files}")
         assert_true(len([e for e in files if e.get("write")]) == 1,
@@ -359,12 +386,16 @@ def main():
         return 1
 
     failures = 0
+    skipped = 0
     print("Running process runtime tests")
     for test in TESTS:
         name = test.__name__
         try:
             test()
             print(f"[PASS] {name}")
+        except SkipRuntimeTest as exc:
+            skipped += 1
+            print(f"[SKIP] {name}: {exc}")
         except Exception as exc:
             failures += 1
             print(f"[FAIL] {name}: {exc}")
@@ -372,7 +403,7 @@ def main():
     if failures:
         print(f"process runtime tests failed: {failures}/{len(TESTS)}")
         return 1
-    print(f"process runtime tests passed: {len(TESTS)}")
+    print(f"process runtime tests passed: {len(TESTS) - skipped}; skipped: {skipped}")
     return 0
 
 
