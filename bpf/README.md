@@ -12,9 +12,9 @@ An advanced eBPF-based process monitoring tool that traces process lifecycles an
 
 **Key Features:**
 - Monitor process creation and termination
-- Track file open operations with deduplication
+- Track successful regular-file reads, writes, and executable opens with resolved paths
 - Configurable filtering modes for different monitoring levels
-- 60-second sliding window aggregation for repetitive file opens
+- Kernel LRU deduplication by process, file, access, and overlay layer
 - JSON output format for integration with analysis frameworks
 - Verbose debugging mode for troubleshooting
 
@@ -64,11 +64,18 @@ sudo ./process -c "curl,wget" -d 500
 ```
 
 **File Open Deduplication:**
-- First occurrence of file opens reported immediately (`count=1`)
-- Subsequent identical file opens within 60-second window are aggregated
-- Aggregated results reported when window expires (`count=N`)
-- All pending aggregations flushed on process exit
-- Reduces event volume by 80-95% for repetitive file opens
+- On kernels with `security_file_open` fexit and `bpf_d_path`, the first successful
+  regular-file open for each process, file, access, and overlay layer is reported
+  (`count=1`). A later read, write, or exec access gets its own record. The
+  kernel LRU can evict entries; a later open then reports that file again.
+- `filepath` is resolved in the opener's mount namespace. `layer:true` marks
+  an overlay layer open, with `dev` and `ino` naming the underlying file.
+  Container-runtime layer opens using initial-namespace mount credentials are
+  suppressed. A failed path resolution has an empty `filepath` and `path_error`.
+- Kernels without this hook or helper use the original syscall-entry path and
+  60-second userspace aggregation. Those paths may be relative and failed opens
+  can appear. The loader prints a fallback notice to stderr.
+- `FILE_OPEN_LOST` reports ring-buffer reservations and BPF recursion misses.
 
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
@@ -295,8 +302,11 @@ All events follow a common base schema with event-specific fields:
 
 **File Open Event Fields:**
 - `count`: Number of aggregated file opens (uint32)
-- `filepath`: Full path to the file being opened (string, max 256 chars)
+- `filepath`: Resolved path to the file being opened (string, max 511 bytes)
 - `flags`: File open flags (int32)
+- `read`, `write`, `exec`: Access bits on resolved file opens (boolean)
+- `layer`: Overlay layer open (boolean); `dev`, `ino`: underlying device and inode
+- `path_error`: Negative `bpf_d_path` error, if resolution failed
 - `window_expired`: Present when aggregation window expires (boolean, optional)
 - `reason`: Why aggregation was flushed (string, optional: "process_exit")
 
@@ -342,7 +352,13 @@ All events follow a common base schema with event-specific fields:
   "pid": 1234,
   "count": 1,
   "filepath": "/etc/passwd",
-  "flags": 0
+  "flags": 0,
+  "read": true,
+  "write": false,
+  "exec": false,
+  "layer": false,
+  "dev": 2049,
+  "ino": 12345
 }
 
 {

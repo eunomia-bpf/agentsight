@@ -272,6 +272,46 @@ def test_trace_net_summary_events():
         sess.cleanup()
 
 
+def test_resolved_file_access():
+    tempdir = tempfile.TemporaryDirectory(prefix="agentsight-file-access-")
+    path = os.path.join(tempdir.name, "sample.txt")
+    missing = os.path.join(tempdir.name, "missing.txt")
+    sess = TracerSession("-m", "0")
+    try:
+        if "resolved file opens unavailable" in sess.stderr_text():
+            print("[SKIP] resolved file hook unavailable; syscall fallback active")
+            return
+        with open(path, "w") as file:
+            file.write("data")
+        for _ in range(2):
+            with open(path, "r") as file:
+                assert file.read() == "data"
+        try:
+            open(missing, "r").close()
+        except FileNotFoundError:
+            pass
+        subprocess.run(["/bin/true"], check=True)
+        time.sleep(0.5)
+        sess.stop()
+        events = sess.events()
+        files = [e for e in events if e.get("event") == "FILE_OPEN"
+                 and e.get("pid") == os.getpid() and e.get("filepath") == path]
+        assert_true(len([e for e in files if e.get("read")]) == 1,
+                    f"expected one deduplicated read: {files}")
+        assert_true(len([e for e in files if e.get("write")]) == 1,
+                    f"expected one write: {files}")
+        assert_true(all(isinstance(e.get("dev"), int) and e.get("ino") for e in files),
+                    f"missing real file identity: {files}")
+        assert_true(not any(e.get("filepath") == missing for e in events),
+                    "failed open was reported")
+        assert_true(any(e.get("event") == "FILE_OPEN" and e.get("exec")
+                        and e.get("filepath", "").endswith("/true") for e in events),
+                    "executable file open was not reported")
+    finally:
+        sess.cleanup()
+        tempdir.cleanup()
+
+
 TESTS = [
     test_json_escaping_exec,
     test_pid_filter_tracks_target_tree_only,
@@ -279,6 +319,7 @@ TESTS = [
     test_filter_mode_without_selector_does_not_fallback,
     test_trace_fs_summary_events,
     test_trace_net_summary_events,
+    test_resolved_file_access,
 ]
 
 
