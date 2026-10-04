@@ -7,6 +7,20 @@
 #include "process.h"
 #include "process_ext/bpf_state.h"
 
+#define S_IFMT 00170000
+#define S_IFREG 0100000
+#define FMODE_READ 1
+#define FMODE_WRITE 2
+#define FMODE_EXEC 0x20
+#define FMODE_EXEC_FLAG_OLD 040000000
+#define PF_KTHREAD 0x00200000
+#define SB_KERNMOUNT (1 << 22)
+#define NSFS_MAGIC 0x6e736673
+#define PID_FS_MAGIC 0x50494446
+#define INIT_USER_NS_INO 0xEFFFFFFDU
+#define EEXIST 17
+#define EINVAL 22
+
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
 struct {
@@ -18,8 +32,33 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
-	__uint(max_entries, 256 * 1024);
+	__uint(max_entries, 1024 * 1024);
 } rb SEC(".maps");
+
+/* A failed ring reservation is visible even if no later event is delivered. */
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, u32);
+	__type(value, u64);
+} file_open_dropped SEC(".maps");
+
+struct file_open_key {
+	u64 start_time;
+	u64 exec_id;
+	u64 mnt;
+	u64 dentry;
+	u64 ino;
+	u32 tgid;
+	u32 access_layer;
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 65536);
+	__type(key, struct file_open_key);
+	__type(value, u8);
+} file_opens_seen SEC(".maps");
 
 const volatile unsigned long long min_duration_ns = 0;
 
@@ -264,6 +303,7 @@ int trace_openat(struct trace_event_raw_sys_enter *ctx)
 	e->file_op.fd = -1; /* Will be set on return if needed */
 	e->file_op.flags = flags;
 	e->file_op.is_open = true;
+	e->file_op.resolved = false;
 
 	/* Submit to user-space */
 	bpf_ringbuf_submit(e, 0);
@@ -313,8 +353,111 @@ int trace_open(struct trace_event_raw_sys_enter *ctx)
 	e->file_op.fd = -1;
 	e->file_op.flags = flags;
 	e->file_op.is_open = true;
+	e->file_op.resolved = false;
 
 	/* Submit to user-space */
+	bpf_ringbuf_submit(e, 0);
+	return 0;
+}
+
+static __always_inline void count_file_open_drop(void)
+{
+	u32 zero = 0;
+	u64 *count = bpf_map_lookup_elem(&file_open_dropped, &zero);
+	if (count)
+		__sync_fetch_and_add(count, 1);
+}
+
+/* security_file_open runs after path resolution for open/openat/openat2,
+ * io_uring and exec, including the ELF interpreter. fexit excludes denied
+ * opens. The old syscall hooks remain available on kernels lacking this hook
+ * or bpf_d_path. */
+SEC("fexit/security_file_open")
+int BPF_PROG(trace_file_open_exit, struct file *file)
+{
+	struct event *e;
+	struct file_open_key key = {};
+	struct task_struct *task, *leader;
+	struct inode *inode;
+	struct super_block *sb;
+	struct vfsmount *vfs;
+	struct mount *mnt;
+	u64 ret;
+	u32 mode, flags, access = 0;
+	bool layer;
+	u8 present = 1;
+	long path_len;
+
+	if (bpf_get_func_ret(ctx, &ret) || (int)ret || !is_event_tracked())
+		return 0;
+	task = (struct task_struct *)bpf_get_current_task();
+	if (BPF_CORE_READ(task, flags) & PF_KTHREAD)
+		return 0;
+	inode = BPF_CORE_READ(file, f_inode);
+	if ((BPF_CORE_READ(inode, i_mode) & S_IFMT) != S_IFREG)
+		return 0;
+	sb = BPF_CORE_READ(inode, i_sb);
+	if (BPF_CORE_READ(sb, s_magic) == NSFS_MAGIC ||
+	    BPF_CORE_READ(sb, s_magic) == PID_FS_MAGIC)
+		return 0;
+	vfs = BPF_CORE_READ(file, f_path.mnt);
+	mnt = (void *)vfs - bpf_core_field_offset(struct mount, mnt);
+	layer = ((long)BPF_CORE_READ(mnt, mnt_ns) == -EINVAL &&
+		 !(BPF_CORE_READ(sb, s_flags) & SB_KERNMOUNT)) ||
+		inode != BPF_CORE_READ(file, f_path.dentry, d_inode);
+	/* Container-runtime overlay mounts use credentials from the initial
+	 * user namespace. Their layer opens duplicate a logical file open. */
+	if (layer && BPF_CORE_READ(file, f_cred, user_ns, ns.inum) == INIT_USER_NS_INO)
+		return 0;
+
+	mode = BPF_CORE_READ(file, f_mode);
+	flags = BPF_CORE_READ(file, f_flags);
+	if (mode & FMODE_READ)
+		access |= FILE_ACCESS_READ;
+	if (mode & FMODE_WRITE)
+		access |= FILE_ACCESS_WRITE;
+	/* On newer kernels __FMODE_EXEC is 0x20 in f_flags at this hook;
+	 * older kernels can use the high flag bit or f_mode. */
+	if ((mode & FMODE_EXEC) || (flags & (FMODE_EXEC | FMODE_EXEC_FLAG_OLD)))
+		access |= FILE_ACCESS_EXEC;
+	leader = BPF_CORE_READ(task, group_leader);
+	key.start_time = BPF_CORE_READ(leader, start_time);
+	key.exec_id = BPF_CORE_READ(leader, self_exec_id);
+	key.tgid = bpf_get_current_pid_tgid() >> 32;
+	key.mnt = (u64)vfs;
+	key.dentry = (u64)BPF_CORE_READ(file, f_path.dentry);
+	key.ino = BPF_CORE_READ(inode, i_ino);
+	key.access_layer = access | (layer << 8);
+	if (bpf_map_update_elem(&file_opens_seen, &key, &present, BPF_NOEXIST) == -EEXIST)
+		return 0;
+
+	e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
+	if (!e) {
+		bpf_map_delete_elem(&file_opens_seen, &key);
+		count_file_open_drop();
+		return 0;
+	}
+	e->type = EVENT_TYPE_FILE_OPERATION;
+	e->pid = key.tgid;
+	e->ppid = 0;
+	e->exit_code = 0;
+	e->duration_ns = 0;
+	e->timestamp_ns = bpf_ktime_get_ns();
+	e->exit_event = false;
+	bpf_get_current_comm(&e->comm, sizeof(e->comm));
+	e->file_op.fd = -1;
+	e->file_op.flags = flags;
+	e->file_op.is_open = true;
+	e->file_op.resolved = true;
+	e->file_op.layer = layer;
+	e->file_op.access = access;
+	e->file_op.dev = BPF_CORE_READ(sb, s_dev);
+	e->file_op.ino = key.ino;
+	path_len = bpf_d_path(&file->f_path, e->file_op.filepath,
+			      sizeof(e->file_op.filepath));
+	e->file_op.path_error = path_len < 0 ? (int)path_len : 0;
+	if (path_len < 1)
+		e->file_op.filepath[0] = '\0';
 	bpf_ringbuf_submit(e, 0);
 	return 0;
 }

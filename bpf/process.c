@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
+#include <bpf/btf.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -94,6 +95,8 @@ static int g_tracked_pids_fd = -1;
 static int g_tracked_cgroups_fd = -1;
 static int g_overflow_fd = -1;
 static int g_exit_mem_fd = -1;
+static int g_file_open_dropped_fd = -1;
+static uint64_t g_file_open_drops_reported;
 static long page_size_kb;
 
 const char *argp_program_version = "process-tracer 1.0";
@@ -364,6 +367,39 @@ static void json_escape_field(const char *src, char *dst, size_t dst_size)
 	json_escape(src ? src : "", dst, dst_size);
 }
 
+static bool can_trace_resolved_opens(void)
+{
+	struct btf *btf = btf__load_vmlinux_btf();
+	bool has_hook = btf && btf__find_by_name_kind(btf,
+		"security_file_open", BTF_KIND_FUNC) >= 0;
+	btf__free(btf);
+	return has_hook && libbpf_probe_bpf_helper(BPF_PROG_TYPE_TRACING,
+		BPF_FUNC_d_path, NULL) == 1;
+}
+
+static void report_file_open_drops(void)
+{
+	uint32_t zero = 0;
+	int ncpus = libbpf_num_possible_cpus();
+	if (g_file_open_dropped_fd < 0 || ncpus <= 0)
+		return;
+	uint64_t *counts = calloc(ncpus, sizeof(*counts));
+	if (!counts)
+		return;
+	if (!bpf_map_lookup_elem(g_file_open_dropped_fd, &zero, counts)) {
+		uint64_t total = 0;
+		for (int i = 0; i < ncpus; i++)
+			total += counts[i];
+		if (total > g_file_open_drops_reported) {
+			printf("{\"event\":\"FILE_OPEN_LOST\",\"count\":%llu}\n",
+				(unsigned long long)(total - g_file_open_drops_reported));
+			fflush(stdout);
+			g_file_open_drops_reported = total;
+		}
+	}
+	free(counts);
+}
+
 #define SET_AUTOLOAD(name, enabled) bpf_program__set_autoload(skel->progs.name, enabled)
 
 static void configure_optional_programs(struct process_bpf *skel)
@@ -448,7 +484,7 @@ static bool should_rate_limit_file(const struct event *e, uint64_t timestamp_ns,
 static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, uint32_t count, const char *extra_fields)
 {
 	char comm_esc[TASK_COMM_LEN * 2 + 1];
-	char filepath_esc[MAX_FILENAME_LEN * 2 + 1];
+	char filepath_esc[MAX_FILE_PATH_LEN * 6 + 1];
 
 	json_escape_field(e->comm, comm_esc, sizeof(comm_esc));
 	json_escape_field(e->file_op.filepath, filepath_esc, sizeof(filepath_esc));
@@ -461,6 +497,17 @@ static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, 
 	printf("\"count\":%u,", count);
 	printf("\"filepath\":\"%s\",", filepath_esc);
 	printf("\"flags\":%d", e->file_op.flags);
+	if (e->file_op.resolved) {
+		printf(",\"read\":%s,\"write\":%s,\"exec\":%s,\"layer\":%s,"
+		       "\"dev\":%u,\"ino\":%llu",
+		       e->file_op.access & FILE_ACCESS_READ ? "true" : "false",
+		       e->file_op.access & FILE_ACCESS_WRITE ? "true" : "false",
+		       e->file_op.access & FILE_ACCESS_EXEC ? "true" : "false",
+		       e->file_op.layer ? "true" : "false",
+		       e->file_op.dev, e->file_op.ino);
+		if (e->file_op.path_error)
+			printf(",\"path_error\":%d", e->file_op.path_error);
+	}
 	
 	if (extra_fields && strlen(extra_fields) > 0) {
 		printf(",%s", extra_fields);
@@ -491,6 +538,12 @@ static uint64_t hash_file_open(const struct event *e)
 // Get count for FILE_OPEN operations (handles deduplication internally)
 static uint32_t get_file_open_count(const struct event *e, uint64_t timestamp_ns, char *warning_msg, size_t warning_msg_size)
 {
+	/* The resolved path already has a per-(process,file,access,layer) LRU
+	 * in BPF. A second path-only dedup would hide a later write or exec. */
+	if (e->file_op.resolved) {
+		warning_msg[0] = '\0';
+		return 1;
+	}
 	if (e->type != EVENT_TYPE_FILE_OPERATION || !e->file_op.is_open) {
 		return 1;  // Return count of 1 for non-FILE_OPEN operations
 	}
@@ -889,6 +942,12 @@ int main(int argc, char **argv)
 	}
 
 	configure_optional_programs(skel);
+	bool resolved_opens = can_trace_resolved_opens();
+	bpf_program__set_autoload(skel->progs.trace_file_open_exit, resolved_opens);
+	bpf_program__set_autoload(skel->progs.trace_openat, !resolved_opens);
+	bpf_program__set_autoload(skel->progs.trace_open, !resolved_opens);
+	if (!resolved_opens)
+		fprintf(stderr, "process: resolved file opens unavailable; using syscall fallback\n");
 
 	/* Parameterize BPF code with minimum duration */
 	skel->rodata->min_duration_ns = env.min_duration_ms * 1000000ULL;
@@ -928,6 +987,8 @@ int main(int argc, char **argv)
 	g_tracked_cgroups_fd = bpf_map__fd(skel->maps.tracked_cgroups);
 	g_overflow_fd = bpf_map__fd(skel->maps.agg_overflow_count);
 	g_exit_mem_fd = bpf_map__fd(skel->maps.exit_mem);
+	g_file_open_dropped_fd = resolved_opens ?
+		bpf_map__fd(skel->maps.file_open_dropped) : -1;
 
 	if (need_cgroup_filter && env.cgroup_filter_children) {
 		int cgroups = populate_cgroup_filter_map(env.cgroup_filter_path, true, g_tracked_cgroups_fd);
@@ -978,6 +1039,7 @@ int main(int argc, char **argv)
 		int poll_ms = POLL_TIMEOUT_MS;
 
 		err = ring_buffer__poll(rb, poll_ms);
+		report_file_open_drops();
 		/* Ctrl-C will cause -EINTR */
 		if (err == -EINTR) {
 			err = 0;
@@ -1010,6 +1072,7 @@ int main(int argc, char **argv)
 
 	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
+	report_file_open_drops();
 	print_clock_sync_anchor("end");
 
 cleanup:

@@ -169,6 +169,11 @@ agentsight report export -o snapshot.json    # export for web dashboard; see doc
 agentsight report --local                    # summarize native Claude/Codex/Gemini sessions
 ```
 
+On supported Linux kernels, process `FILE_OPEN` events include resolved paths,
+read/write/exec access, and overlay layer and inode metadata. See the
+[process probe reference](bpf/README.md#1-process-tracer-process) for the JSON
+fields and older-kernel fallback.
+
 ### Offline Agent pprof Profiles
 
 Use `agentpprof` when you want a no-sudo pprof/folded-stack/SVG summary of
