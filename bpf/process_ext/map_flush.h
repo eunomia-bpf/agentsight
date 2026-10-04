@@ -24,6 +24,7 @@ static const char *event_type_name(unsigned int type)
 	case EVENT_TYPE_NET_BIND:      return "NET_BIND";
 	case EVENT_TYPE_NET_LISTEN:    return "NET_LISTEN";
 	case EVENT_TYPE_NET_CONNECT:   return "NET_CONNECT";
+	case EVENT_TYPE_NET_ACCEPT:    return "NET_ACCEPT";
 	case EVENT_TYPE_PGRP_CHANGE:   return "PGRP_CHANGE";
 	case EVENT_TYPE_SESSION_CREATE:return "SESSION_CREATE";
 	case EVENT_TYPE_SIGNAL_SEND:   return "SIGNAL_SEND";
@@ -98,6 +99,13 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 
 	if (val->total_bytes > 0)
 		printf(",\"total_bytes\":%llu", (unsigned long long)val->total_bytes);
+	if (key->protocol) {
+		const char *protocol = key->protocol == 6 ? "tcp" :
+			key->protocol == 17 ? "udp" :
+			key->protocol == 136 ? "udplite" :
+			key->protocol == 1 ? "icmp" : "icmpv6";
+		printf(",\"protocol\":\"%s\",\"port\":%u", protocol, key->port);
+	}
 
 	if (key->event_type == EVENT_TYPE_WRITE && parsed_fd) {
 		printf(",\"fd\":%d", fd);

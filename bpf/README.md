@@ -77,6 +77,15 @@ sudo ./process -c "curl,wget" -d 500
   can appear. The loader prints a fallback notice to stderr.
 - `FILE_OPEN_LOST` reports ring-buffer reservations and BPF recursion misses.
 
+**Network evidence (`--trace-net`):**
+- Existing `NET_BIND`, `NET_LISTEN`, and `NET_CONNECT` summaries remain available.
+- Successful UDP, UDP-Lite, and ICMP echo binds add a `NET_BIND` summary with
+  `protocol` and the assigned local `port`, including when the application binds
+  port zero. For IPv4, `detail` contains the local address and assigned port.
+- `NET_ACCEPT` reports each TCP peer once per process and listener port. Its
+  `port` is the listener port; repeated accepts from that peer are deduplicated.
+  `AGG_MAP_OVERFLOW` warns when the shared summary map cannot store an event.
+
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
 - Reports aggregation window expirations

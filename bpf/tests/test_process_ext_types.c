@@ -74,8 +74,11 @@ static void test_agg_key_field_sizes(void)
 	 *   __u32  pid;              4 bytes
 	 *   __u32  event_type;       4 bytes
 	 *   char   detail[64];      64 bytes
+	 *   __u16  port;              2 bytes
+	 *   __u8   protocol;          1 byte
+	 *   padding;                  1 byte
 	 *   ---------------------
-	 *   total: 72 bytes (no padding needed — everything is naturally aligned)
+	 *   total: 76 bytes
 	 */
 	test_assert(sizeof((__u32){0}) == 4, "__u32 is 4 bytes");
 	test_assert(sizeof(((struct agg_key *)0)->pid) == 4,
@@ -91,15 +94,14 @@ static void test_agg_key_total_size(void)
 	printf("\n" BLUE "Testing struct agg_key total size:" RESET "\n");
 
 	/*
-	 * pid (4) + event_type (4) + detail[64] = 72 bytes.
-	 * There should be no interior padding since the first two fields are
-	 * 4-byte aligned and the char array follows them.
+	 * pid (4) + event_type (4) + detail[64] + port (2) + protocol (1)
+	 * + trailing alignment (1) = 76 bytes.
 	 */
-	size_t expected = 4 + 4 + DETAIL_LEN;
+	size_t expected = 4 + 4 + DETAIL_LEN + 4;
 	printf("  sizeof(struct agg_key) = %zu (expected %zu)\n",
 	       sizeof(struct agg_key), expected);
 	test_assert(sizeof(struct agg_key) == expected,
-	            "sizeof(agg_key) == 4+4+DETAIL_LEN");
+	            "sizeof(agg_key) includes network fields");
 }
 
 static void test_agg_key_field_offsets(void)
