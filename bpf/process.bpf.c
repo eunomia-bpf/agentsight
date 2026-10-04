@@ -388,7 +388,9 @@ int BPF_PROG(trace_file_open_exit, struct file *file)
 	u8 present = 1;
 	long path_len;
 
-	if (bpf_get_func_ret(ctx, &ret) || (int)ret || !is_event_tracked())
+	/* Keep PID/comm filtering in the existing userspace tracker so an open
+	 * racing the process exec event is handled in ring-buffer order. */
+	if (bpf_get_func_ret(ctx, &ret) || (int)ret || !is_cgroup_tracked())
 		return 0;
 	task = (struct task_struct *)bpf_get_current_task();
 	if (BPF_CORE_READ(task, flags) & PF_KTHREAD)

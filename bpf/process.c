@@ -96,6 +96,7 @@ static int g_tracked_cgroups_fd = -1;
 static int g_overflow_fd = -1;
 static int g_exit_mem_fd = -1;
 static int g_file_open_dropped_fd = -1;
+static int g_file_open_prog_fd = -1;
 static uint64_t g_file_open_drops_reported;
 static long page_size_kb;
 
@@ -373,8 +374,9 @@ static bool can_trace_resolved_opens(void)
 	bool has_hook = btf && btf__find_by_name_kind(btf,
 		"security_file_open", BTF_KIND_FUNC) >= 0;
 	btf__free(btf);
-	return has_hook && libbpf_probe_bpf_helper(BPF_PROG_TYPE_TRACING,
-		BPF_FUNC_d_path, NULL) == 1;
+	/* libbpf_probe_bpf_helper deliberately returns -EOPNOTSUPP for tracing
+	 * programs. Load the real fexit program to test bpf_d_path instead. */
+	return has_hook;
 }
 
 static void report_file_open_drops(void)
@@ -390,8 +392,19 @@ static void report_file_open_drops(void)
 		uint64_t total = 0;
 		for (int i = 0; i < ncpus; i++)
 			total += counts[i];
+		if (g_file_open_prog_fd >= 0) {
+			struct bpf_prog_info info = {};
+			uint32_t info_len = sizeof(info);
+			if (!bpf_prog_get_info_by_fd(g_file_open_prog_fd, &info, &info_len))
+				total += info.recursion_misses;
+		}
 		if (total > g_file_open_drops_reported) {
-			printf("{\"event\":\"FILE_OPEN_LOST\",\"count\":%llu}\n",
+			struct timespec now = {};
+			clock_gettime(CLOCK_BOOTTIME, &now);
+			uint64_t timestamp_ns = (uint64_t)now.tv_sec * 1000000000ULL + now.tv_nsec;
+			printf("{\"timestamp\":%llu,\"event\":\"FILE_OPEN_LOST\","
+			       "\"pid\":0,\"comm\":\"process\",\"count\":%llu}\n",
+				(unsigned long long)timestamp_ns,
 				(unsigned long long)(total - g_file_open_drops_reported));
 			fflush(stdout);
 			g_file_open_drops_reported = total;
@@ -434,6 +447,26 @@ static void configure_optional_programs(struct process_bpf *skel)
 }
 
 #undef SET_AUTOLOAD
+
+static void configure_process_skel(struct process_bpf *skel, bool resolved_opens,
+				   bool need_pid_filter, bool need_cgroup_filter,
+				   uint64_t cgroup_filter_id)
+{
+	configure_optional_programs(skel);
+	bpf_program__set_autoload(skel->progs.trace_file_open_exit, resolved_opens);
+	bpf_program__set_autoload(skel->progs.trace_openat, !resolved_opens);
+	bpf_program__set_autoload(skel->progs.trace_open, !resolved_opens);
+	skel->rodata->min_duration_ns = env.min_duration_ms * 1000000ULL;
+	skel->rodata->trace_fs_mutations = env.trace_fs;
+	skel->rodata->trace_network = env.trace_net;
+	skel->rodata->trace_signals = env.trace_signals;
+	skel->rodata->trace_memory = env.trace_mem;
+	skel->rodata->trace_cow = env.trace_cow;
+	skel->rodata->filter_pids = need_pid_filter;
+	skel->rodata->filter_cgroup = need_cgroup_filter;
+	skel->rodata->filter_cgroup_children = env.cgroup_filter_children;
+	skel->rodata->target_cgroup_id = cgroup_filter_id;
+}
 
 // Rate limiting check function
 static bool should_rate_limit_file(const struct event *e, uint64_t timestamp_ns, bool *add_warning) {
@@ -941,24 +974,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	configure_optional_programs(skel);
 	bool resolved_opens = can_trace_resolved_opens();
-	bpf_program__set_autoload(skel->progs.trace_file_open_exit, resolved_opens);
-	bpf_program__set_autoload(skel->progs.trace_openat, !resolved_opens);
-	bpf_program__set_autoload(skel->progs.trace_open, !resolved_opens);
-	if (!resolved_opens)
-		fprintf(stderr, "process: resolved file opens unavailable; using syscall fallback\n");
-
-	/* Parameterize BPF code with minimum duration */
-	skel->rodata->min_duration_ns = env.min_duration_ms * 1000000ULL;
-	skel->rodata->trace_fs_mutations = env.trace_fs;
-	skel->rodata->trace_network = env.trace_net;
-	skel->rodata->trace_signals = env.trace_signals;
-	skel->rodata->trace_memory = env.trace_mem;
-	skel->rodata->trace_cow = env.trace_cow;
 
 	bool need_pid_filter = env.filter_mode == FILTER_MODE_FILTER;
-	skel->rodata->filter_pids = need_pid_filter;
 
 	bool need_cgroup_filter = false;
 	uint64_t cgroup_filter_id = 0;
@@ -971,12 +989,26 @@ int main(int argc, char **argv)
 		}
 		need_cgroup_filter = true;
 	}
-	skel->rodata->filter_cgroup = need_cgroup_filter;
-	skel->rodata->filter_cgroup_children = env.cgroup_filter_children;
-	skel->rodata->target_cgroup_id = cgroup_filter_id;
+	configure_process_skel(skel, resolved_opens, need_pid_filter,
+			       need_cgroup_filter, cgroup_filter_id);
 
 	/* Load & verify BPF programs */
 	err = process_bpf__load(skel);
+	if (err && resolved_opens) {
+		fprintf(stderr, "process: resolved file hook failed to load; using syscall fallback\n");
+		process_bpf__destroy(skel);
+		skel = process_bpf__open();
+		if (!skel) {
+			err = -ENOMEM;
+			goto cleanup;
+		}
+		resolved_opens = false;
+		configure_process_skel(skel, resolved_opens, need_pid_filter,
+				       need_cgroup_filter, cgroup_filter_id);
+		err = process_bpf__load(skel);
+	} else if (!resolved_opens) {
+		fprintf(stderr, "process: resolved file opens unavailable; using syscall fallback\n");
+	}
 	if (err) {
 		fprintf(stderr, "Failed to load and verify BPF skeleton\n");
 		goto cleanup;
@@ -989,6 +1021,8 @@ int main(int argc, char **argv)
 	g_exit_mem_fd = bpf_map__fd(skel->maps.exit_mem);
 	g_file_open_dropped_fd = resolved_opens ?
 		bpf_map__fd(skel->maps.file_open_dropped) : -1;
+	g_file_open_prog_fd = resolved_opens ?
+		bpf_program__fd(skel->progs.trace_file_open_exit) : -1;
 
 	if (need_cgroup_filter && env.cgroup_filter_children) {
 		int cgroups = populate_cgroup_filter_map(env.cgroup_filter_path, true, g_tracked_cgroups_fd);

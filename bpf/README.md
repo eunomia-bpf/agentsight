@@ -75,7 +75,7 @@ sudo ./process -c "curl,wget" -d 500
 - Kernels without this hook or helper use the original syscall-entry path and
   60-second userspace aggregation. Those paths may be relative and failed opens
   can appear. The loader prints a fallback notice to stderr.
-- `FILE_OPEN_LOST` reports ring-buffer reservations that could not be made.
+- `FILE_OPEN_LOST` reports ring-buffer reservations and BPF recursion misses.
 
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
