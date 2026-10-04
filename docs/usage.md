@@ -87,6 +87,11 @@ ring-buffer drops and BPF recursion misses. On older kernels, the probe
 announces its syscall fallback on stderr and retains the original `FILE_OPEN`
 fields and aggregation behavior.
 
+With `--trace-net`, the process probe also summarizes TCP listeners and accepted
+peers, and successful UDP or ICMP echo binds. Datagram `NET_BIND` records add
+`protocol` and the kernel-assigned local `port`; existing summary fields remain
+available to JSONL consumers.
+
 ## Open this machine in the hosted app
 
 Run the unprivileged binding command to open this Node in the default hosted

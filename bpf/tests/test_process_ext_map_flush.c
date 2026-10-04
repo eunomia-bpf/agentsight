@@ -74,6 +74,8 @@ static void test_event_type_name_known_types(void)
 	            "NET_LISTEN(21) -> \"NET_LISTEN\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_NET_CONNECT),    "NET_CONNECT")    == 0,
 	            "NET_CONNECT(22) -> \"NET_CONNECT\"");
+	test_assert(strcmp(event_type_name(EVENT_TYPE_NET_ACCEPT),     "NET_ACCEPT")     == 0,
+	            "NET_ACCEPT(23) -> \"NET_ACCEPT\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_PGRP_CHANGE),    "PGRP_CHANGE")    == 0,
 	            "PGRP_CHANGE(30) -> \"PGRP_CHANGE\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_SESSION_CREATE), "SESSION_CREATE") == 0,
@@ -308,6 +310,23 @@ static void test_print_summary_json_optional_total_bytes(void)
 	            "total_bytes present when non-zero");
 }
 
+static void test_print_summary_json_network_fields(void)
+{
+	struct agg_key key = {.pid = 42, .event_type = EVENT_TYPE_NET_BIND,
+		.port = 54321, .protocol = 17};
+	struct agg_value val = {.last_ts = 1, .count = 1};
+	strcpy(key.detail, "127.0.0.1:54321");
+	strcpy(val.comm, "python");
+	char buf[1024];
+	int n = capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(n > 0 && strstr(buf, "\"protocol\":\"udp\",\"port\":54321"),
+	            "datagram bind includes protocol and assigned port");
+	key.protocol = 0;
+	n = capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(n > 0 && !strstr(buf, "\"protocol\"") && !strstr(buf, "\"port\""),
+	            "existing summaries keep their original JSON fields");
+}
+
 static void test_print_summary_json_optional_extra(void)
 {
 	printf("\n" BLUE "Testing print_summary_json() — optional extra field:" RESET "\n");
@@ -428,6 +447,7 @@ int main(void)
 	/* print_summary_json */
 	test_print_summary_json_basic_fields();
 	test_print_summary_json_optional_total_bytes();
+	test_print_summary_json_network_fields();
 	test_print_summary_json_optional_extra();
 	test_print_summary_json_escaped_fields();
 	test_print_summary_json_newline_terminated();

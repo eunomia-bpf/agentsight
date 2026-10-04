@@ -256,18 +256,45 @@ def test_trace_net_summary_events():
         port = server.getsockname()[1]
         server.listen(1)
 
-        client = socket.socket()
-        client.connect(("127.0.0.1", port))
-        conn, _ = server.accept()
-        client.close()
-        conn.close()
+        for _ in range(2):
+            client = socket.socket()
+            client.connect(("127.0.0.1", port))
+            conn, _ = server.accept()
+            client.close()
+            conn.close()
         server.close()
+
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp.bind(("127.0.0.1", 0))
+        udp_port = udp.getsockname()[1]
+        udp.close()
+
+        icmp_port = None
+        try:
+            icmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_ICMP)
+            icmp.bind(("127.0.0.1", 0))
+            icmp_port = icmp.getsockname()[1]
+            icmp.close()
+        except OSError:
+            pass  # Ping sockets depend on the host's ping_group_range policy.
 
         time.sleep(0.5)
         sess.stop()
-        types = summary_types(sess.events())
-        required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT"}
+        events = sess.events()
+        types = summary_types(events)
+        required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT", "NET_ACCEPT"}
         assert_true(required.issubset(types), f"missing net SUMMARY types: {sorted(required - types)}")
+        binds = [e for e in events if e.get("type") == "NET_BIND" and e.get("pid") == os.getpid()]
+        assert_true(any(e.get("protocol") == "udp" and e.get("port") == udp_port
+                        and e.get("detail") == f"127.0.0.1:{udp_port}" for e in binds),
+                    f"missing assigned UDP port: {binds}")
+        if icmp_port is not None:
+            assert_true(any(e.get("protocol") == "icmp" and e.get("port") == icmp_port
+                            for e in binds), f"missing ICMP echo bind: {binds}")
+        peers = [e for e in events if e.get("type") == "NET_ACCEPT" and
+                 e.get("pid") == os.getpid() and e.get("port") == port]
+        assert_true(len(peers) == 1 and peers[0].get("count") == 1,
+                    f"accepted peer was not deduplicated: {peers}")
     finally:
         sess.cleanup()
 

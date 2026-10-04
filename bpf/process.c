@@ -379,6 +379,11 @@ static bool can_trace_resolved_opens(void)
 	return has_hook;
 }
 
+static bool has_btf_func(const struct btf *btf, const char *name)
+{
+	return btf && btf__find_by_name_kind(btf, name, BTF_KIND_FUNC) >= 0;
+}
+
 static void report_file_open_drops(void)
 {
 	uint32_t zero = 0;
@@ -436,6 +441,15 @@ static void configure_optional_programs(struct process_bpf *skel)
 	SET_AUTOLOAD(trace_bind, env.trace_net);
 	SET_AUTOLOAD(trace_listen, env.trace_net);
 	SET_AUTOLOAD(trace_connect, env.trace_net);
+	struct btf *btf = env.trace_net ? btf__load_vmlinux_btf() : NULL;
+	bool bind4_sk = has_btf_func(btf, "inet_bind_sk");
+	bool bind6_sk = has_btf_func(btf, "inet6_bind_sk");
+	SET_AUTOLOAD(trace_datagram_bind4_sk, env.trace_net && bind4_sk);
+	SET_AUTOLOAD(trace_datagram_bind6_sk, env.trace_net && bind6_sk);
+	SET_AUTOLOAD(trace_datagram_bind4, env.trace_net && !bind4_sk && has_btf_func(btf, "inet_bind"));
+	SET_AUTOLOAD(trace_datagram_bind6, env.trace_net && !bind6_sk && has_btf_func(btf, "inet6_bind"));
+	SET_AUTOLOAD(trace_accept_peer, env.trace_net && has_btf_func(btf, "inet_csk_accept"));
+	btf__free(btf);
 
 	SET_AUTOLOAD(trace_setpgid, env.trace_signals);
 	SET_AUTOLOAD(trace_setsid, env.trace_signals);
