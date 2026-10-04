@@ -309,7 +309,10 @@ def test_trace_net_summary_events():
         types = summary_types(events)
         required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT", "NET_ACCEPT"}
         assert_true(required.issubset(types), f"missing net SUMMARY types: {sorted(required - types)}")
-        binds = [e for e in events if e.get("type") == "NET_BIND" and e.get("pid") == os.getpid()]
+        # Ephemeral ports identify these sockets even when BPF reports host PIDs
+        # and this test sees container namespace PIDs.
+        binds = [e for e in events if e.get("type") == "NET_BIND"
+                 and e.get("port") in {udp_port, icmp_port}]
         assert_true(any(e.get("protocol") == "udp" and e.get("port") == udp_port
                         and e.get("detail") == f"127.0.0.1:{udp_port}" for e in binds),
                     f"missing assigned UDP port: {binds}")
@@ -317,7 +320,7 @@ def test_trace_net_summary_events():
             assert_true(any(e.get("protocol") == "icmp" and e.get("port") == icmp_port
                             for e in binds), f"missing ICMP echo bind: {binds}")
         peers = [e for e in events if e.get("type") == "NET_ACCEPT" and
-                 e.get("pid") == os.getpid() and e.get("port") == port]
+                 e.get("port") == port]
         assert_true(len(peers) == 1 and peers[0].get("count") == 1,
                     f"accepted peer was not deduplicated: {peers}")
     finally:
