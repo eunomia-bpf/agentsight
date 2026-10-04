@@ -1200,10 +1200,12 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         let old_home = std::env::var_os("HOME");
         let old_sudo_user = std::env::var_os("SUDO_USER");
+        let old_codex_home = std::env::var_os("CODEX_HOME");
         let temp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("HOME", temp.path());
             std::env::remove_var("SUDO_USER");
+            std::env::remove_var("CODEX_HOME");
         }
 
         let result = std::panic::catch_unwind(|| {
@@ -1253,6 +1255,10 @@ mod tests {
             match old_sudo_user {
                 Some(value) => std::env::set_var("SUDO_USER", value),
                 None => std::env::remove_var("SUDO_USER"),
+            }
+            match old_codex_home {
+                Some(value) => std::env::set_var("CODEX_HOME", value),
+                None => std::env::remove_var("CODEX_HOME"),
             }
         }
         assert!(result.is_ok());
