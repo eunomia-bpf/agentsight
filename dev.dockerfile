@@ -6,7 +6,7 @@ COPY . /root/
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
       libelf1 libelf-dev zlib1g-dev libclang-dev \
-      make git clang llvm pkg-config build-essential curl ca-certificates sudo && \
+      make git clang llvm pkg-config build-essential curl ca-certificates sudo python3 && \
     update-ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
