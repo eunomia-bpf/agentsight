@@ -144,6 +144,8 @@ static __always_inline u32 copy_rustls_iovec(
     if (copy_size > capacity)
         copy_size = capacity;
     barrier_var(copy_size);
+    /* Bound the signed range that the verifier carries into the helper. */
+    copy_size &= GROK_MAX_CAPTURE_SIZE * 2 - 1;
     if (copy_size > GROK_MAX_CAPTURE_SIZE)
         copy_size = GROK_MAX_CAPTURE_SIZE;
     if (copy_size == 0)

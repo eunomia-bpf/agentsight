@@ -1512,6 +1512,16 @@ mod tests {
         session.path = temp.path().join("session.json");
         session.cwd = Some(temp.path().to_string_lossy().to_string());
         std::fs::write(&session.path, b"{}\n").unwrap();
+        if unsafe { libc::geteuid() } == 0 {
+            use std::os::unix::ffi::OsStrExt;
+            let account = unsafe { libc::getpwnam(c"nobody".as_ptr()) };
+            assert!(!account.is_null(), "root test needs a non-root account");
+            let (uid, gid) = unsafe { ((*account).pw_uid, (*account).pw_gid) };
+            for path in [temp.path(), session.path.as_path()] {
+                let path = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+                assert_eq!(unsafe { libc::chown(path.as_ptr(), uid, gid) }, 0);
+            }
+        }
         let previous_program = std::env::var_os(GEMINI_BIN_ENV);
         unsafe {
             std::env::set_var(GEMINI_BIN_ENV, &program);

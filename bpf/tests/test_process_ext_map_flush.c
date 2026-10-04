@@ -183,7 +183,7 @@ static void test_json_escape_truncation(void)
 	json_escape("abcdefgh", dst, sizeof(dst));
 	/* Must be NUL-terminated and at most 3 payload chars. */
 	test_assert(strlen(dst) <= 3, "output is bounded by dst_size");
-	test_assert(dst[sizeof(dst) - 1] == '\0' || dst[3] == '\0',
+	test_assert(memchr(dst, '\0', sizeof(dst)) != NULL,
 	            "output is NUL-terminated");
 }
 
