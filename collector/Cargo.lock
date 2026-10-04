@@ -45,7 +45,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "libc",
- "log 0.4.34",
+ "log",
  "mime_guess",
  "qrcode",
  "ratatui",
@@ -76,12 +76,12 @@ dependencies = [
  "flate2",
  "futures",
  "hex",
- "hpack",
  "http-body-util",
  "hyper",
  "hyper-util",
  "libc",
- "log 0.4.34",
+ "log",
+ "loona-hpack",
  "num_cpus",
  "rusqlite",
  "serde",
@@ -105,7 +105,7 @@ dependencies = [
  "futures",
  "hex",
  "libc",
- "log 0.4.34",
+ "log",
  "num_cpus",
  "serde",
  "serde_json",
@@ -807,7 +807,7 @@ checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
 dependencies = [
  "humantime",
  "is-terminal",
- "log 0.4.34",
+ "log",
  "regex",
  "termcolor",
 ]
@@ -1025,7 +1025,7 @@ checksum = "e47d37d2ae4464254884b60ab7071be2b876a9c35b696bd018ddcc76847309cd"
 dependencies = [
  "aho-corasick",
  "bstr",
- "log 0.4.34",
+ "log",
  "regex-automata",
  "regex-syntax",
 ]
@@ -1097,13 +1097,13 @@ dependencies = [
  "auto_generate_cdp",
  "base64 0.22.1",
  "derive_builder",
- "log 0.4.34",
+ "log",
  "rand 0.10.2",
  "regex",
  "serde",
  "serde_json",
  "tempfile",
- "thiserror",
+ "thiserror 2.0.20",
  "tungstenite 0.29.0",
  "url",
  "which",
@@ -1127,13 +1127,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hpack"
-version = "0.3.0"
-dependencies = [
- "log 0.3.9",
-]
 
 [[package]]
 name = "http"
@@ -1253,7 +1246,7 @@ dependencies = [
  "core-foundation-sys",
  "iana-time-zone-haiku",
  "js-sys",
- "log 0.4.34",
+ "log",
  "wasm-bindgen",
  "windows-core 0.62.2",
 ]
@@ -1516,7 +1509,7 @@ checksum = "bde5057d6143cc94e861d90f591b9303d6716c6b9602309150bd068853c10899"
 dependencies = [
  "hashbrown 0.16.1",
  "portable-atomic",
- "thiserror",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -1613,18 +1606,19 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e19e8d5c34a3e0e2223db8e060f9e8264aeeb5c5fc64a4ee9965c062211c024b"
-dependencies = [
- "log 0.4.34",
-]
-
-[[package]]
-name = "log"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+
+[[package]]
+name = "loona-hpack"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ce904bae9ecfd9b658b0be156ad278d4b2432f171472f1f0289aed75eed02a3"
+dependencies = [
+ "thiserror 1.0.69",
+ "tracing",
+]
 
 [[package]]
 name = "lru"
@@ -1685,7 +1679,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8"
 dependencies = [
  "libc",
- "log 0.4.34",
+ "log",
  "wasi",
  "windows-sys 0.61.2",
 ]
@@ -1990,7 +1984,7 @@ dependencies = [
  "kasuari",
  "lru",
  "strum",
- "thiserror",
+ "thiserror 2.0.20",
  "unicode-segmentation",
  "unicode-truncate",
  "unicode-width",
@@ -2044,7 +2038,7 @@ checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
 dependencies = [
  "getrandom 0.2.17",
  "libredox",
- "thiserror",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -2176,7 +2170,7 @@ version = "0.23.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0283386ce02abc0151e1761d08802dfe86c173b0b494af5cbc086574e453da06"
 dependencies = [
- "log 0.4.34",
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -2538,11 +2532,31 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
+dependencies = [
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
 version = "2.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 2.0.20",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2632,7 +2646,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17a073bfed563fa236697a068031408a93cd9522e08abf9933ead3e73411bd71"
 dependencies = [
  "futures-util",
- "log 0.4.34",
+ "log",
  "rustls",
  "rustls-pki-types",
  "tokio",
@@ -2674,7 +2688,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
 dependencies = [
  "pin-project-lite",
+ "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2702,10 +2728,10 @@ dependencies = [
  "data-encoding",
  "http",
  "httparse",
- "log 0.4.34",
+ "log",
  "rand 0.9.5",
  "sha1 0.10.7",
- "thiserror",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -2718,12 +2744,12 @@ dependencies = [
  "data-encoding",
  "http",
  "httparse",
- "log 0.4.34",
+ "log",
  "rand 0.10.2",
  "rustls",
  "rustls-pki-types",
  "sha1 0.11.0",
- "thiserror",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -2787,7 +2813,7 @@ checksum = "972d7902c8735f2695410b8aed7df6ed12a47394aa1c8d7af49f0497b731a94d"
 dependencies = [
  "base64 0.23.1",
  "flate2",
- "log 0.4.34",
+ "log",
  "percent-encoding",
  "rustls",
  "rustls-pki-types",
@@ -2806,7 +2832,7 @@ dependencies = [
  "base64 0.23.1",
  "http",
  "httparse",
- "log 0.4.34",
+ "log",
 ]
 
 [[package]]
@@ -3346,7 +3372,7 @@ dependencies = [
  "anyhow",
  "bitflags",
  "indexmap",
- "log 0.4.34",
+ "log",
  "serde",
  "serde_derive",
  "serde_json",
@@ -3366,7 +3392,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "id-arena",
  "indexmap",
- "log 0.4.34",
+ "log",
  "semver",
  "serde",
  "serde_derive",

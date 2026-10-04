@@ -8,7 +8,7 @@ use crate::runners::EventStream;
 use async_trait::async_trait;
 use flate2::{Decompress, FlushDecompress};
 use futures::{stream, stream::StreamExt};
-use hpack::Decoder as HpackDecoder;
+use loona_hpack::Decoder as HpackDecoder;
 use std::collections::HashMap;
 
 const MAX_HTTP2_STREAMS: usize = 1024;
@@ -929,7 +929,7 @@ mod tests {
     use flate2::write::GzEncoder;
     use flate2::{Compress, Compression, FlushCompress};
     use futures::StreamExt;
-    use hpack::Encoder as HpackEncoder;
+    use loona_hpack::Encoder as HpackEncoder;
     use serde_json::json;
     use std::io::Write;
 
@@ -967,6 +967,45 @@ mod tests {
         ];
         out.extend_from_slice(payload);
         out
+    }
+
+    #[test]
+    fn loona_hpack_rejects_malformed_size_updates_without_panicking() {
+        for block in [
+            &[0x3f][..],
+            &[0x3f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f][..],
+        ] {
+            assert!(
+                HpackDecoder::new().decode(block).is_err(),
+                "block: {block:02x?}"
+            );
+        }
+
+        let headers = HpackDecoder::new().decode(&[0x82, 0x84]).unwrap();
+        assert_eq!(
+            headers,
+            vec![
+                (b":method".to_vec(), b"GET".to_vec()),
+                (b":path".to_vec(), b"/".to_vec())
+            ]
+        );
+    }
+
+    #[test]
+    fn loona_hpack_handles_short_arbitrary_blocks_without_panicking() {
+        let mut seed = 0x1234_5678_u32;
+        for len in 1..=8 {
+            for _ in 0..32 {
+                let block: Vec<u8> = (0..len)
+                    .map(|_| {
+                        seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                        (seed >> 24) as u8
+                    })
+                    .collect();
+                let result = std::panic::catch_unwind(|| HpackDecoder::new().decode(&block));
+                assert!(result.is_ok(), "block: {block:02x?}");
+            }
+        }
     }
 
     fn compressed_websocket_frame(compressor: &mut Compress, payload: &[u8]) -> Vec<u8> {
