@@ -84,7 +84,7 @@ class TracerSession:
     def events(self):
         parsed = []
         bad = []
-        with open(self.stdout.name, "r", encoding="utf-8", errors="replace") as f:
+        with open(self.stdout.name, "r", encoding="utf-8") as f:
             for lineno, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
@@ -289,6 +289,17 @@ def test_trace_net_summary_events():
             conn.close()
         server.close()
 
+        auto = socket.socket()
+        auto.listen(1)
+        auto_port = auto.getsockname()[1]
+        auto.close()
+
+        ipv6 = socket.socket(socket.AF_INET6)
+        ipv6.bind(("::", 0))
+        ipv6_port = ipv6.getsockname()[1]
+        ipv6.listen(1)
+        ipv6.close()
+
         udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp.bind(("127.0.0.1", 0))
         udp_port = udp.getsockname()[1]
@@ -322,10 +333,23 @@ def test_trace_net_summary_events():
         listeners = [e for e in events if e.get("type") == "NET_LISTEN" and e.get("port") == port]
         assert_true(any(e.get("local_endpoint") == f"127.0.0.1:{port}" for e in listeners),
                     f"missing assigned TCP listener endpoint: {listeners}")
+        assert_true(any(e.get("protocol") == "tcp" and e.get("address") == "127.0.0.1"
+                        for e in listeners), f"missing structured TCP address: {listeners}")
+        assert_true(any(e.get("type") == "NET_LISTEN" and e.get("port") == auto_port
+                        and e.get("address") == "0.0.0.0" for e in events),
+                    f"missing autobind listener port {auto_port}")
+        assert_true(any(e.get("type") == "NET_LISTEN" and e.get("port") == ipv6_port
+                        and e.get("address") == "0000:0000:0000:0000:0000:0000:0000:0000"
+                        for e in events), f"missing IPv6 port-0 listener {ipv6_port}")
+        assert_true(any(e.get("type") == "NET_BIND" and e.get("port") == 0
+                        and e.get("address") == "0000:0000:0000:0000:0000:0000:0000:0000"
+                        for e in events), f"missing IPv6 bind {ipv6_port}")
         peers = [e for e in events if e.get("type") == "NET_ACCEPT" and
                  e.get("port") == port]
         assert_true(len(peers) == 1 and peers[0].get("count") == 1,
                     f"accepted peer was not deduplicated: {peers}")
+        assert_true(peers[0].get("address") == "127.0.0.1" and
+                    peers[0].get("peer") == "127.0.0.1", f"missing accept addresses: {peers}")
     finally:
         sess.cleanup()
 
@@ -341,6 +365,16 @@ def test_resolved_file_access():
             return
         with open(path, "w") as file:
             file.write("data")
+        raw_path = os.fsencode(tempdir.name) + b"/bad\xff\xfename"
+        with open(raw_path, "wb") as file:
+            file.write(b"bytes")
+        long_dir = tempdir.name
+        for _ in range(6):
+            long_dir = os.path.join(long_dir, "d" * 100)
+        os.makedirs(long_dir)
+        long_path = os.path.join(long_dir, "long.txt")
+        with open(long_path, "w") as file:
+            file.write("long")
         for _ in range(2):
             with open(path, "r") as file:
                 assert file.read() == "data"
@@ -362,6 +396,15 @@ def test_resolved_file_access():
                     f"expected one write: {files}")
         assert_true(all(isinstance(e.get("dev"), int) and e.get("ino") for e in files),
                     f"missing real file identity: {files}")
+        assert_true(all(e.get("dev_maj_min") ==
+                        f"{os.major(e['dev'])}:{os.minor(e['dev'])}" for e in files),
+                    f"missing device major:minor: {files}")
+        assert_true(any(e.get("filepath_hex") == raw_path.hex() and "\ufffd" in e.get("filepath", "")
+                        for e in events if e.get("event") == "FILE_OPEN"),
+                    "non-UTF-8 path is not lossless")
+        assert_true(any(e.get("filepath") == long_path and not e.get("path_error")
+                        for e in events if e.get("event") == "FILE_OPEN"),
+                    f"long path missing: {long_path}")
         assert_true(not any(e.get("filepath") == missing for e in events),
                     "failed open was reported")
         assert_true(any(e.get("event") == "FILE_OPEN" and e.get("exec")
@@ -372,6 +415,20 @@ def test_resolved_file_access():
         tempdir.cleanup()
 
 
+def test_probe_heartbeat():
+    sess = TracerSession("-m", "0", "--heartbeat", "1")
+    try:
+        time.sleep(1.2)
+        sess.stop()
+        records = [e for e in sess.events() if e.get("event") == "PROBE_LIVENESS"]
+        assert_true(len(records) >= 2 and records[0].get("kind") == "start" and
+                    records[0].get("every") == 1 and records[0].get("trace_net") is False and
+                    any(e.get("kind") == "alive" for e in records[1:]),
+                    f"missing liveness records: {records}")
+    finally:
+        sess.cleanup()
+
+
 TESTS = [
     test_json_escaping_exec,
     test_pid_filter_tracks_target_tree_only,
@@ -380,6 +437,7 @@ TESTS = [
     test_trace_fs_summary_events,
     test_trace_net_summary_events,
     test_resolved_file_access,
+    test_probe_heartbeat,
 ]
 
 

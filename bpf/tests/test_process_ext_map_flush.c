@@ -352,8 +352,10 @@ static void test_print_summary_json_network_fields(void)
 	            "datagram bind includes protocol and assigned port");
 	key.protocol = 0;
 	n = capture_print_summary_json(&key, &val, buf, sizeof(buf));
-	test_assert(n > 0 && !strstr(buf, "\"protocol\"") && !strstr(buf, "\"port\""),
-	            "existing summaries keep their original JSON fields");
+	test_assert(n > 0 && !strstr(buf, "\"protocol\"") &&
+	            strstr(buf, "\"port\":54321") &&
+	            strstr(buf, "\"address\":\"127.0.0.1\""),
+	            "bind summary carries requested port and address without protocol");
 }
 
 static void test_print_summary_json_optional_extra(void)
