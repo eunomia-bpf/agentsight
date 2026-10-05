@@ -8,6 +8,31 @@
  * Uses format_ipv4_port() and format_fd_detail() from bpf_common.h.
  */
 
+static __always_inline void format_ipv6_port(char *detail, int detail_len,
+					     const struct in6_addr *addr, u16 port)
+{
+	const char hex[] = "0123456789abcdef";
+	int pos = 0;
+	if (pos < detail_len - 1) detail[pos++] = '[';
+#pragma unroll
+	for (int i = 0; i < 16; i++) {
+		u8 byte = addr->in6_u.u6_addr8[i];
+		if (pos < detail_len - 1) detail[pos++] = hex[byte >> 4];
+		if (pos < detail_len - 1) detail[pos++] = hex[byte & 15];
+		if ((i & 1) && i != 15 && pos < detail_len - 1)
+			detail[pos++] = ':';
+	}
+	if (pos < detail_len - 1) detail[pos++] = ']';
+	if (pos < detail_len - 1) detail[pos++] = ':';
+	unsigned int p = port;
+	if (p >= 10000 && pos < detail_len - 1) detail[pos++] = '0' + (p / 10000) % 10;
+	if (p >= 1000 && pos < detail_len - 1) detail[pos++] = '0' + (p / 1000) % 10;
+	if (p >= 100 && pos < detail_len - 1) detail[pos++] = '0' + (p / 100) % 10;
+	if (p >= 10 && pos < detail_len - 1) detail[pos++] = '0' + (p / 10) % 10;
+	if (pos < detail_len - 1) detail[pos++] = '0' + p % 10;
+	detail[pos] = '\0';
+}
+
 /* Read sockaddr_in from userspace and format as "A.B.C.D:PORT" */
 static __always_inline void read_and_format_sockaddr(struct trace_event_raw_sys_enter *ctx,
 						     char *detail, int detail_len)
@@ -81,10 +106,20 @@ int trace_bind(struct trace_event_raw_sys_enter *ctx)
 	const void *user_addr = (const void *)ctx->args[1];
 	bpf_probe_read_user(&family, sizeof(family), user_addr);
 
-	if (family == 2) /* AF_INET */
+	if (family == 2) { /* AF_INET */
+		struct sockaddr_in addr = {};
+		if (bpf_probe_read_user(&addr, sizeof(addr), user_addr) == 0)
+			key.port = __builtin_bswap16(addr.sin_port);
 		read_and_format_sockaddr(ctx, key.detail, sizeof(key.detail));
-	else
+	} else if (family == 10) { /* AF_INET6 */
+		struct sockaddr_in6 addr6 = {};
+		if (bpf_probe_read_user(&addr6, sizeof(addr6), user_addr) == 0) {
+			key.port = __builtin_bswap16(addr6.sin6_port);
+			format_ipv6_port(key.detail, sizeof(key.detail), &addr6.sin6_addr, key.port);
+		}
+	} else {
 		format_family(key.detail, sizeof(key.detail), family);
+	}
 
 	update_agg_map(&key, 1, 0);
 	return 0;
@@ -107,31 +142,6 @@ int trace_listen(struct trace_event_raw_sys_enter *ctx)
 
 	update_agg_map(&key, 1, 0);
 	return 0;
-}
-
-static __always_inline void format_ipv6_port(char *detail, int detail_len,
-					     const struct in6_addr *addr, u16 port)
-{
-	const char hex[] = "0123456789abcdef";
-	int pos = 0;
-	if (pos < detail_len - 1) detail[pos++] = '[';
-#pragma unroll
-	for (int i = 0; i < 16; i++) {
-		u8 byte = addr->in6_u.u6_addr8[i];
-		if (pos < detail_len - 1) detail[pos++] = hex[byte >> 4];
-		if (pos < detail_len - 1) detail[pos++] = hex[byte & 15];
-		if ((i & 1) && i != 15 && pos < detail_len - 1)
-			detail[pos++] = ':';
-	}
-	if (pos < detail_len - 1) detail[pos++] = ']';
-	if (pos < detail_len - 1) detail[pos++] = ':';
-	unsigned int p = port;
-	if (p >= 10000 && pos < detail_len - 1) detail[pos++] = '0' + (p / 10000) % 10;
-	if (p >= 1000 && pos < detail_len - 1) detail[pos++] = '0' + (p / 1000) % 10;
-	if (p >= 100 && pos < detail_len - 1) detail[pos++] = '0' + (p / 100) % 10;
-	if (p >= 10 && pos < detail_len - 1) detail[pos++] = '0' + (p / 10) % 10;
-	if (pos < detail_len - 1) detail[pos++] = '0' + p % 10;
-	detail[pos] = '\0';
 }
 
 static __always_inline void format_sock_endpoint(struct sock *sk, bool peer,
@@ -255,7 +265,7 @@ static __always_inline int trace_datagram_bind(void *ctx, struct sock *sk)
 	} else {
 		u8 ip[16] = {};
 		BPF_CORE_READ_INTO((struct in6_addr *)ip, sk, __sk_common.skc_v6_rcv_saddr);
-		format_ipv6(key.detail, ip);
+		format_ipv6_port(key.detail, sizeof(key.detail), (const struct in6_addr *)ip, port);
 	}
 	update_agg_map(&key, 1, 0);
 	return 0;

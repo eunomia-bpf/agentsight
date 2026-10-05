@@ -65,6 +65,9 @@ sudo ./process -c "curl,wget" -d 500
 
 # Observe listener endpoints and accepted peers for a process tree
 sudo ./process -p 1234 --trace-net
+
+# Emit a start record and an alive record every five seconds
+sudo ./process -m 0 --trace-net --heartbeat 5
 ```
 
 **File Open Deduplication:**
@@ -72,7 +75,9 @@ sudo ./process -p 1234 --trace-net
   regular-file open for each process, file, access, and overlay layer is reported
   (`count=1`). A later read, write, or exec access gets its own record. The
   kernel LRU can evict entries; a later open then reports that file again.
-- `filepath` is resolved in the opener's mount namespace. `layer:true` marks
+- `filepath` is resolved in the opener's mount namespace, up to 4095 bytes.
+  Invalid UTF-8 bytes are displayed as replacement characters and the exact
+  path bytes are included in `filepath_hex`. `layer:true` marks
   an overlay layer open, with `dev` and `ino` naming the underlying file.
   Container-runtime layer opens using initial-namespace mount credentials are
   suppressed. A failed path resolution has an empty `filepath` and `path_error`.
@@ -89,6 +94,11 @@ sudo ./process -p 1234 --trace-net
 - `NET_ACCEPT` reports each TCP peer once per process and listener port. Its
   `port` is the listener port; repeated accepts from that peer are deduplicated.
   `AGG_MAP_OVERFLOW` warns when the shared summary map cannot store an event.
+- Successful `NET_LISTEN` rows include `protocol`, `address`, and the assigned
+  local `port`, including autobind and bind-to-zero IPv4 or IPv6 listeners.
+- `--heartbeat SECONDS` emits `PROBE_LIVENESS` start and alive records on the
+  raw probe's JSONL stream. Start includes active trace flags and both records
+  include `every` and a boot-time nanosecond timestamp.
 
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
@@ -315,10 +325,12 @@ All events follow a common base schema with event-specific fields:
 
 **File Open Event Fields:**
 - `count`: Number of aggregated file opens (uint32)
-- `filepath`: Resolved path to the file being opened (string, max 511 bytes)
+- `filepath`: Resolved path to the file being opened (string, max 4095 bytes)
+- `filepath_hex`: Exact path bytes in hex when `filepath` contained invalid UTF-8
 - `flags`: File open flags (int32)
 - `read`, `write`, `exec`: Access bits on resolved file opens (boolean)
-- `layer`: Overlay layer open (boolean); `dev`, `ino`: underlying device and inode
+- `layer`: Overlay layer open (boolean); `dev`, `ino`: underlying device and inode;
+  `dev_maj_min`: underlying device as `major:minor`
 - `path_error`: Negative `bpf_d_path` error, if resolution failed
 - `window_expired`: Present when aggregation window expires (boolean, optional)
 - `reason`: Why aggregation was flushed (string, optional: "process_exit")
@@ -337,7 +349,10 @@ All events follow a common base schema with event-specific fields:
 - `detail`: Requested bind/connect address, successful listener's local endpoint, or accepted TCP peer endpoint
 - `local_endpoint`: Successful `NET_LISTEN` local endpoint (also present in `detail`), or the local endpoint of a `NET_ACCEPT` socket
 - `peer_endpoint`: `NET_ACCEPT` peer endpoint (also present in `detail`)
-- `process_start_ns`: Thread-group leader start time in nanoseconds since boot; pair with `pid` to distinguish PID reuse
+- `address`: Local bound address on `NET_BIND`, `NET_LISTEN`, and `NET_ACCEPT`
+- `port`: Assigned local port on successful `NET_LISTEN` and datagram `NET_BIND`;
+  requested port on syscall-entry `NET_BIND`
+- `peer`: Remote address on `NET_ACCEPT`
 - `count`: Number of matching observations in the flush interval
 
 `NET_BIND` and `NET_CONNECT` describe syscall attempts; `NET_LISTEN` and
