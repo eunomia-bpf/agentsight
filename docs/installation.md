@@ -258,6 +258,45 @@ try {
 }
 ```
 
+### Keep the tasks self-healing
+
+In the observed failure mode, a long-running task terminated while it was
+running (for example `LastTaskResult = 0xC000013A`), returned to `Ready`, and
+was not restarted by the settings above before the next sign-in. A third
+per-user watchdog task covers that state. It runs at
+sign-in and on a fixed repetition interval, starts only the Monitor or Bind task
+whose process is actually missing, and leaves a healthy manual instance alone
+when the process command lines are visible. It requires neither elevation nor
+access to stored credentials.
+
+Download the watchdog script and register it:
+
+```powershell
+$installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
+$script = Join-Path $installDir 'agentsight-watchdog.ps1'
+Invoke-WebRequest -UseBasicParsing `
+  'https://raw.githubusercontent.com/eunomia-bpf/agentsight/master/scripts/agentsight-watchdog.ps1' `
+  -OutFile $script
+powershell -NoProfile -ExecutionPolicy Bypass -File $script `
+  -Mode Register -IntervalMinutes 5
+Start-ScheduledTask -TaskName 'AgentSight Health'
+```
+
+If you built AgentSight from source, use the repository copy of
+`scripts/agentsight-watchdog.ps1` instead of downloading it, and re-register the
+watchdog if you later move the script to another path. `-IntervalMinutes` accepts
+1 to 60 minutes and defaults to 5.
+
+Check the watchdog health read-only:
+
+```powershell
+Get-ScheduledTask -TaskName 'AgentSight Health' | Select-Object TaskName,State
+(Get-ScheduledTaskInfo -TaskName 'AgentSight Health').LastTaskResult
+```
+
+Recent watchdog decisions and errors are appended to
+`%LOCALAPPDATA%\AgentSight\watchdog.log`.
+
 ## Upgrade or remove automatic startup
 
 After replacing the installed binary, restart the Linux services with
@@ -276,9 +315,15 @@ systemctl --user daemon-reload
 To remove the Windows tasks:
 
 ```powershell
+Unregister-ScheduledTask -TaskName 'AgentSight Health' -Confirm:$false
 Unregister-ScheduledTask -TaskName 'AgentSight Monitor' -Confirm:$false
 Unregister-ScheduledTask -TaskName 'AgentSight Bind' -Confirm:$false
 ```
+
+Remove `AgentSight Health` first so it cannot restart the other tasks while you
+clean up; running the watchdog script with `-Mode Unregister` does the same. The
+script under `%LOCALAPPDATA%\Programs\AgentSight` and the log at
+`%LOCALAPPDATA%\AgentSight\watchdog.log` can be deleted separately.
 
 Removing startup units or tasks does not delete captures under
 `~/.agentsight/monitor` or the locally stored Bind access key. Remove those
