@@ -94,8 +94,8 @@ static void test_agg_key_total_size(void)
 	printf("\n" BLUE "Testing struct agg_key total size:" RESET "\n");
 
 	/*
-	 * pid (4) + event_type (4) + detail[64] + port (2) + protocol (1)
-	 * + trailing alignment (1) = 76 bytes.
+	 * pid (4) + event_type (4) + process_start_ns (8) + detail[64]
+	 * + port (2) + protocol (1) + local_endpoint[64] + alignment (5).
 	 */
 	size_t expected = 4 + 4 + 8 + DETAIL_LEN + 4 + DETAIL_LEN + 4;
 	printf("  sizeof(struct agg_key) = %zu (expected %zu)\n",

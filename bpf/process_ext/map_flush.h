@@ -90,10 +90,11 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 		json_escape(key->detail, detail_esc, sizeof(detail_esc));
 
 	printf("{\"timestamp\":%llu,\"event\":\"SUMMARY\","
-	       "\"comm\":\"%s\",\"pid\":%u,"
+	       "\"comm\":\"%s\",\"pid\":%u,\"process_start_ns\":%llu,"
 	       "\"type\":\"%s\",\"detail\":\"%s\","
 	       "\"count\":%llu",
 	       (unsigned long long)val->last_ts, comm_esc, key->pid,
+	       (unsigned long long)key->process_start_ns,
 	       event_type_name(key->event_type), detail_esc,
 	       (unsigned long long)val->count);
 

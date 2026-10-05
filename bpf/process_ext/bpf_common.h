@@ -33,8 +33,20 @@ static __always_inline bool is_event_tracked(void)
 	return is_cgroup_tracked() && is_pid_tracked();
 }
 
+static __always_inline u64 current_process_start_ns(void)
+{
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct task_struct *leader = BPF_CORE_READ(task, group_leader);
+	if (!leader)
+		leader = task;
+	if (bpf_core_field_exists(leader->start_boottime))
+		return BPF_CORE_READ(leader, start_boottime);
+	return BPF_CORE_READ(leader, start_time);
+}
+
 static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 bytes)
 {
+	key->process_start_ns = current_process_start_ns();
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, key);
 	if (val) {
 		__sync_fetch_and_add(&val->count, count);

@@ -10,6 +10,7 @@
 struct agg_key {
 	__u32 pid;
 	__u32 event_type;
+	__u64 process_start_ns;
 	char detail[DETAIL_LEN];
 	__u16 port;      /* assigned local port for successful datagram binds */
 	__u8 protocol;   /* IP protocol; zero for existing summary records */
