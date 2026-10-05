@@ -28,6 +28,13 @@ What `record -- <command>` does automatically:
    background.
 4. **Stops automatically** when the agent process exits.
 
+Process capture in `record` includes network summaries: attempted bind/connect,
+successful TCP listener local endpoints, and accepted peer endpoints. The
+listener and peer rows carry `pid` plus `process_start_ns` and do not imply a
+matching TLS or HTTP connection. To opt into these rows with combined debug
+capture, use `sudo ./agentsight debug trace --trace-net --server`. Raw process
+capture accepts `sudo ./bpf/process --trace-net`.
+
 > **`sudo` note**: under `sudo`, `record` still finds *your* user-local installs
 > (it reads `$SUDO_USER`'s home for `~/.local/bin`, `~/bin`, and `~/.nvm`), so
 > `sudo ./agentsight record -- claude` traces the claude in your home directory,

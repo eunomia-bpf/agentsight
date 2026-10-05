@@ -439,7 +439,9 @@ static void configure_optional_programs(struct process_bpf *skel)
 	SET_AUTOLOAD(trace_writev_exit, env.trace_fs);
 
 	SET_AUTOLOAD(trace_bind, env.trace_net);
-	SET_AUTOLOAD(trace_listen, env.trace_net);
+	SET_AUTOLOAD(trace_listen, false);
+	SET_AUTOLOAD(trace_inet_listen_enter, env.trace_net);
+	SET_AUTOLOAD(trace_inet_listen_exit, env.trace_net);
 	SET_AUTOLOAD(trace_connect, env.trace_net);
 	struct btf *btf = env.trace_net ? btf__load_vmlinux_btf() : NULL;
 	bool bind4_sk = has_btf_func(btf, "inet_bind_sk");

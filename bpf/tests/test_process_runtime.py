@@ -319,6 +319,9 @@ def test_trace_net_summary_events():
         if icmp_port is not None:
             assert_true(any(e.get("protocol") == "icmp" and e.get("port") == icmp_port
                             for e in binds), f"missing ICMP echo bind: {binds}")
+        listeners = [e for e in events if e.get("type") == "NET_LISTEN" and e.get("port") == port]
+        assert_true(any(e.get("local_endpoint") == f"127.0.0.1:{port}" for e in listeners),
+                    f"missing assigned TCP listener endpoint: {listeners}")
         peers = [e for e in events if e.get("type") == "NET_ACCEPT" and
                  e.get("port") == port]
         assert_true(len(peers) == 1 and peers[0].get("count") == 1,

@@ -90,10 +90,11 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 		json_escape(key->detail, detail_esc, sizeof(detail_esc));
 
 	printf("{\"timestamp\":%llu,\"event\":\"SUMMARY\","
-	       "\"comm\":\"%s\",\"pid\":%u,"
+	       "\"comm\":\"%s\",\"pid\":%u,\"process_start_ns\":%llu,"
 	       "\"type\":\"%s\",\"detail\":\"%s\","
 	       "\"count\":%llu",
 	       (unsigned long long)val->last_ts, comm_esc, key->pid,
+	       (unsigned long long)key->process_start_ns,
 	       event_type_name(key->event_type), detail_esc,
 	       (unsigned long long)val->count);
 
@@ -105,6 +106,14 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 			key->protocol == 136 ? "udplite" :
 			key->protocol == 1 ? "icmp" : "icmpv6";
 		printf(",\"protocol\":\"%s\",\"port\":%u", protocol, key->port);
+	}
+
+	if (key->event_type == EVENT_TYPE_NET_LISTEN)
+		printf(",\"local_endpoint\":\"%s\"", detail_esc);
+	else if (key->event_type == EVENT_TYPE_NET_ACCEPT) {
+		char local_esc[DETAIL_LEN * 2];
+		json_escape(key->local_endpoint, local_esc, sizeof(local_esc));
+		printf(",\"local_endpoint\":\"%s\",\"peer_endpoint\":\"%s\"", local_esc, detail_esc);
 	}
 
 	if (key->event_type == EVENT_TYPE_WRITE && parsed_fd) {

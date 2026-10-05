@@ -36,6 +36,7 @@ sudo ./process [OPTIONS]
 | `--pid=PID` | `-p PID` | Trace only this specific PID | all |
 | `--mode=MODE` | `-m MODE` | Filter mode (0=all, 1=proc, 2=filter) | 2 |
 | `--all` | `-a` | Deprecated: use `-m 0` instead | - |
+| `--trace-net` | - | Capture bind/connect attempts and successful TCP listeners/accepted peers | disabled |
 
 **Filter Modes:**
 - `0 (all)`: Trace all processes and all file open operations
@@ -61,6 +62,9 @@ sudo ./process -v -p 1234
 
 # Trace multiple commands with minimum duration
 sudo ./process -c "curl,wget" -d 500
+
+# Observe listener endpoints and accepted peers for a process tree
+sudo ./process -p 1234 --trace-net
 ```
 
 **File Open Deduplication:**
@@ -327,6 +331,20 @@ All events follow a common base schema with event-specific fields:
 - `data`: SSL traffic data (string, bounded by `MAX_BUF_SIZE`)
 - `data_len`: Length of data captured (uint32)
 - `truncated`: Whether data was truncated due to size limits (boolean)
+
+**Network SUMMARY fields (`--trace-net`):**
+- `type`: `NET_BIND`, `NET_LISTEN`, `NET_CONNECT`, or `NET_ACCEPT`
+- `detail`: Requested bind/connect address, successful listener's local endpoint, or accepted TCP peer endpoint
+- `local_endpoint`: Successful `NET_LISTEN` local endpoint (also present in `detail`), or the local endpoint of a `NET_ACCEPT` socket
+- `peer_endpoint`: `NET_ACCEPT` peer endpoint (also present in `detail`)
+- `process_start_ns`: Thread-group leader start time in nanoseconds since boot; pair with `pid` to distinguish PID reuse
+- `count`: Number of matching observations in the flush interval
+
+`NET_BIND` and `NET_CONNECT` describe syscall attempts; `NET_LISTEN` and
+`NET_ACCEPT` describe successful TCP operations. Accepted rows carry both socket
+endpoints. Listener and peer endpoints are process evidence. They do not imply
+a match to an SSL or HTTP connection.
+IPv6 endpoints use bracketed, uncompressed hexadecimal notation.
 
 ### Process Tracer JSON Events
 
