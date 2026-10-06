@@ -1034,11 +1034,15 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 
 static void print_probe_liveness(const char *kind)
 {
-	struct timespec ts;
-	clock_gettime(CLOCK_BOOTTIME, &ts);
+	struct timespec ts, wall;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0 ||
+	    clock_gettime(CLOCK_REALTIME, &wall) != 0)
+		return;
 	printf("{\"event\":\"PROBE_LIVENESS\",\"kind\":\"%s\","
-	       "\"timestamp\":%llu,\"every\":%u",
+	       "\"pid\":0,\"comm\":\"process\",\"timestamp\":%llu,"
+	       "\"wall_time_ns\":%llu,\"every\":%u",
 	       kind, (unsigned long long)ts.tv_sec * 1000000000ULL + ts.tv_nsec,
+	       (unsigned long long)wall.tv_sec * 1000000000ULL + wall.tv_nsec,
 	       env.heartbeat_seconds);
 	if (kind[0] == 's')
 		printf(",\"trace_fs\":%s,\"trace_net\":%s,\"trace_signals\":%s,"

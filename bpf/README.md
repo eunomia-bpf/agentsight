@@ -97,8 +97,10 @@ sudo ./process -m 0 --trace-net --heartbeat 5
 - Successful `NET_LISTEN` rows include `protocol`, `address`, and the assigned
   local `port`, including autobind and bind-to-zero IPv4 or IPv6 listeners.
 - `--heartbeat SECONDS` emits `PROBE_LIVENESS` start and alive records on the
-  raw probe's JSONL stream. Start includes active trace flags and both records
-  include `every` and a boot-time nanosecond timestamp.
+  raw probe's JSONL stream and the collector's normal process event stream.
+  Start includes active trace flags; both records include `pid:0`,
+  `comm:"process"`, `every`, a monotonic nanosecond `timestamp`, and
+  `wall_time_ns` (Unix epoch nanoseconds) for direct staleness checks.
 
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated

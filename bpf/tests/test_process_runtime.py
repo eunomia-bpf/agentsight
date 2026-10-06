@@ -416,6 +416,7 @@ def test_resolved_file_access():
 
 
 def test_probe_heartbeat():
+    wall_start = time.time_ns()
     sess = TracerSession("-m", "0", "--heartbeat", "1")
     try:
         time.sleep(1.2)
@@ -425,6 +426,9 @@ def test_probe_heartbeat():
                     records[0].get("every") == 1 and records[0].get("trace_net") is False and
                     any(e.get("kind") == "alive" for e in records[1:]),
                     f"missing liveness records: {records}")
+        assert_true(all(e.get("pid") == 0 and e.get("comm") == "process" and
+                        wall_start <= e.get("wall_time_ns", 0) <= time.time_ns()
+                        for e in records), f"missing liveness identity or wall time: {records}")
     finally:
         sess.cleanup()
 
