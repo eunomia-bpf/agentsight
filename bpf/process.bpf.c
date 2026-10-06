@@ -74,7 +74,7 @@ int BPF_URETPROBE(bash_readline, const void *ret)
 
 	if (!ret)
 		return 0;
-	if (!is_cgroup_tracked())
+	if (!is_scope_tracked())
 		return 0;
 
 	/* Check if this is actually bash */
@@ -114,7 +114,7 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 	pid_t pid;
 	u64 ts;
 
-	if (!is_cgroup_tracked())
+	if (!is_scope_tracked())
 		return 0;
 
 	/* Get process info */
@@ -203,7 +203,7 @@ int handle_exit(struct trace_event_raw_sched_process_template* ctx)
 	pid_t pid, tid;
 	u64 id, ts, *start_ts, duration_ns = 0;
 
-	if (!is_cgroup_tracked())
+	if (!is_scope_tracked())
 		return 0;
 
 	/* get PID and TID of exiting thread/process */
@@ -269,7 +269,7 @@ int trace_openat(struct trace_event_raw_sys_enter *ctx)
 	int dfd, flags;
 	const char *filename;
 
-	if (!is_cgroup_tracked())
+	if (!is_scope_tracked())
 		return 0;
 
 	pid = bpf_get_current_pid_tgid() >> 32;
@@ -320,7 +320,7 @@ int trace_open(struct trace_event_raw_sys_enter *ctx)
 	int flags;
 	const char *filename;
 
-	if (!is_cgroup_tracked())
+	if (!is_scope_tracked())
 		return 0;
 
 	pid = bpf_get_current_pid_tgid() >> 32;
@@ -390,7 +390,7 @@ int BPF_PROG(trace_file_open_exit, struct file *file)
 
 	/* Keep PID/comm filtering in the existing userspace tracker so an open
 	 * racing the process exec event is handled in ring-buffer order. */
-	if (bpf_get_func_ret(ctx, &ret) || (int)ret || !is_cgroup_tracked())
+	if (bpf_get_func_ret(ctx, &ret) || (int)ret || !is_scope_tracked())
 		return 0;
 	task = (struct task_struct *)bpf_get_current_task();
 	if (BPF_CORE_READ(task, flags) & PF_KTHREAD)

@@ -16,8 +16,14 @@ static __always_inline bool is_pid_tracked(void)
 	return bpf_map_lookup_elem(&tracked_pids, &pid) != NULL;
 }
 
-static __always_inline bool is_cgroup_tracked(void)
+static __always_inline bool is_scope_tracked(void)
 {
+	if (target_pidns_ino) {
+		struct bpf_pidns_info ns = {};
+		if (bpf_get_ns_current_pid_tgid(target_pidns_dev, target_pidns_ino,
+					      &ns, sizeof(ns)) != 0)
+			return false;
+	}
 	if (!filter_cgroup)
 		return true;
 	u64 cgroup_id = bpf_get_current_cgroup_id();
@@ -30,7 +36,7 @@ static __always_inline bool is_cgroup_tracked(void)
 
 static __always_inline bool is_event_tracked(void)
 {
-	return is_cgroup_tracked() && is_pid_tracked();
+	return is_scope_tracked() && is_pid_tracked();
 }
 
 static __always_inline u64 current_process_start_ns(void)

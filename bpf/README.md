@@ -102,6 +102,22 @@ sudo ./process -m 0 --trace-net --heartbeat 5
   `comm:"process"`, `every`, a monotonic nanosecond `timestamp`, and
   `wall_time_ns` (Unix epoch nanoseconds) for direct staleness checks.
 
+**Container scoping from a privileged sidecar:**
+- `--pidns-of PID` keeps events from the exact PID namespace of `/proc/PID`.
+  Use a target container's PID visible in the sidecar's `/proc` (for example,
+  with a host PID namespace sidecar). This includes independently started
+  processes such as `docker exec`, without needing the sibling's cgroup path
+  under the sidecar's private `/sys/fs/cgroup` mount.
+- The filter applies in BPF to process, file, and extension events and combines
+  with existing PID/command/cgroup filters. It does not include nested PID
+  namespaces or distinguish containers sharing one PID namespace. The probe
+  pins the namespace at startup; restart it for a replacement container.
+
+```bash
+sudo ./process -m 0 --pidns-of 1234 --trace-net --heartbeat 2
+sudo ./agentsight debug process -- -m 0 --pidns-of 1234 --trace-net --heartbeat 2
+```
+
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
 - Reports aggregation window expirations

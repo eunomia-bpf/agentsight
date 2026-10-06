@@ -433,6 +433,78 @@ def test_probe_heartbeat():
         sess.cleanup()
 
 
+def test_pid_namespace_filter():
+    target = subprocess.Popen(["unshare", "--pid", "--fork", "--kill-child", "sleep", "30"],
+                              stderr=subprocess.PIPE)
+    sess = None
+    try:
+        children_path = f"/proc/{target.pid}/task/{target.pid}/children"
+        children = []
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if target.poll() is not None:
+                raise SkipRuntimeTest(target.stderr.read().decode(errors="replace"))
+            with open(children_path) as file:
+                children = file.read().split()
+            if children:
+                break
+            time.sleep(0.05)
+        assert_true(bool(children), "PID namespace init did not start")
+        pid = children[0]
+        sess = TracerSession("-m", "0", "--trace-net", "--pidns-of", pid)
+        with tempfile.TemporaryDirectory(prefix="agentsight-pidns-") as directory:
+            included, excluded = [os.path.join(directory, name) for name in ("included", "excluded")]
+            code = """
+import socket, sys
+with open(sys.argv[1], 'w') as file:
+    file.write('scope')
+server = socket.socket()
+server.bind(('127.0.0.1', 0))
+server.listen(1)
+print(server.getsockname()[1])
+client = socket.create_connection(server.getsockname())
+conn, _ = server.accept()
+conn.close(); client.close(); server.close()
+"""
+            # nsenter creates an independently parented process, like docker exec.
+            inside = subprocess.run(["nsenter", "-t", pid, "-p", sys.executable, "-c", code, included],
+                                    capture_output=True, text=True, check=True)
+            outside = subprocess.run([sys.executable, "-c", code, excluded],
+                                     capture_output=True, text=True, check=True)
+            marker = f"agentsight-pidns-exec-{uuid.uuid4().hex}"
+            subprocess.run(["nsenter", "-t", pid, "-p", "/bin/echo", marker],
+                           stdout=subprocess.DEVNULL, check=True)
+            time.sleep(0.5)
+            sess.stop()
+            events = sess.events()
+            assert_true(any_event_contains(events, marker), "independent namespace exec missing")
+            assert_true(any(e.get("event") == "FILE_OPEN" and e.get("filepath") == included
+                            for e in events), "namespace file open missing")
+            assert_true(not any_event_contains(events, excluded), "outside namespace file leaked")
+            for kind in ("NET_LISTEN", "NET_ACCEPT"):
+                assert_true(any(e.get("type") == kind and e.get("port") == int(inside.stdout)
+                                for e in events), f"namespace {kind} missing")
+                assert_true(not any(e.get("type") == kind and e.get("port") == int(outside.stdout)
+                                    for e in events), f"outside namespace {kind} leaked")
+    finally:
+        if sess:
+            sess.cleanup()
+        if target.poll() is None:
+            target.kill()
+        target.wait(timeout=5)
+        target.stderr.close()
+
+
+def test_pid_namespace_invalid_target():
+    for pid in ("0", "-1", "123bad", "2147483648"):
+        result = subprocess.run([PROCESS, "--pidns-of", pid], capture_output=True, text=True)
+        assert_true(result.returncode != 0 and "Invalid PID namespace target" in result.stderr,
+                    f"accepted invalid namespace target {pid}: {result.stderr}")
+    result = subprocess.run([PROCESS, "--pidns-of", "2147483647"], capture_output=True, text=True)
+    assert_true(result.returncode != 0 and "Failed to open PID namespace" in result.stderr,
+                "missing namespace target did not fail closed")
+
+
 TESTS = [
     test_json_escaping_exec,
     test_pid_filter_tracks_target_tree_only,
@@ -442,6 +514,8 @@ TESTS = [
     test_trace_net_summary_events,
     test_resolved_file_access,
     test_probe_heartbeat,
+    test_pid_namespace_filter,
+    test_pid_namespace_invalid_target,
 ]
 
 

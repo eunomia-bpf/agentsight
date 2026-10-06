@@ -13,6 +13,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include "process.h"
 #include "process.skel.h"
 #include "process_utils.h"
@@ -80,6 +82,9 @@ static struct env {
 	char cgroup_filter_path[256];
 	bool cgroup_filter_enabled;
 	bool cgroup_filter_children;
+	pid_t pidns_pid;
+	uint64_t pidns_dev;
+	uint64_t pidns_ino;
 } env = {
 	.verbose = false,
 	.min_duration_ms = 0,
@@ -140,6 +145,7 @@ enum {
 	OPT_CGROUP_FILTER_CHILDREN,
 	OPT_SEED_PID,
 	OPT_HEARTBEAT,
+	OPT_PIDNS_OF,
 };
 
 static const struct argp_option opts[] = {
@@ -160,6 +166,7 @@ static const struct argp_option opts[] = {
 	{ "cgroup-filter-children", OPT_CGROUP_FILTER_CHILDREN, NULL, 0, "Include descendants of --cgroup-filter path" },
 	{ "seed-pid", OPT_SEED_PID, "PID[:PPID]", 0, "Seed an existing tracked PID supplied by the collector" },
 	{ "heartbeat", OPT_HEARTBEAT, "SECONDS", 0, "Print start and periodic alive records" },
+	{ "pidns-of", OPT_PIDNS_OF, "PID", 0, "Hard filter to the PID namespace of /proc/PID" },
 	{},
 };
 
@@ -317,6 +324,15 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 			argp_usage(state);
 		}
 		env.heartbeat_seconds = (unsigned)seconds;
+		break;
+	}
+	case OPT_PIDNS_OF: {
+		char *end = NULL;
+		errno = 0;
+		long pid = strtol(arg, &end, 10);
+		if (errno || !end || *end || pid <= 0 || pid > INT_MAX)
+			argp_error(state, "Invalid PID namespace target: %s", arg);
+		env.pidns_pid = (pid_t)pid;
 		break;
 	}
 	case ARGP_KEY_ARG:
@@ -498,6 +514,8 @@ static void configure_process_skel(struct process_bpf *skel, bool resolved_opens
 	skel->rodata->filter_cgroup = need_cgroup_filter;
 	skel->rodata->filter_cgroup_children = env.cgroup_filter_children;
 	skel->rodata->target_cgroup_id = cgroup_filter_id;
+	skel->rodata->target_pidns_dev = env.pidns_dev;
+	skel->rodata->target_pidns_ino = env.pidns_ino;
 }
 
 // Rate limiting check function
@@ -1059,6 +1077,7 @@ int main(int argc, char **argv)
 	struct ring_buffer *rb = NULL;
 	struct process_bpf *skel;
 	int err;
+	int pidns_fd = -1;
 
 	/* Parse command line arguments */
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
@@ -1092,6 +1111,20 @@ int main(int argc, char **argv)
 	}
 
 	bool resolved_opens = can_trace_resolved_opens();
+	if (env.pidns_pid) {
+		char path[64];
+		struct stat st;
+		snprintf(path, sizeof(path), "/proc/%d/ns/pid", env.pidns_pid);
+		/* Pin the namespace so an exiting target cannot cause inode reuse. */
+		pidns_fd = open(path, O_RDONLY | O_CLOEXEC);
+		if (pidns_fd < 0 || fstat(pidns_fd, &st) != 0) {
+			err = -errno;
+			fprintf(stderr, "Failed to open PID namespace %s: %s\n", path, strerror(-err));
+			goto cleanup;
+		}
+		env.pidns_dev = st.st_dev;
+		env.pidns_ino = st.st_ino;
+	}
 
 	bool need_pid_filter = env.filter_mode == FILTER_MODE_FILTER;
 
@@ -1235,6 +1268,8 @@ int main(int argc, char **argv)
 
 cleanup:
 	/* Clean up */
+	if (pidns_fd >= 0)
+		close(pidns_fd);
 	ring_buffer__free(rb);
 	process_bpf__destroy(skel);
 	
