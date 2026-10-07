@@ -396,9 +396,10 @@ def test_resolved_file_access():
                     f"expected one write: {files}")
         assert_true(all(isinstance(e.get("dev"), int) and e.get("ino") for e in files),
                     f"missing real file identity: {files}")
-        assert_true(all(e.get("dev_maj_min") ==
-                        f"{os.major(e['dev'])}:{os.minor(e['dev'])}" for e in files),
-                    f"missing device major:minor: {files}")
+        stat_dev = os.stat(path).st_dev
+        expected_dev = f"{os.major(stat_dev)}:{os.minor(stat_dev)}"
+        assert_true(all(e.get("dev_maj_min") == expected_dev for e in files),
+                    f"wrong device major:minor (expected {expected_dev}): {files}")
         assert_true(any(e.get("filepath_hex") == raw_path.hex() and "\ufffd" in e.get("filepath", "")
                         for e in events if e.get("event") == "FILE_OPEN"),
                     "non-UTF-8 path is not lossless")

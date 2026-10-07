@@ -4,7 +4,6 @@
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
-#include <sys/sysmacros.h>
 #include <sys/resource.h>
 #include <unistd.h>
 #include <bpf/libbpf.h>
@@ -632,7 +631,7 @@ static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, 
 		       e->file_op.access & FILE_ACCESS_WRITE ? "true" : "false",
 		       e->file_op.access & FILE_ACCESS_EXEC ? "true" : "false",
 		       e->file_op.layer ? "true" : "false",
-		       e->file_op.dev, major(e->file_op.dev), minor(e->file_op.dev), e->file_op.ino);
+		       e->file_op.dev, e->file_op.dev >> 20, e->file_op.dev & ((1U << 20) - 1), e->file_op.ino);
 		if (e->file_op.path_error)
 			printf(",\"path_error\":%d", e->file_op.path_error);
 	}
