@@ -28,6 +28,13 @@ What `record -- <command>` does automatically:
    background.
 4. **Stops automatically** when the agent process exits.
 
+Process capture in `record` includes network summaries: attempted bind/connect,
+successful TCP listener local endpoints, and accepted peer endpoints. The
+listener and peer rows carry `pid` plus `process_start_ns` and do not imply a
+matching TLS or HTTP connection. To opt into these rows with combined debug
+capture, use `sudo ./agentsight debug trace --trace-net --server`. Raw process
+capture accepts `sudo ./bpf/process --trace-net`.
+
 > **`sudo` note**: under `sudo`, `record` still finds *your* user-local installs
 > (it reads `$SUDO_USER`'s home for `~/.local/bin`, `~/bin`, and `~/.nvm`), so
 > `sudo ./agentsight record -- claude` traces the claude in your home directory,
@@ -103,6 +110,29 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 > **Behind an HTTP/HTTPS proxy?** Traffic is still TLS-encrypted inside the
 > Node process (the proxy only tunnels it), so AgentSight captures it the same
 > way — at the `SSL_read`/`SSL_write` calls before encryption.
+
+## CodeBuddy CLI
+
+CodeBuddy CLI (`@tencent-ai/codebuddy-code`) is a Node.js shebang. The kernel
+`comm` is `node`, not `codebuddy`, and this host's `node` often dynamically
+links system `libssl.so` instead of embedding OpenSSL.
+
+Session files live under `~/.codebuddy/projects/<project>/<session-id>.jsonl`
+(override the home with `CODEBUDDY_CONFIG_DIR`). `agentsight top` and `record`
+read those transcripts the same way they read Claude/Codex/Cursor sessions.
+`~/.codebuddy/history.jsonl` is a prompt index, not a session, and is ignored.
+
+```bash
+# Live session list — no sudo
+agentsight top
+
+# Attach the already-running CLI. Process seeds match the `codebuddy` cmdline
+# token; SSL skips `-c codebuddy` so Node/libssl traffic is not dropped.
+sudo ./agentsight record -c codebuddy
+```
+
+TLS, when captured, is usually `POST /chat/completions` to `codebuddy.ai` or
+`copilot.tencent.com`. The IDE plugin is out of scope; this path is the CLI.
 
 ## IDE-Based Agents (Cursor, Antigravity, Windsurf)
 

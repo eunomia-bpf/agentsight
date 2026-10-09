@@ -440,6 +440,8 @@ mod tests {
         );
         // Unknown OpenAI-compatible host is reported as the host itself.
         assert_eq!(provider_from_host("localhost:8443"), "localhost:8443");
+        assert_eq!(provider_from_host("www.codebuddy.ai"), "codebuddy");
+        assert_eq!(provider_from_host("copilot.tencent.com"), "codebuddy");
     }
 
     #[test]

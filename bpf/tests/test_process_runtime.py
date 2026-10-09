@@ -6,6 +6,7 @@
 
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -23,8 +24,28 @@ class RuntimeErrorWithContext(AssertionError):
     pass
 
 
+class SkipRuntimeTest(Exception):
+    pass
+
+
 def seed_pid_arg(pid):
     return ["--seed-pid", f"{pid}:0"]
+
+
+def has_hidden_host_pids():
+    """Detect a container PID namespace using the kernel's trace PID."""
+    marker = f"agentsight-pid-namespace-{uuid.uuid4().hex}"
+    try:
+        with open("/sys/kernel/tracing/trace_marker", "w") as trace:
+            trace.write(marker)
+        with open("/sys/kernel/tracing/trace", encoding="utf-8") as trace:
+            for line in trace:
+                if marker in line:
+                    match = re.search(r"-(\d+)\s+\[", line)
+                    return bool(match and int(match.group(1)) != os.getpid())
+    except OSError:
+        pass
+    return False
 
 
 class TracerSession:
@@ -63,7 +84,7 @@ class TracerSession:
     def events(self):
         parsed = []
         bad = []
-        with open(self.stdout.name, "r", encoding="utf-8", errors="replace") as f:
+        with open(self.stdout.name, "r", encoding="utf-8") as f:
             for lineno, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
@@ -158,6 +179,8 @@ def test_json_escaping_exec():
 
 
 def test_pid_filter_tracks_target_tree_only():
+    if has_hidden_host_pids():
+        raise SkipRuntimeTest("PID filter requires the host PID namespace")
     tempdir, target, trigger, done, marker = run_controlled_parent()
     unrelated = f"agentsight-unrelated-{uuid.uuid4().hex}"
     sess = None
@@ -180,6 +203,8 @@ def test_pid_filter_tracks_target_tree_only():
 
 
 def test_session_filter_tracks_session_tree_only():
+    if has_hidden_host_pids():
+        raise SkipRuntimeTest("session filter requires the host PID namespace")
     tempdir, target, trigger, done, marker = run_controlled_parent(preexec_fn=os.setsid)
     unrelated = f"agentsight-session-unrelated-{uuid.uuid4().hex}"
     sess = None
@@ -256,18 +281,150 @@ def test_trace_net_summary_events():
         port = server.getsockname()[1]
         server.listen(1)
 
-        client = socket.socket()
-        client.connect(("127.0.0.1", port))
-        conn, _ = server.accept()
-        client.close()
-        conn.close()
+        for _ in range(2):
+            client = socket.socket()
+            client.connect(("127.0.0.1", port))
+            conn, _ = server.accept()
+            client.close()
+            conn.close()
         server.close()
+
+        auto = socket.socket()
+        auto.listen(1)
+        auto_port = auto.getsockname()[1]
+        auto.close()
+
+        ipv6 = socket.socket(socket.AF_INET6)
+        ipv6.bind(("::", 0))
+        ipv6_port = ipv6.getsockname()[1]
+        ipv6.listen(1)
+        ipv6.close()
+
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp.bind(("127.0.0.1", 0))
+        udp_port = udp.getsockname()[1]
+        udp.close()
+
+        icmp_port = None
+        try:
+            icmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_ICMP)
+            icmp.bind(("127.0.0.1", 0))
+            icmp_port = icmp.getsockname()[1]
+            icmp.close()
+        except OSError:
+            pass  # Ping sockets depend on the host's ping_group_range policy.
 
         time.sleep(0.5)
         sess.stop()
-        types = summary_types(sess.events())
-        required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT"}
+        events = sess.events()
+        types = summary_types(events)
+        required = {"NET_BIND", "NET_LISTEN", "NET_CONNECT", "NET_ACCEPT"}
         assert_true(required.issubset(types), f"missing net SUMMARY types: {sorted(required - types)}")
+        # Ephemeral ports identify these sockets even when BPF reports host PIDs
+        # and this test sees container namespace PIDs.
+        binds = [e for e in events if e.get("type") == "NET_BIND"
+                 and e.get("port") in {udp_port, icmp_port}]
+        assert_true(any(e.get("protocol") == "udp" and e.get("port") == udp_port
+                        and e.get("detail") == f"127.0.0.1:{udp_port}" for e in binds),
+                    f"missing assigned UDP port: {binds}")
+        if icmp_port is not None:
+            assert_true(any(e.get("protocol") == "icmp" and e.get("port") == icmp_port
+                            for e in binds), f"missing ICMP echo bind: {binds}")
+        listeners = [e for e in events if e.get("type") == "NET_LISTEN" and e.get("port") == port]
+        assert_true(any(e.get("local_endpoint") == f"127.0.0.1:{port}" for e in listeners),
+                    f"missing assigned TCP listener endpoint: {listeners}")
+        assert_true(any(e.get("protocol") == "tcp" and e.get("address") == "127.0.0.1"
+                        for e in listeners), f"missing structured TCP address: {listeners}")
+        assert_true(any(e.get("type") == "NET_LISTEN" and e.get("port") == auto_port
+                        and e.get("address") == "0.0.0.0" for e in events),
+                    f"missing autobind listener port {auto_port}")
+        assert_true(any(e.get("type") == "NET_LISTEN" and e.get("port") == ipv6_port
+                        and e.get("address") == "0000:0000:0000:0000:0000:0000:0000:0000"
+                        for e in events), f"missing IPv6 port-0 listener {ipv6_port}")
+        assert_true(any(e.get("type") == "NET_BIND" and e.get("port") == 0
+                        and e.get("address") == "0000:0000:0000:0000:0000:0000:0000:0000"
+                        for e in events), f"missing IPv6 bind {ipv6_port}")
+        peers = [e for e in events if e.get("type") == "NET_ACCEPT" and
+                 e.get("port") == port]
+        assert_true(len(peers) == 1 and peers[0].get("count") == 1,
+                    f"accepted peer was not deduplicated: {peers}")
+        assert_true(peers[0].get("address") == "127.0.0.1" and
+                    peers[0].get("peer") == "127.0.0.1", f"missing accept addresses: {peers}")
+    finally:
+        sess.cleanup()
+
+
+def test_resolved_file_access():
+    tempdir = tempfile.TemporaryDirectory(prefix="agentsight-file-access-")
+    path = os.path.join(tempdir.name, "sample.txt")
+    missing = os.path.join(tempdir.name, "missing.txt")
+    sess = TracerSession("-m", "0")
+    try:
+        if "resolved file opens unavailable" in sess.stderr_text():
+            print("[SKIP] resolved file hook unavailable; syscall fallback active")
+            return
+        with open(path, "w") as file:
+            file.write("data")
+        raw_path = os.fsencode(tempdir.name) + b"/bad\xff\xfename"
+        with open(raw_path, "wb") as file:
+            file.write(b"bytes")
+        long_dir = tempdir.name
+        for _ in range(6):
+            long_dir = os.path.join(long_dir, "d" * 100)
+        os.makedirs(long_dir)
+        long_path = os.path.join(long_dir, "long.txt")
+        with open(long_path, "w") as file:
+            file.write("long")
+        for _ in range(2):
+            with open(path, "r") as file:
+                assert file.read() == "data"
+        try:
+            open(missing, "r").close()
+        except FileNotFoundError:
+            pass
+        subprocess.run(["/bin/true"], check=True)
+        time.sleep(0.5)
+        sess.stop()
+        events = sess.events()
+        # The unique temporary path identifies this process even when BPF
+        # reports a host PID and Python sees a container namespace PID.
+        files = [e for e in events if e.get("event") == "FILE_OPEN"
+                 and e.get("filepath") == path]
+        assert_true(len([e for e in files if e.get("read")]) == 1,
+                    f"expected one deduplicated read: {files}")
+        assert_true(len([e for e in files if e.get("write")]) == 1,
+                    f"expected one write: {files}")
+        assert_true(all(isinstance(e.get("dev"), int) and e.get("ino") for e in files),
+                    f"missing real file identity: {files}")
+        assert_true(all(e.get("dev_maj_min") ==
+                        f"{os.major(e['dev'])}:{os.minor(e['dev'])}" for e in files),
+                    f"missing device major:minor: {files}")
+        assert_true(any(e.get("filepath_hex") == raw_path.hex() and "\ufffd" in e.get("filepath", "")
+                        for e in events if e.get("event") == "FILE_OPEN"),
+                    "non-UTF-8 path is not lossless")
+        assert_true(any(e.get("filepath") == long_path and not e.get("path_error")
+                        for e in events if e.get("event") == "FILE_OPEN"),
+                    f"long path missing: {long_path}")
+        assert_true(not any(e.get("filepath") == missing for e in events),
+                    "failed open was reported")
+        assert_true(any(e.get("event") == "FILE_OPEN" and e.get("exec")
+                        and e.get("filepath", "").endswith("/true") for e in events),
+                    "executable file open was not reported")
+    finally:
+        sess.cleanup()
+        tempdir.cleanup()
+
+
+def test_probe_heartbeat():
+    sess = TracerSession("-m", "0", "--heartbeat", "1")
+    try:
+        time.sleep(1.2)
+        sess.stop()
+        records = [e for e in sess.events() if e.get("event") == "PROBE_LIVENESS"]
+        assert_true(len(records) >= 2 and records[0].get("kind") == "start" and
+                    records[0].get("every") == 1 and records[0].get("trace_net") is False and
+                    any(e.get("kind") == "alive" for e in records[1:]),
+                    f"missing liveness records: {records}")
     finally:
         sess.cleanup()
 
@@ -279,6 +436,8 @@ TESTS = [
     test_filter_mode_without_selector_does_not_fallback,
     test_trace_fs_summary_events,
     test_trace_net_summary_events,
+    test_resolved_file_access,
+    test_probe_heartbeat,
 ]
 
 
@@ -291,12 +450,16 @@ def main():
         return 1
 
     failures = 0
+    skipped = 0
     print("Running process runtime tests")
     for test in TESTS:
         name = test.__name__
         try:
             test()
             print(f"[PASS] {name}")
+        except SkipRuntimeTest as exc:
+            skipped += 1
+            print(f"[SKIP] {name}: {exc}")
         except Exception as exc:
             failures += 1
             print(f"[FAIL] {name}: {exc}")
@@ -304,7 +467,7 @@ def main():
     if failures:
         print(f"process runtime tests failed: {failures}/{len(TESTS)}")
         return 1
-    print(f"process runtime tests passed: {len(TESTS)}")
+    print(f"process runtime tests passed: {len(TESTS) - skipped}; skipped: {skipped}")
     return 0
 
 

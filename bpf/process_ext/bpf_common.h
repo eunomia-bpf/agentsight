@@ -33,8 +33,20 @@ static __always_inline bool is_event_tracked(void)
 	return is_cgroup_tracked() && is_pid_tracked();
 }
 
+static __always_inline u64 current_process_start_ns(void)
+{
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct task_struct *leader = BPF_CORE_READ(task, group_leader);
+	if (!leader)
+		leader = task;
+	if (bpf_core_field_exists(leader->start_boottime))
+		return BPF_CORE_READ(leader, start_boottime);
+	return BPF_CORE_READ(leader, start_time);
+}
+
 static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 bytes)
 {
+	key->process_start_ns = current_process_start_ns();
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, key);
 	if (val) {
 		__sync_fetch_and_add(&val->count, count);
@@ -63,6 +75,8 @@ static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 b
 /* Format "fd=N" into a detail buffer without bpf_snprintf */
 static __always_inline void format_fd_detail(char *buf, int buf_len, int fd)
 {
+	/* Keep LLVM from folding stack pointer arithmetic into bitwise OR. */
+	barrier_var(buf);
 	/* "fd=" prefix */
 	if (buf_len < 4) return;
 	buf[0] = 'f'; buf[1] = 'd'; buf[2] = '=';
@@ -103,6 +117,8 @@ static __always_inline void format_fd_detail(char *buf, int buf_len, int fd)
 /* Fully unrolled for BPF verifier (no loops / back-edges) */
 static __always_inline void write_octet(char *buf, int buf_len, int *pos, u8 val)
 {
+	/* Keep LLVM from folding stack pointer arithmetic into bitwise OR. */
+	barrier_var(buf);
 	if (val >= 100 && *pos < buf_len - 1) buf[(*pos)++] = '0' + val / 100;
 	if (val >= 10  && *pos < buf_len - 1) buf[(*pos)++] = '0' + (val / 10) % 10;
 	if (*pos < buf_len - 1)               buf[(*pos)++] = '0' + val % 10;
@@ -110,6 +126,8 @@ static __always_inline void write_octet(char *buf, int buf_len, int *pos, u8 val
 
 static __always_inline void format_ipv4_port(char *buf, int buf_len, u32 ip, u16 port)
 {
+	/* Keep LLVM from folding stack pointer arithmetic into bitwise OR. */
+	barrier_var(buf);
 	int pos = 0;
 	u8 o0 = ip & 0xFF;
 	u8 o1 = (ip >> 8) & 0xFF;

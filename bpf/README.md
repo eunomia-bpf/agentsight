@@ -12,9 +12,9 @@ An advanced eBPF-based process monitoring tool that traces process lifecycles an
 
 **Key Features:**
 - Monitor process creation and termination
-- Track file open operations with deduplication
+- Track successful regular-file reads, writes, and executable opens with resolved paths
 - Configurable filtering modes for different monitoring levels
-- 60-second sliding window aggregation for repetitive file opens
+- Kernel LRU deduplication by process, file, access, and overlay layer
 - JSON output format for integration with analysis frameworks
 - Verbose debugging mode for troubleshooting
 
@@ -36,6 +36,7 @@ sudo ./process [OPTIONS]
 | `--pid=PID` | `-p PID` | Trace only this specific PID | all |
 | `--mode=MODE` | `-m MODE` | Filter mode (0=all, 1=proc, 2=filter) | 2 |
 | `--all` | `-a` | Deprecated: use `-m 0` instead | - |
+| `--trace-net` | - | Capture bind/connect attempts and successful TCP listeners/accepted peers | disabled |
 
 **Filter Modes:**
 - `0 (all)`: Trace all processes and all file open operations
@@ -61,14 +62,43 @@ sudo ./process -v -p 1234
 
 # Trace multiple commands with minimum duration
 sudo ./process -c "curl,wget" -d 500
+
+# Observe listener endpoints and accepted peers for a process tree
+sudo ./process -p 1234 --trace-net
+
+# Emit a start record and an alive record every five seconds
+sudo ./process -m 0 --trace-net --heartbeat 5
 ```
 
 **File Open Deduplication:**
-- First occurrence of file opens reported immediately (`count=1`)
-- Subsequent identical file opens within 60-second window are aggregated
-- Aggregated results reported when window expires (`count=N`)
-- All pending aggregations flushed on process exit
-- Reduces event volume by 80-95% for repetitive file opens
+- On kernels with `security_file_open` fexit and `bpf_d_path`, the first successful
+  regular-file open for each process, file, access, and overlay layer is reported
+  (`count=1`). A later read, write, or exec access gets its own record. The
+  kernel LRU can evict entries; a later open then reports that file again.
+- `filepath` is resolved in the opener's mount namespace, up to 4095 bytes.
+  Invalid UTF-8 bytes are displayed as replacement characters and the exact
+  path bytes are included in `filepath_hex`. `layer:true` marks
+  an overlay layer open, with `dev` and `ino` naming the underlying file.
+  Container-runtime layer opens using initial-namespace mount credentials are
+  suppressed. A failed path resolution has an empty `filepath` and `path_error`.
+- Kernels without this hook or helper use the original syscall-entry path and
+  60-second userspace aggregation. Those paths may be relative and failed opens
+  can appear. The loader prints a fallback notice to stderr.
+- `FILE_OPEN_LOST` reports ring-buffer reservations and BPF recursion misses.
+
+**Network evidence (`--trace-net`):**
+- Existing `NET_BIND`, `NET_LISTEN`, and `NET_CONNECT` summaries remain available.
+- Successful UDP, UDP-Lite, and ICMP echo binds add a `NET_BIND` summary with
+  `protocol` and the assigned local `port`, including when the application binds
+  port zero. For IPv4, `detail` contains the local address and assigned port.
+- `NET_ACCEPT` reports each TCP peer once per process and listener port. Its
+  `port` is the listener port; repeated accepts from that peer are deduplicated.
+  `AGG_MAP_OVERFLOW` warns when the shared summary map cannot store an event.
+- Successful `NET_LISTEN` rows include `protocol`, `address`, and the assigned
+  local `port`, including autobind and bind-to-zero IPv4 or IPv6 listeners.
+- `--heartbeat SECONDS` emits `PROBE_LIVENESS` start and alive records on the
+  raw probe's JSONL stream. Start includes active trace flags and both records
+  include `every` and a boot-time nanosecond timestamp.
 
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
@@ -295,8 +325,13 @@ All events follow a common base schema with event-specific fields:
 
 **File Open Event Fields:**
 - `count`: Number of aggregated file opens (uint32)
-- `filepath`: Full path to the file being opened (string, max 256 chars)
+- `filepath`: Resolved path to the file being opened (string, max 4095 bytes)
+- `filepath_hex`: Exact path bytes in hex when `filepath` contained invalid UTF-8
 - `flags`: File open flags (int32)
+- `read`, `write`, `exec`: Access bits on resolved file opens (boolean)
+- `layer`: Overlay layer open (boolean); `dev`, `ino`: underlying device and inode;
+  `dev_maj_min`: underlying device as `major:minor`
+- `path_error`: Negative `bpf_d_path` error, if resolution failed
 - `window_expired`: Present when aggregation window expires (boolean, optional)
 - `reason`: Why aggregation was flushed (string, optional: "process_exit")
 
@@ -308,6 +343,23 @@ All events follow a common base schema with event-specific fields:
 - `data`: SSL traffic data (string, bounded by `MAX_BUF_SIZE`)
 - `data_len`: Length of data captured (uint32)
 - `truncated`: Whether data was truncated due to size limits (boolean)
+
+**Network SUMMARY fields (`--trace-net`):**
+- `type`: `NET_BIND`, `NET_LISTEN`, `NET_CONNECT`, or `NET_ACCEPT`
+- `detail`: Requested bind/connect address, successful listener's local endpoint, or accepted TCP peer endpoint
+- `local_endpoint`: Successful `NET_LISTEN` local endpoint (also present in `detail`), or the local endpoint of a `NET_ACCEPT` socket
+- `peer_endpoint`: `NET_ACCEPT` peer endpoint (also present in `detail`)
+- `address`: Local bound address on `NET_BIND`, `NET_LISTEN`, and `NET_ACCEPT`
+- `port`: Assigned local port on successful `NET_LISTEN` and datagram `NET_BIND`;
+  requested port on syscall-entry `NET_BIND`
+- `peer`: Remote address on `NET_ACCEPT`
+- `count`: Number of matching observations in the flush interval
+
+`NET_BIND` and `NET_CONNECT` describe syscall attempts; `NET_LISTEN` and
+`NET_ACCEPT` describe successful TCP operations. Accepted rows carry both socket
+endpoints. Listener and peer endpoints are process evidence. They do not imply
+a match to an SSL or HTTP connection.
+IPv6 endpoints use bracketed, uncompressed hexadecimal notation.
 
 ### Process Tracer JSON Events
 
@@ -342,7 +394,13 @@ All events follow a common base schema with event-specific fields:
   "pid": 1234,
   "count": 1,
   "filepath": "/etc/passwd",
-  "flags": 0
+  "flags": 0,
+  "read": true,
+  "write": false,
+  "exec": false,
+  "layer": false,
+  "dev": 2049,
+  "ino": 12345
 }
 
 {

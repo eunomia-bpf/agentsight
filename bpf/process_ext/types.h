@@ -10,7 +10,11 @@
 struct agg_key {
 	__u32 pid;
 	__u32 event_type;
+	__u64 process_start_ns;
 	char detail[DETAIL_LEN];
+	__u16 port;      /* assigned local port for successful datagram binds */
+	__u8 protocol;   /* IP protocol; zero for existing summary records */
+	char local_endpoint[DETAIL_LEN];
 };
 
 struct agg_value {
@@ -36,6 +40,7 @@ enum process_ext_event_type {
 	EVENT_TYPE_NET_BIND = 20,
 	EVENT_TYPE_NET_LISTEN = 21,
 	EVENT_TYPE_NET_CONNECT = 22,
+	EVENT_TYPE_NET_ACCEPT = 23,
 	EVENT_TYPE_PGRP_CHANGE = 30,
 	EVENT_TYPE_SESSION_CREATE = 31,
 	EVENT_TYPE_SIGNAL_SEND = 32,

@@ -4,10 +4,12 @@
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/sysmacros.h>
 #include <sys/resource.h>
 #include <unistd.h>
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
+#include <bpf/btf.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -49,7 +51,7 @@ struct file_hash_entry {
     uint32_t count;
     pid_t pid;
     char comm[TASK_COMM_LEN];
-    char filepath[MAX_FILENAME_LEN];
+    char filepath[MAX_FILE_PATH_LEN];
     int flags;
 };
 
@@ -74,6 +76,7 @@ static struct env {
 	bool trace_signals;
 	bool trace_mem;
 	bool trace_cow;
+	unsigned heartbeat_seconds;
 	char cgroup_filter_path[256];
 	bool cgroup_filter_enabled;
 	bool cgroup_filter_children;
@@ -94,6 +97,9 @@ static int g_tracked_pids_fd = -1;
 static int g_tracked_cgroups_fd = -1;
 static int g_overflow_fd = -1;
 static int g_exit_mem_fd = -1;
+static int g_file_open_dropped_fd = -1;
+static int g_file_open_prog_fd = -1;
+static uint64_t g_file_open_drops_reported;
 static long page_size_kb;
 
 const char *argp_program_version = "process-tracer 1.0";
@@ -133,6 +139,7 @@ enum {
 	OPT_CGROUP_FILTER,
 	OPT_CGROUP_FILTER_CHILDREN,
 	OPT_SEED_PID,
+	OPT_HEARTBEAT,
 };
 
 static const struct argp_option opts[] = {
@@ -152,6 +159,7 @@ static const struct argp_option opts[] = {
 	{ "cgroup-filter", OPT_CGROUP_FILTER, "PATH", 0, "Hard filter by cgroup v2 path" },
 	{ "cgroup-filter-children", OPT_CGROUP_FILTER_CHILDREN, NULL, 0, "Include descendants of --cgroup-filter path" },
 	{ "seed-pid", OPT_SEED_PID, "PID[:PPID]", 0, "Seed an existing tracked PID supplied by the collector" },
+	{ "heartbeat", OPT_HEARTBEAT, "SECONDS", 0, "Print start and periodic alive records" },
 	{},
 };
 
@@ -299,6 +307,18 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		}
 		env.seed_count++;
 		break;
+	case OPT_HEARTBEAT: {
+		char *end = NULL;
+		unsigned long seconds;
+		errno = 0;
+		seconds = strtoul(arg, &end, 10);
+		if (errno || !end || *end || seconds == 0 || seconds > 86400) {
+			fprintf(stderr, "Invalid heartbeat interval: %s\n", arg);
+			argp_usage(state);
+		}
+		env.heartbeat_seconds = (unsigned)seconds;
+		break;
+	}
 	case ARGP_KEY_ARG:
 		argp_usage(state);
 		break;
@@ -364,6 +384,56 @@ static void json_escape_field(const char *src, char *dst, size_t dst_size)
 	json_escape(src ? src : "", dst, dst_size);
 }
 
+static bool can_trace_resolved_opens(void)
+{
+	struct btf *btf = btf__load_vmlinux_btf();
+	bool has_hook = btf && btf__find_by_name_kind(btf,
+		"security_file_open", BTF_KIND_FUNC) >= 0;
+	btf__free(btf);
+	/* libbpf_probe_bpf_helper deliberately returns -EOPNOTSUPP for tracing
+	 * programs. Load the real fexit program to test bpf_d_path instead. */
+	return has_hook;
+}
+
+static bool has_btf_func(const struct btf *btf, const char *name)
+{
+	return btf && btf__find_by_name_kind(btf, name, BTF_KIND_FUNC) >= 0;
+}
+
+static void report_file_open_drops(void)
+{
+	uint32_t zero = 0;
+	int ncpus = libbpf_num_possible_cpus();
+	if (g_file_open_dropped_fd < 0 || ncpus <= 0)
+		return;
+	uint64_t *counts = calloc(ncpus, sizeof(*counts));
+	if (!counts)
+		return;
+	if (!bpf_map_lookup_elem(g_file_open_dropped_fd, &zero, counts)) {
+		uint64_t total = 0;
+		for (int i = 0; i < ncpus; i++)
+			total += counts[i];
+		if (g_file_open_prog_fd >= 0) {
+			struct bpf_prog_info info = {};
+			uint32_t info_len = sizeof(info);
+			if (!bpf_prog_get_info_by_fd(g_file_open_prog_fd, &info, &info_len))
+				total += info.recursion_misses;
+		}
+		if (total > g_file_open_drops_reported) {
+			struct timespec now = {};
+			clock_gettime(CLOCK_BOOTTIME, &now);
+			uint64_t timestamp_ns = (uint64_t)now.tv_sec * 1000000000ULL + now.tv_nsec;
+			printf("{\"timestamp\":%llu,\"event\":\"FILE_OPEN_LOST\","
+			       "\"pid\":0,\"comm\":\"process\",\"count\":%llu}\n",
+				(unsigned long long)timestamp_ns,
+				(unsigned long long)(total - g_file_open_drops_reported));
+			fflush(stdout);
+			g_file_open_drops_reported = total;
+		}
+	}
+	free(counts);
+}
+
 #define SET_AUTOLOAD(name, enabled) bpf_program__set_autoload(skel->progs.name, enabled)
 
 static void configure_optional_programs(struct process_bpf *skel)
@@ -385,8 +455,19 @@ static void configure_optional_programs(struct process_bpf *skel)
 	SET_AUTOLOAD(trace_writev_exit, env.trace_fs);
 
 	SET_AUTOLOAD(trace_bind, env.trace_net);
-	SET_AUTOLOAD(trace_listen, env.trace_net);
+	SET_AUTOLOAD(trace_listen, false);
+	SET_AUTOLOAD(trace_inet_listen_enter, env.trace_net);
+	SET_AUTOLOAD(trace_inet_listen_exit, env.trace_net);
 	SET_AUTOLOAD(trace_connect, env.trace_net);
+	struct btf *btf = env.trace_net ? btf__load_vmlinux_btf() : NULL;
+	bool bind4_sk = has_btf_func(btf, "inet_bind_sk");
+	bool bind6_sk = has_btf_func(btf, "inet6_bind_sk");
+	SET_AUTOLOAD(trace_datagram_bind4_sk, env.trace_net && bind4_sk);
+	SET_AUTOLOAD(trace_datagram_bind6_sk, env.trace_net && bind6_sk);
+	SET_AUTOLOAD(trace_datagram_bind4, env.trace_net && !bind4_sk && has_btf_func(btf, "inet_bind"));
+	SET_AUTOLOAD(trace_datagram_bind6, env.trace_net && !bind6_sk && has_btf_func(btf, "inet6_bind"));
+	SET_AUTOLOAD(trace_accept_peer, env.trace_net && has_btf_func(btf, "inet_csk_accept"));
+	btf__free(btf);
 
 	SET_AUTOLOAD(trace_setpgid, env.trace_signals);
 	SET_AUTOLOAD(trace_setsid, env.trace_signals);
@@ -398,6 +479,26 @@ static void configure_optional_programs(struct process_bpf *skel)
 }
 
 #undef SET_AUTOLOAD
+
+static void configure_process_skel(struct process_bpf *skel, bool resolved_opens,
+				   bool need_pid_filter, bool need_cgroup_filter,
+				   uint64_t cgroup_filter_id)
+{
+	configure_optional_programs(skel);
+	bpf_program__set_autoload(skel->progs.trace_file_open_exit, resolved_opens);
+	bpf_program__set_autoload(skel->progs.trace_openat, !resolved_opens);
+	bpf_program__set_autoload(skel->progs.trace_open, !resolved_opens);
+	skel->rodata->min_duration_ns = env.min_duration_ms * 1000000ULL;
+	skel->rodata->trace_fs_mutations = env.trace_fs;
+	skel->rodata->trace_network = env.trace_net;
+	skel->rodata->trace_signals = env.trace_signals;
+	skel->rodata->trace_memory = env.trace_mem;
+	skel->rodata->trace_cow = env.trace_cow;
+	skel->rodata->filter_pids = need_pid_filter;
+	skel->rodata->filter_cgroup = need_cgroup_filter;
+	skel->rodata->filter_cgroup_children = env.cgroup_filter_children;
+	skel->rodata->target_cgroup_id = cgroup_filter_id;
+}
 
 // Rate limiting check function
 static bool should_rate_limit_file(const struct event *e, uint64_t timestamp_ns, bool *add_warning) {
@@ -444,14 +545,69 @@ static bool should_rate_limit_file(const struct event *e, uint64_t timestamp_ns,
     return false;
 }
 
+/* Preserve valid UTF-8, replace invalid bytes in the display path, and let
+ * callers add the exact bytes as filepath_hex when replacement was needed. */
+static bool escape_file_path(const char *path, char *out, size_t out_len)
+{
+	const unsigned char *bytes = (const unsigned char *)path;
+	size_t len = strnlen(path, MAX_FILE_PATH_LEN);
+	size_t pos = 0;
+	bool invalid = false;
+	static const char hex[] = "0123456789abcdef";
+
+	for (size_t i = 0; i < len && pos + 7 < out_len;) {
+		unsigned char c = bytes[i];
+		if (c < 0x20) {
+			memcpy(out + pos, "\\u00", 4);
+			out[pos + 4] = hex[c >> 4];
+			out[pos + 5] = hex[c & 15];
+			pos += 6;
+			i++;
+		} else if (c == '"' || c == '\\') {
+			out[pos++] = '\\';
+			out[pos++] = c;
+			i++;
+		} else if (c < 0x80) {
+			out[pos++] = c;
+			i++;
+		} else {
+			size_t n = c >= 0xc2 && c <= 0xdf ? 2 :
+				   c >= 0xe0 && c <= 0xef ? 3 :
+				   c >= 0xf0 && c <= 0xf4 ? 4 : 0;
+			bool valid = n && i + n <= len;
+			for (size_t j = 1; valid && j < n; j++)
+				valid = bytes[i + j] >= 0x80 && bytes[i + j] <= 0xbf;
+			if (valid && n == 3)
+				valid = (c != 0xe0 || bytes[i + 1] >= 0xa0) &&
+					(c != 0xed || bytes[i + 1] < 0xa0);
+			if (valid && n == 4)
+				valid = (c != 0xf0 || bytes[i + 1] >= 0x90) &&
+					(c != 0xf4 || bytes[i + 1] < 0x90);
+			if (valid) {
+				memcpy(out + pos, bytes + i, n);
+				pos += n;
+				i += n;
+			} else {
+				memcpy(out + pos, "\\ufffd", 6);
+				pos += 6;
+				i++;
+				invalid = true;
+			}
+		}
+	}
+	out[pos] = '\0';
+	return invalid;
+}
+
 // Shared function to print FILE_OPEN events
 static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, uint32_t count, const char *extra_fields)
 {
 	char comm_esc[TASK_COMM_LEN * 2 + 1];
-	char filepath_esc[MAX_FILENAME_LEN * 2 + 1];
+	char filepath_esc[MAX_FILE_PATH_LEN * 6 + 1];
+	bool invalid_path;
 
 	json_escape_field(e->comm, comm_esc, sizeof(comm_esc));
-	json_escape_field(e->file_op.filepath, filepath_esc, sizeof(filepath_esc));
+	invalid_path = escape_file_path(e->file_op.filepath, filepath_esc, sizeof(filepath_esc));
 
 	printf("{");
 	printf("\"timestamp\":%llu,", (unsigned long long)timestamp_ns);
@@ -460,7 +616,26 @@ static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, 
 	printf("\"pid\":%d,", e->pid);
 	printf("\"count\":%u,", count);
 	printf("\"filepath\":\"%s\",", filepath_esc);
+	if (invalid_path) {
+		static const char hex[] = "0123456789abcdef";
+		const unsigned char *path = (const unsigned char *)e->file_op.filepath;
+		printf("\"filepath_hex\":\"");
+		for (size_t i = 0, len = strnlen(e->file_op.filepath, MAX_FILE_PATH_LEN); i < len; i++)
+			printf("%c%c", hex[path[i] >> 4], hex[path[i] & 15]);
+		printf("\",");
+	}
 	printf("\"flags\":%d", e->file_op.flags);
+	if (e->file_op.resolved) {
+		printf(",\"read\":%s,\"write\":%s,\"exec\":%s,\"layer\":%s,"
+		       "\"dev\":%u,\"dev_maj_min\":\"%u:%u\",\"ino\":%llu",
+		       e->file_op.access & FILE_ACCESS_READ ? "true" : "false",
+		       e->file_op.access & FILE_ACCESS_WRITE ? "true" : "false",
+		       e->file_op.access & FILE_ACCESS_EXEC ? "true" : "false",
+		       e->file_op.layer ? "true" : "false",
+		       e->file_op.dev, major(e->file_op.dev), minor(e->file_op.dev), e->file_op.ino);
+		if (e->file_op.path_error)
+			printf(",\"path_error\":%d", e->file_op.path_error);
+	}
 	
 	if (extra_fields && strlen(extra_fields) > 0) {
 		printf(",%s", extra_fields);
@@ -491,6 +666,12 @@ static uint64_t hash_file_open(const struct event *e)
 // Get count for FILE_OPEN operations (handles deduplication internally)
 static uint32_t get_file_open_count(const struct event *e, uint64_t timestamp_ns, char *warning_msg, size_t warning_msg_size)
 {
+	/* The resolved path already has a per-(process,file,access,layer) LRU
+	 * in BPF. A second path-only dedup would hide a later write or exec. */
+	if (e->file_op.resolved) {
+		warning_msg[0] = '\0';
+		return 1;
+	}
 	if (e->type != EVENT_TYPE_FILE_OPERATION || !e->file_op.is_open) {
 		return 1;  // Return count of 1 for non-FILE_OPEN operations
 	}
@@ -536,8 +717,8 @@ static uint32_t get_file_open_count(const struct event *e, uint64_t timestamp_ns
 				};
 				strncpy(fake_event.comm, file_hashes[i].comm, TASK_COMM_LEN - 1);
 				fake_event.comm[TASK_COMM_LEN - 1] = '\0';
-				strncpy(fake_event.file_op.filepath, file_hashes[i].filepath, MAX_FILENAME_LEN - 1);
-				fake_event.file_op.filepath[MAX_FILENAME_LEN - 1] = '\0';
+				strncpy(fake_event.file_op.filepath, file_hashes[i].filepath, MAX_FILE_PATH_LEN - 1);
+				fake_event.file_op.filepath[MAX_FILE_PATH_LEN - 1] = '\0';
 				print_file_open_event(&fake_event, timestamp_ns, file_hashes[i].count, "\"window_expired\":true");
 			}
 			
@@ -569,8 +750,8 @@ static uint32_t get_file_open_count(const struct event *e, uint64_t timestamp_ns
 		file_hashes[hash_count].pid = e->pid;
 		strncpy(file_hashes[hash_count].comm, e->comm, TASK_COMM_LEN - 1);
 		file_hashes[hash_count].comm[TASK_COMM_LEN - 1] = '\0';
-		strncpy(file_hashes[hash_count].filepath, e->file_op.filepath, MAX_FILENAME_LEN - 1);
-		file_hashes[hash_count].filepath[MAX_FILENAME_LEN - 1] = '\0';
+		strncpy(file_hashes[hash_count].filepath, e->file_op.filepath, MAX_FILE_PATH_LEN - 1);
+		file_hashes[hash_count].filepath[MAX_FILE_PATH_LEN - 1] = '\0';
 		file_hashes[hash_count].flags = e->file_op.flags;
 		hash_count++;
 		if (env.verbose) {
@@ -612,8 +793,8 @@ static void flush_pid_file_opens(pid_t pid, uint64_t timestamp_ns)
 			};
 			strncpy(fake_event.comm, file_hashes[i].comm, TASK_COMM_LEN - 1);
 			fake_event.comm[TASK_COMM_LEN - 1] = '\0';
-			strncpy(fake_event.file_op.filepath, file_hashes[i].filepath, MAX_FILENAME_LEN - 1);
-			fake_event.file_op.filepath[MAX_FILENAME_LEN - 1] = '\0';
+			strncpy(fake_event.file_op.filepath, file_hashes[i].filepath, MAX_FILE_PATH_LEN - 1);
+			fake_event.file_op.filepath[MAX_FILE_PATH_LEN - 1] = '\0';
 			print_file_open_event(&fake_event, timestamp_ns, file_hashes[i].count, "\"reason\":\"process_exit\"");
 			flushed_count++;
 		}
@@ -851,6 +1032,24 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	return 0;
 }
 
+static void print_probe_liveness(const char *kind)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_BOOTTIME, &ts);
+	printf("{\"event\":\"PROBE_LIVENESS\",\"kind\":\"%s\","
+	       "\"timestamp\":%llu,\"every\":%u",
+	       kind, (unsigned long long)ts.tv_sec * 1000000000ULL + ts.tv_nsec,
+	       env.heartbeat_seconds);
+	if (kind[0] == 's')
+		printf(",\"trace_fs\":%s,\"trace_net\":%s,\"trace_signals\":%s,"
+		       "\"trace_mem\":%s,\"trace_cow\":%s",
+		       env.trace_fs ? "true" : "false", env.trace_net ? "true" : "false",
+		       env.trace_signals ? "true" : "false", env.trace_mem ? "true" : "false",
+		       env.trace_cow ? "true" : "false");
+	printf("}\n");
+	fflush(stdout);
+}
+
 int main(int argc, char **argv)
 {
 	struct ring_buffer *rb = NULL;
@@ -888,18 +1087,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	configure_optional_programs(skel);
-
-	/* Parameterize BPF code with minimum duration */
-	skel->rodata->min_duration_ns = env.min_duration_ms * 1000000ULL;
-	skel->rodata->trace_fs_mutations = env.trace_fs;
-	skel->rodata->trace_network = env.trace_net;
-	skel->rodata->trace_signals = env.trace_signals;
-	skel->rodata->trace_memory = env.trace_mem;
-	skel->rodata->trace_cow = env.trace_cow;
+	bool resolved_opens = can_trace_resolved_opens();
 
 	bool need_pid_filter = env.filter_mode == FILTER_MODE_FILTER;
-	skel->rodata->filter_pids = need_pid_filter;
 
 	bool need_cgroup_filter = false;
 	uint64_t cgroup_filter_id = 0;
@@ -912,12 +1102,26 @@ int main(int argc, char **argv)
 		}
 		need_cgroup_filter = true;
 	}
-	skel->rodata->filter_cgroup = need_cgroup_filter;
-	skel->rodata->filter_cgroup_children = env.cgroup_filter_children;
-	skel->rodata->target_cgroup_id = cgroup_filter_id;
+	configure_process_skel(skel, resolved_opens, need_pid_filter,
+			       need_cgroup_filter, cgroup_filter_id);
 
 	/* Load & verify BPF programs */
 	err = process_bpf__load(skel);
+	if (err && resolved_opens) {
+		fprintf(stderr, "process: resolved file hook failed to load; using syscall fallback\n");
+		process_bpf__destroy(skel);
+		skel = process_bpf__open();
+		if (!skel) {
+			err = -ENOMEM;
+			goto cleanup;
+		}
+		resolved_opens = false;
+		configure_process_skel(skel, resolved_opens, need_pid_filter,
+				       need_cgroup_filter, cgroup_filter_id);
+		err = process_bpf__load(skel);
+	} else if (!resolved_opens) {
+		fprintf(stderr, "process: resolved file opens unavailable; using syscall fallback\n");
+	}
 	if (err) {
 		fprintf(stderr, "Failed to load and verify BPF skeleton\n");
 		goto cleanup;
@@ -928,6 +1132,10 @@ int main(int argc, char **argv)
 	g_tracked_cgroups_fd = bpf_map__fd(skel->maps.tracked_cgroups);
 	g_overflow_fd = bpf_map__fd(skel->maps.agg_overflow_count);
 	g_exit_mem_fd = bpf_map__fd(skel->maps.exit_mem);
+	g_file_open_dropped_fd = resolved_opens ?
+		bpf_map__fd(skel->maps.file_open_dropped) : -1;
+	g_file_open_prog_fd = resolved_opens ?
+		bpf_program__fd(skel->progs.trace_file_open_exit) : -1;
 
 	if (need_cgroup_filter && env.cgroup_filter_children) {
 		int cgroups = populate_cgroup_filter_map(env.cgroup_filter_path, true, g_tracked_cgroups_fd);
@@ -971,13 +1179,17 @@ int main(int argc, char **argv)
 
 	uint64_t last_flush_time = 0;
 	uint64_t last_cgroup_refresh_time = 0;
+	uint64_t last_heartbeat_time = (uint64_t)time(NULL);
 	print_clock_sync_anchor("start");
+	if (env.heartbeat_seconds)
+		print_probe_liveness("start");
 
 	/* Process events */
 	while (!exiting) {
 		int poll_ms = POLL_TIMEOUT_MS;
 
 		err = ring_buffer__poll(rb, poll_ms);
+		report_file_open_drops();
 		/* Ctrl-C will cause -EINTR */
 		if (err == -EINTR) {
 			err = 0;
@@ -989,6 +1201,10 @@ int main(int argc, char **argv)
 		}
 
 		uint64_t now = (uint64_t)time(NULL);
+		if (env.heartbeat_seconds && now - last_heartbeat_time >= env.heartbeat_seconds) {
+			print_probe_liveness("alive");
+			last_heartbeat_time = now;
+		}
 		if (need_cgroup_filter && env.cgroup_filter_children &&
 		    now - last_cgroup_refresh_time >= 2) {
 			int rc = populate_cgroup_filter_map(env.cgroup_filter_path, true, g_tracked_cgroups_fd);
@@ -1010,6 +1226,7 @@ int main(int argc, char **argv)
 
 	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
+	report_file_open_drops();
 	print_clock_sync_anchor("end");
 
 cleanup:
