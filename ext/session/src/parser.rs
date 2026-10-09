@@ -1148,8 +1148,17 @@ fn parse_jsonl(
             }
             (AGENT_CODEX, "token_usage_record") => {
                 // Codex 0.153+ writes this rollout item before event_msg token_count.
-                if let Some(usage) = obj.get("payload").and_then(codex_record_token_usage) {
-                    have_codex_total = true;
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                let usage =
+                    if let Some(usage) = codex_named_token_usage(payload, "thread_token_usage") {
+                        have_codex_total = true;
+                        Some(usage)
+                    } else if !have_codex_total {
+                        codex_record_token_usage(payload)
+                    } else {
+                        None
+                    };
+                if let Some(usage) = usage {
                     let name = if codex_model.is_empty() {
                         "unknown"
                     } else {
@@ -1164,22 +1173,30 @@ fn parse_jsonl(
                         usage.total_tokens,
                     );
                 }
+                if let Some(usage) = obj.pointer("/payload/usage")
+                    && let Some(last) = events.llm_responses.last_mut()
+                    && last.total_tokens == 0
+                {
+                    last.input_tokens = json_u64(usage, "input_tokens");
+                    last.output_tokens = json_u64(usage, "output_tokens");
+                    last.cache_tokens = json_u64(usage, "cached_input_tokens");
+                    last.total_tokens = json_u64(usage, "total_tokens");
+                }
             }
             (AGENT_CODEX, "event_msg") => {
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
                 if ptype == "token_count" {
                     let info = payload.get("info").unwrap_or(&Value::Null);
-                    let usage = if let Some(usage) =
-                        codex_named_token_usage(info, "total_token_usage")
-                    {
-                        have_codex_total = true;
-                        Some(usage)
-                    } else if !have_codex_total {
-                        codex_named_token_usage(info, "last_token_usage")
-                    } else {
-                        None
-                    };
+                    let usage =
+                        if let Some(usage) = codex_named_token_usage(info, "total_token_usage") {
+                            have_codex_total = true;
+                            Some(usage)
+                        } else if !have_codex_total {
+                            codex_named_token_usage(info, "last_token_usage")
+                        } else {
+                            None
+                        };
                     if let Some(usage) = usage {
                         let name = if codex_model.is_empty() {
                             "unknown"
@@ -3022,12 +3039,9 @@ fn codex_named_token_usage(info: &Value, key: &str) -> Option<TokenUsage> {
 }
 
 fn codex_record_token_usage(payload: &Value) -> Option<TokenUsage> {
-    payload
-        .get("thread_token_usage")
-        .or_else(|| payload.get("usage"))
-        .or_else(|| payload.get("turn_token_usage"))
-        .map(codex_token_usage)
-        .filter(|usage| usage.total_tokens > 0)
+    ["thread_token_usage", "usage", "turn_token_usage"]
+        .iter()
+        .find_map(|key| codex_named_token_usage(payload, key))
 }
 
 pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
@@ -3042,12 +3056,18 @@ pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
             continue;
         };
         if typ == "token_usage_record" {
+            // Both rollout formats contain cumulative totals. Return the
+            // newest one, rather than preferring an older token_count event.
+            if let Some(usage) = codex_named_token_usage(payload, "thread_token_usage") {
+                return Some(usage);
+            }
             if record_fallback.is_none() {
                 record_fallback = codex_record_token_usage(payload);
             }
             continue;
         }
-        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
+        if typ != "event_msg" || payload.get("type").and_then(Value::as_str) != Some("token_count")
+        {
             continue;
         }
         let Some(info) = payload.get("info") else {
@@ -5729,6 +5749,109 @@ mod tests {
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
         assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_latest_token_usage_records_update_live_session_totals() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"check build"}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":10,"cached_input_tokens":4,"output_tokens":5,"total_tokens":15},"thread_token_usage":{"input_tokens":21,"cached_input_tokens":4,"output_tokens":9,"total_tokens":30}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 17);
+        assert_eq!(session.usage.cache_read_tokens, 4);
+        assert_eq!(session.usage.output_tokens, 9);
+        assert_eq!(session.usage.total_tokens, 30);
+        assert_eq!(codex_total_token_usage(content), Some(session.usage));
+    }
+
+    #[test]
+    fn codex_newer_record_updates_totals_after_token_count() {
+        let content = concat!(
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100}}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":20,"output_tokens":10,"total_tokens":30},"thread_token_usage":{"input_tokens":100,"cached_input_tokens":4,"output_tokens":30,"total_tokens":130}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"total_tokens":30}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 130);
+        assert_eq!(session.usage.input_tokens, 96);
+        assert_eq!(session.usage.cache_read_tokens, 4);
+        assert_eq!(session.usage.output_tokens, 30);
+        assert_eq!(codex_total_token_usage(content), Some(session.usage));
+    }
+
+    #[test]
+    fn codex_record_response_usage_does_not_replace_thread_total() {
+        let content = concat!(
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"check build"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"agent_message","message":"first result"}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"agent_message","message":"second result"}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":10,"cached_input_tokens":4,"output_tokens":5,"total_tokens":15},"thread_token_usage":{"input_tokens":21,"cached_input_tokens":4,"output_tokens":9,"total_tokens":30}}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"thread_token_usage":{},"usage":{"total_tokens":15}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.usage.total_tokens, 30);
+        assert_eq!(codex_total_token_usage(content), Some(session.usage));
+        assert_eq!(session.events.llm_responses.len(), 2);
+        assert_eq!(session.events.llm_responses[0].total_tokens, 15);
+        let second = &session.events.llm_responses[1];
+        assert_eq!(second.input_tokens, 10);
+        assert_eq!(second.cache_tokens, 4);
+        assert_eq!(second.output_tokens, 5);
+        assert_eq!(second.total_tokens, 15);
+    }
+
+    #[test]
+    fn codex_record_without_thread_total_uses_nonempty_fallback() {
+        for thread in ["null", "{}"] {
+            for key in ["usage", "turn_token_usage"] {
+                let content = format!(
+                    r#"{{"type":"token_usage_record","payload":{{"thread_token_usage":{thread},"{key}":{{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}}}"#,
+                );
+                let session = parse_session_content(
+                    AGENT_CODEX,
+                    &PathBuf::from("/tmp/session.jsonl"),
+                    UNIX_EPOCH,
+                    &content,
+                )
+                .expect("session");
+                assert_eq!(session.usage.total_tokens, 15);
+                assert_eq!(codex_total_token_usage(&content), Some(session.usage));
+            }
+        }
     }
 
     #[test]
