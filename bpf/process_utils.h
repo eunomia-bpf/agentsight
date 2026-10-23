@@ -6,6 +6,17 @@
 #include <sys/types.h>
 
 #include "process.h"
+
+/* Kernel sb->s_dev uses the 12:20 major/minor layout, not glibc dev_t. */
+static inline unsigned int kernel_dev_major(unsigned int dev)
+{
+	return dev >> 20;
+}
+
+static inline unsigned int kernel_dev_minor(unsigned int dev)
+{
+	return dev & ((1u << 20) - 1);
+}
 /*
  * postprocess_full_command - Convert raw argv bytes to a readable command string.
  *
