@@ -65,7 +65,7 @@ impl SSEProcessorEvent {
 }
 
 /// HTTP Event - represents a parsed HTTP request or response
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HTTPEvent {
     #[serde(flatten)]
     pub(crate) capture_metadata: CaptureMetadata,

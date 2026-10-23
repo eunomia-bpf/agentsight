@@ -26,6 +26,11 @@ impl HTTPDecompressor {
             return event;
         }
 
+        // A cut-off compressed body cannot be decoded faithfully, and the
+        // decompressed length would misreport the declared body size.
+        if event.data.get("body_truncated").and_then(Value::as_bool) == Some(true) {
+            return event;
+        }
         let Some(encoding) = content_encoding(&event.data) else {
             return event;
         };
@@ -266,6 +271,20 @@ mod tests {
                 .get("decompressed")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn leaves_truncated_compressed_bodies_untouched() {
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(b"hello hello hello hello").unwrap();
+        let compressed = encoder.finish().unwrap();
+        let mut event = http_response(compressed, "gzip");
+        event.data["body_truncated"] = Value::Bool(true);
+
+        let event = HTTPDecompressor::process_event(event);
+
+        assert!(event.data.get("decompressed").is_none());
+        assert_eq!(event.data["headers"]["content-encoding"], "gzip");
     }
 
     #[test]

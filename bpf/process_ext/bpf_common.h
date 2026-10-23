@@ -16,14 +16,43 @@ static __always_inline bool is_pid_tracked(void)
 	return bpf_map_lookup_elem(&tracked_pids, &pid) != NULL;
 }
 
+/* Kernel PID namespace nesting is capped at 32 levels (MAX_PID_NS_LEVEL). */
+#define PIDNS_MAX_LEVEL 32
+
+/*
+ * True when the target PID namespace appears anywhere in the current task's
+ * struct pid chain, i.e. when the task is visible from that namespace. That
+ * covers the namespace itself and every namespace nested inside it (for
+ * example a bubblewrap/unshare --pid sandbox started by the target).
+ * bpf_get_ns_current_pid_tgid() is not usable here: it only succeeds when the
+ * task's innermost namespace is exactly the target. Namespace inode numbers
+ * are unique within nsfs, so the inode alone identifies the namespace.
+ */
+static __noinline bool task_visible_in_target_pidns(void)
+{
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct pid *thread_pid = BPF_CORE_READ(task, thread_pid);
+	unsigned int level;
+
+	if (!thread_pid)
+		return false;
+	level = BPF_CORE_READ(thread_pid, level);
+	for (int i = 0; i < PIDNS_MAX_LEVEL; i++) {
+		struct pid_namespace *ns;
+
+		if (i > level)
+			break;
+		ns = BPF_CORE_READ(thread_pid, numbers[i].ns);
+		if (ns && BPF_CORE_READ(ns, ns.inum) == target_pidns_ino)
+			return true;
+	}
+	return false;
+}
+
 static __always_inline bool is_scope_tracked(void)
 {
-	if (target_pidns_ino) {
-		struct bpf_pidns_info ns = {};
-		if (bpf_get_ns_current_pid_tgid(target_pidns_dev, target_pidns_ino,
-					      &ns, sizeof(ns)) != 0)
-			return false;
-	}
+	if (target_pidns_ino && !task_visible_in_target_pidns())
+		return false;
 	if (!filter_cgroup)
 		return true;
 	u64 cgroup_id = bpf_get_current_cgroup_id();

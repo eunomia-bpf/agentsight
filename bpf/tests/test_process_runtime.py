@@ -495,6 +495,74 @@ conn.close(); client.close(); server.close()
         target.stderr.close()
 
 
+def test_pid_namespace_filter_includes_nested_namespaces():
+    # A sandbox (bubblewrap / unshare --pid) started inside the target creates a
+    # PID namespace nested in it. Its processes are visible from the target
+    # namespace and must be kept; a PID namespace that is not under the target
+    # (a sibling created from the host) must still be dropped.
+    target = subprocess.Popen(["unshare", "--pid", "--fork", "--kill-child", "sleep", "30"],
+                              stderr=subprocess.PIPE)
+    sess = None
+    try:
+        children_path = f"/proc/{target.pid}/task/{target.pid}/children"
+        children = []
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if target.poll() is not None:
+                raise SkipRuntimeTest(target.stderr.read().decode(errors="replace"))
+            with open(children_path) as file:
+                children = file.read().split()
+            if children:
+                break
+            time.sleep(0.05)
+        assert_true(bool(children), "PID namespace init did not start")
+        pid = children[0]
+        sess = TracerSession("-m", "0", "--trace-net", "--pidns-of", pid)
+        with tempfile.TemporaryDirectory(prefix="agentsight-pidns-nested-") as directory:
+            nested_file, sibling_file, exact_file = [
+                os.path.join(directory, name) for name in ("nested", "sibling", "exact")]
+            code = """
+import socket, sys
+with open(sys.argv[1], 'w') as file:
+    file.write('scope')
+server = socket.socket()
+server.bind(('127.0.0.1', 0))
+server.listen(1)
+print(server.getsockname()[1])
+client = socket.create_connection(server.getsockname())
+conn, _ = server.accept()
+conn.close(); client.close(); server.close()
+"""
+            nested = subprocess.run(
+                ["nsenter", "-t", pid, "-p", "unshare", "--pid", "--fork", sys.executable, "-c", code,
+                 nested_file], capture_output=True, text=True, check=True)
+            exact = subprocess.run(["nsenter", "-t", pid, "-p", sys.executable, "-c", code, exact_file],
+                                   capture_output=True, text=True, check=True)
+            sibling = subprocess.run(
+                ["unshare", "--pid", "--fork", sys.executable, "-c", code, sibling_file],
+                capture_output=True, text=True, check=True)
+            time.sleep(0.5)
+            sess.stop()
+            events = sess.events()
+            for name, path, result in (("nested", nested_file, nested), ("exact", exact_file, exact)):
+                assert_true(any(e.get("event") == "FILE_OPEN" and e.get("filepath") == path
+                                for e in events), f"{name} namespace file open missing")
+                for kind in ("NET_LISTEN", "NET_ACCEPT"):
+                    assert_true(any(e.get("type") == kind and e.get("port") == int(result.stdout)
+                                    for e in events), f"{name} namespace {kind} missing")
+            assert_true(not any_event_contains(events, sibling_file), "sibling namespace file leaked")
+            for kind in ("NET_LISTEN", "NET_ACCEPT"):
+                assert_true(not any(e.get("type") == kind and e.get("port") == int(sibling.stdout)
+                                    for e in events), f"sibling namespace {kind} leaked")
+    finally:
+        if sess:
+            sess.cleanup()
+        if target.poll() is None:
+            target.kill()
+        target.wait(timeout=5)
+        target.stderr.close()
+
+
 def test_pid_namespace_invalid_target():
     for pid in ("0", "-1", "123bad", "2147483648"):
         result = subprocess.run([PROCESS, "--pidns-of", pid], capture_output=True, text=True)
@@ -515,6 +583,7 @@ TESTS = [
     test_resolved_file_access,
     test_probe_heartbeat,
     test_pid_namespace_filter,
+    test_pid_namespace_filter_includes_nested_namespaces,
     test_pid_namespace_invalid_target,
 ]
 

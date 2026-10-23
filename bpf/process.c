@@ -166,7 +166,7 @@ static const struct argp_option opts[] = {
 	{ "cgroup-filter-children", OPT_CGROUP_FILTER_CHILDREN, NULL, 0, "Include descendants of --cgroup-filter path" },
 	{ "seed-pid", OPT_SEED_PID, "PID[:PPID]", 0, "Seed an existing tracked PID supplied by the collector" },
 	{ "heartbeat", OPT_HEARTBEAT, "SECONDS", 0, "Print start and periodic alive records" },
-	{ "pidns-of", OPT_PIDNS_OF, "PID", 0, "Hard filter to the PID namespace of /proc/PID" },
+	{ "pidns-of", OPT_PIDNS_OF, "PID", 0, "Hard filter to the PID namespace of /proc/PID and namespaces nested in it" },
 	{},
 };
 
