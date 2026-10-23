@@ -98,6 +98,19 @@ pub struct HTTPEvent {
     pub content_length: Option<usize>,
     pub original_source: String,
     pub raw_data: Option<String>,
+    /// Set when the message is incomplete because AgentSight stopped
+    /// collecting it: the HTTP/1.1 size cap was reached or the SSL capture
+    /// itself truncated the record. `body` (if any) is only a prefix, and
+    /// `content_length` (if present) is the size the peer declared. Absent
+    /// on complete messages.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub body_truncated: bool,
+    /// Why the body was cut: `body_limit` or `capture_truncated`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_truncation_reason: Option<String>,
+    /// Body bytes actually retained when `body_truncated` is set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_captured_bytes: Option<usize>,
 }
 
 impl HTTPEvent {

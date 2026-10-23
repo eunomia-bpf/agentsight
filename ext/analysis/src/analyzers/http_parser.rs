@@ -10,7 +10,7 @@ use crate::runners::EventStream;
 use async_trait::async_trait;
 use flate2::{Decompress, FlushDecompress};
 use futures::stream::StreamExt;
-use hpack::Decoder as HpackDecoder;
+use loona_hpack::Decoder as HpackDecoder;
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
 const MAX_HTTP2_STREAMS: usize = 1024;
@@ -20,7 +20,9 @@ const MAX_HTTP2_HEADER_BLOCK_BYTES: usize = 64 * 1024;
 const MAX_HTTP2_FRAME_BUFFER_BYTES: usize = (16 * 1024 * 1024) + 9;
 const MAX_HTTP1_CONNECTIONS: usize = 1_024;
 const MAX_HTTP2_CONNECTIONS: usize = 1_024;
-const MAX_HTTP1_BUFFER_BYTES: usize = 2 * 1024 * 1024;
+/// Largest HTTP/1 message prefix kept per direction; beyond it the message is
+/// emitted with `body_truncated`.
+const MAX_HTTP1_BUFFER_BYTES: usize = MAX_HTTP_BODY_BYTES;
 const MAX_BUFFERED_FRAGMENTS: usize = 4_096;
 const MAX_HTTP1_PENDING_REQUESTS: usize = 1_024;
 
@@ -42,6 +44,10 @@ struct HTTP1ConnectionState {
     response_buffer: Vec<u8>,
     request_metadata: FragmentBuffer,
     response_metadata: FragmentBuffer,
+    /// Bytes of a message already emitted truncated that must be discarded
+    /// before parsing resumes, per direction.
+    request_skip: usize,
+    response_skip: usize,
     pending: VecDeque<(String, bool)>,
     next_request_seq: u64,
 }
@@ -135,8 +141,6 @@ struct HTTP2State {
     response_metadata: FragmentBuffer,
     streams: HashMap<u32, HTTP2StreamState>,
     pending_headers: HashMap<(HTTP2Direction, u32), PendingHTTP2Headers>,
-    request_hpack_valid: bool,
-    response_hpack_valid: bool,
     goaway_last_stream_id: Option<u32>,
 }
 
@@ -163,8 +167,6 @@ impl Default for HTTP2State {
             response_metadata: FragmentBuffer::default(),
             streams: HashMap::new(),
             pending_headers: HashMap::new(),
-            request_hpack_valid: true,
-            response_hpack_valid: true,
             goaway_last_stream_id: None,
         }
     }
@@ -348,6 +350,7 @@ impl HTTPParser {
         connection: &ConnectionIdentity,
         http_exchange_id: Option<String>,
         correlation_method: Option<&str>,
+        truncation: Option<Http1Truncation>,
     ) -> Event {
         let provisional = parsed_message.message_type == HTTPMessageType::Response
             && parsed_message
@@ -363,7 +366,7 @@ impl HTTPParser {
         let content_length = parsed_message
             .headers
             .get("content-length")
-            .and_then(|v| v.parse::<usize>().ok());
+            .and_then(|value| parse_http1_content_length_value(value).ok());
         let is_chunked = parsed_message
             .headers
             .get("transfer-encoding")
@@ -410,7 +413,13 @@ impl HTTPParser {
             }),
             confidence: correlation_method.map(|_| if connection.exact { 0.98 } else { 0.75 }),
             correlation_version: if connection.exact { 2 } else { 1 },
-            completion_reason: (!provisional).then(|| "done".to_string()),
+            completion_reason: (!provisional).then(|| {
+                if truncation.is_some() {
+                    "truncated".to_string()
+                } else {
+                    "done".to_string()
+                }
+            }),
             end_stream: !provisional,
             message_type: message_type_str.to_string(),
             first_line: parsed_message.first_line,
@@ -428,6 +437,9 @@ impl HTTPParser {
             content_length,
             original_source: "ssl".to_string(),
             raw_data: include_raw_data.then_some(parsed_message.raw_data),
+            body_truncated: truncation.is_some(),
+            body_truncation_reason: truncation.map(|t| t.reason.to_string()),
+            body_captured_bytes: truncation.map(|t| t.body_captured_bytes),
         }
         .to_event(original_event)
     }
@@ -443,9 +455,10 @@ impl HTTPParser {
         if let Some(mut state) = self.http1.remove(&connection.id) {
             if completion_reason == "closed"
                 && !state.response_buffer.is_empty()
-                && let Some((message, consumed)) = parse_next_http1_message(
+                && let Http1Scan::Complete {
+                    message, consumed, ..
+                } = scan_http1_message(
                     &state.response_buffer,
-                    HTTP2Direction::Response,
                     state.pending.front().is_some_and(|(_, head)| *head),
                     true,
                 )
@@ -465,12 +478,13 @@ impl HTTPParser {
                 let tid = event.data["tid"].as_u64().unwrap_or(0);
                 let mut response = Self::create_http_event(
                     tid,
-                    message,
+                    *message,
                     &original,
                     self.include_raw_data,
                     connection,
                     exchange,
                     method,
+                    None,
                 );
                 response.data["completion_reason"] = serde_json::json!("closed");
                 events.push(response);
@@ -607,21 +621,6 @@ impl HTTPParser {
                 })
                 .collect::<Vec<_>>(),
         );
-        if connection.exact
-            && (event.data["truncated"] == true
-                || event
-                    .data
-                    .get("bytes_lost")
-                    .and_then(serde_json::Value::as_u64)
-                    .is_some_and(|n| n > 0))
-        {
-            terminal_events.extend(self.terminate_connection_state(
-                &event,
-                &connection,
-                "capture_loss",
-            ));
-            self.quarantined.insert(connection.id.clone());
-        }
         if self.quarantined.contains(&connection.id) {
             terminal_events.push(event);
             return terminal_events;
@@ -636,32 +635,35 @@ impl HTTPParser {
             }
         };
 
-        // Raw events recorded before correlation v2 have no transport handle.
-        // Preserve the original one-buffer parsing behavior for those traces.
-        if !connection.exact
-            && Self::is_http_data(data_str)
-            && let Some(parsed_message) = Self::parse_http_message(data_str)
-        {
-            let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
-            self.websocket
-                .observe_handshake(&connection.id, &event, &parsed_message);
-            terminal_events.push(Self::create_http_event(
-                tid,
-                parsed_message,
-                &event,
-                self.include_raw_data,
-                &connection,
-                None,
-                None,
-            ));
-            return terminal_events;
-        }
-
         let data_bytes = ssl_data
             .get("data_hex")
             .and_then(|v| v.as_str())
             .and_then(|v| hex::decode(v).ok())
             .unwrap_or_else(|| ssl_json_string_to_bytes(data_str));
+        // A truncated TLS record lost its tail. HTTP/1 handles that itself
+        // (the message is emitted marked, and framing realigns when the lost
+        // length is known). For anything else the lost bytes may desynchronize
+        // frames or compression state, so stop matching this connection.
+        let capture_cut = event.data["truncated"] == true
+            || event
+                .data
+                .get("bytes_lost")
+                .and_then(serde_json::Value::as_u64)
+                .is_some_and(|n| n > 0);
+        if connection.exact
+            && capture_cut
+            && !self.http1.contains_key(&connection.id)
+            && !looks_like_http1_fragment(&data_bytes)
+        {
+            terminal_events.extend(self.terminate_connection_state(
+                &event,
+                &connection,
+                "capture_loss",
+            ));
+            self.quarantined.insert(connection.id.clone());
+            terminal_events.push(event);
+            return terminal_events;
+        }
         if let Some(events) =
             self.websocket
                 .handle_event(&connection.id, &event, &data_bytes, self.include_raw_data)
@@ -725,23 +727,22 @@ impl HTTPParser {
         let h1_active = self.http1.contains_key(&connection.id);
         if h1_active || looks_like_http1_fragment(&data_bytes) {
             let state = self.http1.entry(connection.id.clone()).or_default();
-            if let Some(mut events) = state.handle_event(
+            if let Some(outcome) = state.handle_event(
                 &connection,
                 &event,
                 &data_bytes,
                 self.include_raw_data,
                 &mut self.websocket,
             ) {
-                if events
-                    .iter()
-                    .any(|output| output.data["completion_reason"] == "truncated")
-                    || state.pending.len() > MAX_HTTP1_PENDING_REQUESTS
-                {
-                    events.extend(self.terminate_connection_state(
-                        &event,
-                        &connection,
-                        "truncated",
-                    ));
+                let Http1Outcome {
+                    mut events,
+                    unreliable,
+                } = outcome;
+                let unreliable = unreliable.or_else(|| {
+                    (state.pending.len() > MAX_HTTP1_PENDING_REQUESTS).then_some("truncated")
+                });
+                if let Some(reason) = unreliable {
+                    events.extend(self.terminate_connection_state(&event, &connection, reason));
                     if connection.exact {
                         self.quarantined.insert(connection.id.clone());
                     }
@@ -760,6 +761,27 @@ impl HTTPParser {
     }
 }
 
+/// Outcome of feeding one TLS record to an HTTP/1 connection.
+#[derive(Default)]
+struct Http1Outcome {
+    events: Vec<Event>,
+    /// Set when message framing can no longer be trusted. The caller retires
+    /// this connection's parser state and, for an exact identity, stops
+    /// matching until the connection lifetime ends.
+    unreliable: Option<&'static str>,
+}
+
+/// Why an HTTP/1 message was emitted incomplete.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Http1Truncation {
+    pub reason: &'static str,
+    /// Body bytes retained after the header block.
+    pub body_captured_bytes: usize,
+}
+
+const TRUNCATION_BODY_LIMIT: &str = "body_limit";
+const TRUNCATION_CAPTURE: &str = "capture_truncated";
+
 impl HTTP1ConnectionState {
     fn handle_event(
         &mut self,
@@ -768,7 +790,7 @@ impl HTTP1ConnectionState {
         bytes: &[u8],
         include_raw_data: bool,
         websocket: &mut WebSocketState,
-    ) -> Option<Vec<Event>> {
+    ) -> Option<Http1Outcome> {
         let direction = direction_from_function(
             event
                 .data
@@ -776,103 +798,179 @@ impl HTTP1ConnectionState {
                 .and_then(|value| value.as_str())
                 .unwrap_or(""),
         )?;
-        let current_len = match direction {
-            HTTP2Direction::Request => self.request_buffer.len(),
-            HTTP2Direction::Response => self.response_buffer.len(),
-        };
-        let fragments = match direction {
-            HTTP2Direction::Request => self.request_metadata.fragments.len(),
-            HTTP2Direction::Response => self.response_metadata.fragments.len(),
-        };
-        if current_len.saturating_add(bytes.len()) > MAX_HTTP1_BUFFER_BYTES
-            || fragments >= MAX_BUFFERED_FRAGMENTS
-        {
-            match direction {
-                HTTP2Direction::Request => self.request_buffer.clear(),
-                HTTP2Direction::Response => self.response_buffer.clear(),
-            }
-            return Some(vec![correlation_diagnostic_event(
-                event,
-                connection,
-                "truncated",
-                "http1_buffer_limit",
-            )]);
-        }
-        match direction {
-            HTTP2Direction::Request => self.request_buffer.extend_from_slice(bytes),
-            HTTP2Direction::Response => self.response_buffer.extend_from_slice(bytes),
-        }
-
         let tid = event
             .data
             .get("tid")
             .and_then(|value| value.as_u64())
             .unwrap_or(0);
-        let mut events = Vec::new();
-
-        let (buffer, metadata) = match direction {
-            HTTP2Direction::Request => (&mut self.request_buffer, &mut self.request_metadata),
-            HTTP2Direction::Response => (&mut self.response_buffer, &mut self.response_metadata),
+        // A record flagged `truncated` lost its tail inside the capture;
+        // `bytes_lost` says how many bytes.
+        let bytes_lost = event
+            .data
+            .get("bytes_lost")
+            .and_then(|value| value.as_u64())
+            .map(|lost| lost as usize);
+        let truncated = event
+            .data
+            .get("truncated")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false)
+            || bytes_lost.is_some_and(|lost| lost > 0);
+        let Self {
+            request_buffer,
+            response_buffer,
+            request_metadata,
+            response_metadata,
+            request_skip,
+            response_skip,
+            pending,
+            next_request_seq,
+        } = self;
+        let (buffer, metadata, skip) = match direction {
+            HTTP2Direction::Request => (request_buffer, request_metadata, request_skip),
+            HTTP2Direction::Response => (response_buffer, response_metadata, response_skip),
         };
-        metadata.push(bytes.len(), event);
-        while let Some((message, consumed)) = parse_next_http1_message(
-            buffer,
-            direction,
-            self.pending.front().is_some_and(|(_, head)| *head),
-            false,
-        ) {
-            buffer.drain(..consumed);
-            let mut capture = MessageMetadata::default();
-            metadata.consume(consumed, &mut capture);
-            let mut message_event = event.clone();
-            message_event.data.as_object_mut().unwrap().extend(
-                serde_json::to_value(capture.capture.finish())
-                    .unwrap()
-                    .as_object()
-                    .unwrap()
-                    .clone(),
-            );
+        let mut outcome = Http1Outcome::default();
 
-            let (exchange_id, method) = match message.message_type {
-                HTTPMessageType::Request => {
-                    self.next_request_seq = self.next_request_seq.saturating_add(1);
-                    let exchange_id =
-                        format!("http-{}-h1-{}", connection.id, self.next_request_seq);
-                    self.pending.push_back((
-                        exchange_id.clone(),
-                        message.method.as_deref() == Some("HEAD"),
-                    ));
-                    websocket.observe_handshake(&connection.id, &message_event, &message);
-                    (
-                        Some(exchange_id),
-                        Some(if connection.exact {
-                            "h1_connection_fifo"
-                        } else {
-                            "legacy_pid_tid_single"
-                        }),
-                    )
-                }
-                HTTPMessageType::Response => {
-                    let provisional = message
-                        .status_code
-                        .is_some_and(|code| code < 200 && code != 101);
-                    let exchange_id = if provisional {
-                        self.pending.front().map(|(id, _)| id.clone())
-                    } else {
-                        self.pending.pop_front().map(|(id, _)| id)
-                    };
-                    let method = exchange_id.as_ref().map(|_| {
-                        if connection.exact {
-                            "h1_connection_fifo"
-                        } else {
-                            "legacy_pid_tid_single"
+        // The rest of a body that was already emitted truncated is discarded
+        // by exact length, which keeps the stream aligned for what follows.
+        let mut bytes = bytes;
+        if *skip > 0 {
+            let discarded = (*skip).min(bytes.len());
+            *skip -= discarded;
+            bytes = &bytes[discarded..];
+            if *skip > 0 {
+                if truncated {
+                    match bytes_lost {
+                        Some(lost) if lost <= *skip => *skip -= lost,
+                        _ => {
+                            *skip = 0;
+                            outcome.unreliable = Some("truncated");
                         }
-                    });
-                    (exchange_id, method)
+                    }
                 }
-            };
+                return Some(outcome);
+            }
+        }
 
-            events.push(HTTPParser::create_http_event(
+        // A recognizable new start resynchronizes the stream: an incomplete
+        // message still pending can no longer complete.
+        if looks_like_http1_start(bytes) && !buffer.is_empty() {
+            buffer.clear();
+            metadata.fragments.clear();
+        }
+        buffer.extend_from_slice(bytes);
+        metadata.push(bytes.len(), event);
+
+        let flush_unframed = !connection.exact;
+        loop {
+            let head_request = pending.front().is_some_and(|(_, head)| *head);
+            match scan_http1_message(buffer, head_request, flush_unframed) {
+                Http1Scan::Complete { framed: false, .. } if truncated => {
+                    // A close-delimited body whose record was cut short is not
+                    // a complete message; it is emitted as truncated below.
+                    break;
+                }
+                Http1Scan::Complete { consumed, .. } if consumed > MAX_HTTP1_BUFFER_BYTES => {
+                    // Complete, but over the size cap: keep the prefix and mark
+                    // it, like a message that is still being received.
+                    let retained = &buffer[..MAX_HTTP1_BUFFER_BYTES];
+                    let truncated_message = truncated_http1_message(retained);
+                    let message_event = event_with_consumed_metadata(event, metadata, consumed);
+                    if let Some((message, body_captured_bytes)) = truncated_message {
+                        let (exchange_id, method) = http1_route_message(
+                            &message,
+                            &message_event,
+                            connection,
+                            pending,
+                            next_request_seq,
+                            websocket,
+                        );
+                        outcome.events.push(HTTPParser::create_http_event(
+                            tid,
+                            message,
+                            &message_event,
+                            include_raw_data,
+                            connection,
+                            exchange_id,
+                            method,
+                            Some(Http1Truncation {
+                                reason: TRUNCATION_BODY_LIMIT,
+                                body_captured_bytes,
+                            }),
+                        ));
+                    }
+                    buffer.drain(..consumed);
+                }
+                Http1Scan::Complete {
+                    message, consumed, ..
+                } => {
+                    buffer.drain(..consumed);
+                    let message_event = event_with_consumed_metadata(event, metadata, consumed);
+                    let (exchange_id, method) = http1_route_message(
+                        &message,
+                        &message_event,
+                        connection,
+                        pending,
+                        next_request_seq,
+                        websocket,
+                    );
+                    outcome.events.push(HTTPParser::create_http_event(
+                        tid,
+                        *message,
+                        &message_event,
+                        include_raw_data,
+                        connection,
+                        exchange_id,
+                        method,
+                        None,
+                    ));
+                }
+                Http1Scan::Incomplete => break,
+                Http1Scan::Malformed => {
+                    buffer.clear();
+                    metadata.fragments.clear();
+                    outcome.unreliable = Some("protocol_error");
+                    return Some(outcome);
+                }
+            }
+        }
+
+        let over_limit = buffer.len() > MAX_HTTP1_BUFFER_BYTES
+            || metadata.fragments.len() >= MAX_BUFFERED_FRAGMENTS;
+        let reason = if truncated {
+            TRUNCATION_CAPTURE
+        } else if over_limit {
+            TRUNCATION_BODY_LIMIT
+        } else {
+            return Some(outcome);
+        };
+
+        // The rest of this message will never be seen. Emit what was
+        // collected of it, with an explicit marker, instead of dropping it.
+        if buffer.is_empty() {
+            // The lost tail belongs to a message that was never visible, so
+            // request/response pairing can no longer be trusted.
+            if truncated && bytes_lost != Some(0) {
+                outcome.unreliable = Some("truncated");
+            }
+            metadata.fragments.clear();
+            return Some(outcome);
+        }
+        let framing = http1_partial_framing(buffer);
+        let have = buffer.len();
+        let retained = &buffer[..have.min(MAX_HTTP1_BUFFER_BYTES)];
+        if let Some((message, body_captured_bytes)) = truncated_http1_message(retained) {
+            let message_event = event_with_consumed_metadata(event, metadata, have);
+            let (exchange_id, method) = http1_route_message(
+                &message,
+                &message_event,
+                connection,
+                pending,
+                next_request_seq,
+                websocket,
+            );
+            outcome.events.push(HTTPParser::create_http_event(
                 tid,
                 message,
                 &message_event,
@@ -880,113 +978,253 @@ impl HTTP1ConnectionState {
                 connection,
                 exchange_id,
                 method,
+                Some(Http1Truncation {
+                    reason,
+                    body_captured_bytes,
+                }),
             ));
         }
-
-        Some(events)
+        buffer.clear();
+        metadata.fragments.clear();
+        match framing {
+            PartialFraming::ContentLength { total } => {
+                let missing = total.saturating_sub(have);
+                if !truncated {
+                    // Nothing was lost: the remaining declared bytes are
+                    // simply not kept.
+                    *skip = missing;
+                } else {
+                    match bytes_lost {
+                        Some(lost) if lost <= missing => *skip = missing - lost,
+                        _ => outcome.unreliable = Some("truncated"),
+                    }
+                }
+            }
+            PartialFraming::Unknown => outcome.unreliable = Some("truncated"),
+        }
+        Some(outcome)
     }
 }
 
-fn parse_next_http1_message(
-    buffer: &[u8],
-    direction: HTTP2Direction,
-    head_request: bool,
-    closed: bool,
-) -> Option<(HTTPMessage, usize)> {
-    let header_end = find_bytes(buffer, b"\r\n\r\n")? + 4;
-    let header_text = String::from_utf8_lossy(&buffer[..header_end]);
-    let first_line = header_text.split("\r\n").next()?;
-    let expected_direction = if first_line.starts_with("HTTP/") {
-        HTTP2Direction::Response
-    } else {
-        HTTP2Direction::Request
-    };
-    if expected_direction != direction {
-        return None;
-    }
+/// Merge the capture metadata of the fragments making up the first `consumed`
+/// buffered bytes into a copy of `event`.
+fn event_with_consumed_metadata(
+    event: &Event,
+    metadata: &mut FragmentBuffer,
+    consumed: usize,
+) -> Event {
+    let mut capture = MessageMetadata::default();
+    metadata.consume(consumed, &mut capture);
+    let mut message_event = event.clone();
+    message_event.data.as_object_mut().unwrap().extend(
+        serde_json::to_value(capture.capture.finish())
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    message_event
+}
 
-    let headers = parse_header_map(&header_text);
+/// Assign the exchange for a message: a request opens a new exchange at the
+/// back of the connection FIFO, a final response closes the front one, and an
+/// informational response only refers to it.
+fn http1_route_message(
+    message: &HTTPMessage,
+    message_event: &Event,
+    connection: &ConnectionIdentity,
+    pending: &mut VecDeque<(String, bool)>,
+    next_request_seq: &mut u64,
+    websocket: &mut WebSocketState,
+) -> (Option<String>, Option<&'static str>) {
+    let method = if connection.exact {
+        "h1_connection_fifo"
+    } else {
+        "legacy_pid_tid_single"
+    };
+    match message.message_type {
+        HTTPMessageType::Request => {
+            *next_request_seq = next_request_seq.saturating_add(1);
+            let exchange_id = format!("http-{}-h1-{}", connection.id, next_request_seq);
+            pending.push_back((
+                exchange_id.clone(),
+                message.method.as_deref() == Some("HEAD"),
+            ));
+            websocket.observe_handshake(&connection.id, message_event, message);
+            (Some(exchange_id), Some(method))
+        }
+        HTTPMessageType::Response => {
+            let provisional = message
+                .status_code
+                .is_some_and(|code| code < 200 && code != 101);
+            let exchange_id = if provisional {
+                pending.front().map(|(id, _)| id.clone())
+            } else {
+                pending.pop_front().map(|(id, _)| id)
+            };
+            let method = exchange_id.as_ref().map(|_| method);
+            (exchange_id, method)
+        }
+    }
+}
+
+enum Http1Scan {
+    Complete {
+        message: Box<HTTPMessage>,
+        consumed: usize,
+        /// False for a close-delimited response, whose end is only known
+        /// because no more bytes arrived, so it may be cut short.
+        framed: bool,
+    },
+    Incomplete,
+    Malformed,
+}
+
+/// Scan one HTTP/1 message at the front of `buf`.
+///
+/// `Complete` returns the exact byte boundary of the message so a pipelined
+/// next message can be scanned right after it. `Incomplete` means more bytes
+/// are required. `Malformed` means the framing is broken (conflicting or
+/// invalid Content-Length, bad chunking, a start line of the wrong direction)
+/// and the pending state must be dropped. A response without Content-Length or
+/// chunked framing is close-delimited: it completes only when `flush_unframed`
+/// says the buffered bytes are its body (connection closed, or no lifecycle
+/// information exists for this connection).
+fn scan_http1_message(buf: &[u8], head_request: bool, flush_unframed: bool) -> Http1Scan {
+    // A record boundary may leave empty lines in front of the message start.
+    let lead = buf
+        .iter()
+        .take_while(|byte| **byte == b'\r' || **byte == b'\n')
+        .count();
+    let buf = &buf[lead..];
+    let Some(pos) = find_bytes(buf, b"\r\n\r\n") else {
+        return Http1Scan::Incomplete;
+    };
+    let header_end = pos + 4;
+    let headers = &buf[..pos];
+    let header_text = String::from_utf8_lossy(&buf[..header_end]);
+    let first_line = header_text.split("\r\n").next().unwrap_or("");
+    // The start line, not the TLS direction, says what the message is: a
+    // captured server sees requests on its read side.
+    let is_response = first_line.starts_with("HTTP/");
     let status_code = first_line
         .strip_prefix("HTTP/")
         .and_then(|_| first_line.split_whitespace().nth(1))
         .and_then(|value| value.parse::<u16>().ok());
-    let no_body = direction == HTTP2Direction::Response
+    let no_body = is_response
         && (head_request
             || status_code.is_some_and(|code| code < 200 || code == 204 || code == 304));
-    let chunked = headers
-        .get("transfer-encoding")
-        .is_some_and(|value| value.to_ascii_lowercase().contains("chunked"));
-    let consumed = if no_body {
+    let content_length = match http1_content_length(headers) {
+        Http1ContentLength::Absent => None,
+        Http1ContentLength::Valid(value) => Some(value),
+        Http1ContentLength::Invalid => return Http1Scan::Malformed,
+    };
+    let chunked = http1_header_is_chunked(headers);
+    let mut framed = true;
+    let body_end = if no_body {
         header_end
     } else if chunked {
-        header_end + complete_chunked_len(&buffer[header_end..])?
-    } else if let Some(content_length) = headers
-        .get("content-length")
-        .and_then(|value| value.parse::<usize>().ok())
-    {
-        let consumed = header_end.checked_add(content_length)?;
-        (buffer.len() >= consumed).then_some(consumed)?
-    } else if direction == HTTP2Direction::Request {
+        match chunked_message_end(buf, header_end) {
+            ChunkedEnd::Complete(end) => end,
+            ChunkedEnd::Incomplete => return Http1Scan::Incomplete,
+            ChunkedEnd::Malformed => return Http1Scan::Malformed,
+        }
+    } else if let Some(content_length) = content_length {
+        let Some(need) = header_end.checked_add(content_length) else {
+            return Http1Scan::Malformed;
+        };
+        if buf.len() < need {
+            return Http1Scan::Incomplete;
+        }
+        need
+    } else if !is_response {
+        // Requests carry no body without Content-Length or chunked framing.
         header_end
-    } else if closed {
-        buffer.len()
+    } else if flush_unframed {
+        framed = false;
+        buf.len()
     } else {
-        return None;
+        return Http1Scan::Incomplete;
     };
 
-    let text = String::from_utf8_lossy(&buffer[..consumed]).to_string();
-    HTTPParser::parse_http_message(&text).map(|mut message| {
-        let body = if chunked {
-            decode_chunked_body(&buffer[header_end..consumed]).unwrap_or_default()
-        } else {
-            buffer[header_end..consumed].to_vec()
-        };
-        message.body = body_string(&body);
-        message.body_bytes = (!body.is_empty()).then_some(body);
-        if chunked {
-            // The HTTP parser has already removed transfer framing. Downstream
-            // decompressors/SSE parsers must not dechunk the body a second time.
-            message.headers.remove("transfer-encoding");
-            message.headers.remove("content-length");
-        }
-        (message, consumed)
-    })
-}
-
-fn parse_header_map(header_text: &str) -> HashMap<String, String> {
-    header_text
-        .split("\r\n")
-        .skip(1)
-        .filter_map(|line| {
-            let (name, value) = line.split_once(':')?;
-            Some((name.trim().to_ascii_lowercase(), value.trim().to_string()))
-        })
-        .collect()
-}
-
-fn complete_chunked_len(bytes: &[u8]) -> Option<usize> {
-    let mut offset = 0usize;
-    loop {
-        let line_end = find_bytes(&bytes[offset..], b"\r\n")? + offset;
-        let size_text = std::str::from_utf8(&bytes[offset..line_end]).ok()?;
-        let size = usize::from_str_radix(size_text.split(';').next()?.trim(), 16).ok()?;
-        offset = line_end + 2;
-        if size == 0 {
-            if bytes
-                .get(offset..offset + 2)
-                .is_some_and(|value| value == b"\r\n")
-            {
-                return Some(offset + 2);
-            }
-            let trailer_end = find_bytes(&bytes[offset..], b"\r\n\r\n")? + offset + 4;
-            return Some(trailer_end);
-        }
-        let data_end = offset.checked_add(size)?;
-        if bytes.get(data_end..data_end.checked_add(2)?)? != b"\r\n" {
-            return None;
-        }
-        offset = data_end + 2;
+    let text = String::from_utf8_lossy(&buf[..body_end]).to_string();
+    let Some(mut message) = HTTPParser::parse_http_message(&text) else {
+        return Http1Scan::Malformed;
+    };
+    let body = if chunked && !no_body {
+        decode_chunked_body(&buf[header_end..body_end]).unwrap_or_default()
+    } else {
+        buf[header_end..body_end].to_vec()
+    };
+    message.body = body_string(&body);
+    message.body_bytes = (!body.is_empty()).then_some(body);
+    if chunked {
+        // The HTTP parser has already removed transfer framing. Downstream
+        // decompressors/SSE parsers must not dechunk the body a second time.
+        message.headers.remove("transfer-encoding");
+        message.headers.remove("content-length");
     }
+    Http1Scan::Complete {
+        message: Box::new(message),
+        consumed: body_end + lead,
+        framed,
+    }
+}
+
+/// What is known about the length of an incomplete message.
+enum PartialFraming {
+    /// Content-Length framing: the whole message is `total` bytes from the
+    /// start of the buffer.
+    ContentLength { total: usize },
+    /// Chunked, close-delimited, or headers not yet complete.
+    Unknown,
+}
+
+fn http1_partial_framing(buf: &[u8]) -> PartialFraming {
+    let lead = buf
+        .iter()
+        .take_while(|byte| **byte == b'\r' || **byte == b'\n')
+        .count();
+    let rest = &buf[lead..];
+    let Some(pos) = find_bytes(rest, b"\r\n\r\n") else {
+        return PartialFraming::Unknown;
+    };
+    let headers = &rest[..pos];
+    if http1_header_is_chunked(headers) {
+        return PartialFraming::Unknown;
+    }
+    match http1_content_length(headers) {
+        Http1ContentLength::Valid(length) => lead
+            .checked_add(pos + 4)
+            .and_then(|start| start.checked_add(length))
+            .map_or(PartialFraming::Unknown, |total| {
+                PartialFraming::ContentLength { total }
+            }),
+        _ => PartialFraming::Unknown,
+    }
+}
+
+/// The message at the front of `buf` as far as it was seen: start line,
+/// parsed headers and the exact body bytes that follow them. Returns the
+/// number of body bytes retained.
+fn truncated_http1_message(buf: &[u8]) -> Option<(HTTPMessage, usize)> {
+    let lead = buf
+        .iter()
+        .take_while(|byte| **byte == b'\r' || **byte == b'\n')
+        .count();
+    let buf = &buf[lead..];
+    let mut message = HTTPParser::parse_http_message(&String::from_utf8_lossy(buf))?;
+    // A cut-off start line ("HTTP/1.", "HTTP/1.1 2") says nothing useful.
+    if message.message_type == HTTPMessageType::Response && message.status_code.is_none() {
+        return None;
+    }
+    let body = find_bytes(buf, b"\r\n\r\n")
+        .map(|pos| buf[pos + 4..].to_vec())
+        .unwrap_or_default();
+    message.body = body_string(&body);
+    let captured = body.len();
+    message.body_bytes = (!body.is_empty()).then_some(body);
+    Some((message, captured))
 }
 
 fn decode_chunked_body(bytes: &[u8]) -> Option<Vec<u8>> {
@@ -1013,6 +1251,161 @@ fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
         .windows(needle.len())
         .position(|window| window == needle)
+}
+
+fn looks_like_http1_start(bytes: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(bytes);
+    // Resynchronization is only safe at byte offset zero. Leading CR/LF may
+    // finish framing buffered from the prior record (for example, the final
+    // empty line after a zero chunk) and must be appended before scanning.
+    let first = text.split(['\r', '\n']).next().unwrap_or("");
+    if first.starts_with("HTTP/1.") {
+        return true;
+    }
+    let parts: Vec<&str> = first.splitn(3, ' ').collect();
+    parts.len() >= 3
+        && matches!(
+            parts[0],
+            "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "OPTIONS" | "PATCH"
+        )
+        && parts[2].starts_with("HTTP/1.")
+}
+
+enum ChunkedEnd {
+    Complete(usize),
+    Incomplete,
+    Malformed,
+}
+
+/// Walk the chunked framing from `start` through the zero chunk and its
+/// trailer block. Returns the exact end of the message, or signals that more
+/// bytes are needed, or that the framing is malformed.
+fn chunked_message_end(buf: &[u8], start: usize) -> ChunkedEnd {
+    let mut cursor = start;
+    loop {
+        let Some(size_pos) = find_crlf(buf, cursor) else {
+            return ChunkedEnd::Incomplete;
+        };
+        let Some(size) = parse_chunk_size(&buf[cursor..size_pos]) else {
+            return ChunkedEnd::Malformed;
+        };
+        let Some(data_start) = size_pos.checked_add(2) else {
+            return ChunkedEnd::Malformed;
+        };
+        if size == 0 {
+            // A zero chunk is followed by zero or more trailer field lines and
+            // one final empty line. Do not stop after the first trailer.
+            let mut trailer_start = data_start;
+            loop {
+                let Some(line_end) = find_crlf(buf, trailer_start) else {
+                    return ChunkedEnd::Incomplete;
+                };
+                let Some(next) = line_end.checked_add(2) else {
+                    return ChunkedEnd::Malformed;
+                };
+                if line_end == trailer_start {
+                    return ChunkedEnd::Complete(next);
+                }
+                trailer_start = next;
+            }
+        }
+        let Some(data_end) = data_start.checked_add(size) else {
+            return ChunkedEnd::Malformed;
+        };
+        let Some(next) = data_end.checked_add(2) else {
+            return ChunkedEnd::Malformed;
+        };
+        if buf.len() < next {
+            return ChunkedEnd::Incomplete;
+        }
+        if &buf[data_end..next] != b"\r\n" {
+            return ChunkedEnd::Malformed;
+        }
+        cursor = next;
+    }
+}
+
+fn find_crlf(buf: &[u8], from: usize) -> Option<usize> {
+    buf.get(from..)?
+        .windows(2)
+        .position(|window| window == b"\r\n")
+        .map(|pos| from + pos)
+}
+
+fn parse_chunk_size(line: &[u8]) -> Option<usize> {
+    let end = line
+        .iter()
+        .position(|&byte| byte == b';')
+        .unwrap_or(line.len());
+    let size = std::str::from_utf8(&line[..end]).ok()?;
+    if size.is_empty() {
+        return None;
+    }
+    usize::from_str_radix(size, 16).ok()
+}
+
+enum Http1ContentLength {
+    Absent,
+    Valid(usize),
+    Invalid,
+}
+
+fn http1_content_length(headers: &[u8]) -> Http1ContentLength {
+    let text = String::from_utf8_lossy(headers);
+    let mut found = None;
+    for line in text.split("\r\n") {
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
+        if key.eq_ignore_ascii_case("content-length") {
+            // RFC 9110 permits recipients to combine identical duplicate
+            // values into a comma-separated field. Any empty, non-decimal,
+            // overflowing, or conflicting value is invalid framing.
+            let Ok(value) = parse_http1_content_length_value(value) else {
+                return Http1ContentLength::Invalid;
+            };
+            match found {
+                Some(previous) if previous != value => {
+                    return Http1ContentLength::Invalid;
+                }
+                Some(_) => {}
+                None => found = Some(value),
+            }
+        }
+    }
+    match found {
+        Some(value) => Http1ContentLength::Valid(value),
+        None => Http1ContentLength::Absent,
+    }
+}
+
+fn parse_http1_content_length_value(values: &str) -> Result<usize, ()> {
+    let mut found = None;
+    for value in values.split(',') {
+        let value = value.trim();
+        if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(());
+        }
+        let value = value.parse::<usize>().map_err(|_| ())?;
+        match found {
+            Some(previous) if previous != value => return Err(()),
+            Some(_) => {}
+            None => found = Some(value),
+        }
+    }
+    found.ok_or(())
+}
+
+fn http1_header_is_chunked(headers: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(headers);
+    text.split("\r\n").any(|line| {
+        line.split_once(':')
+            .map(|(key, value)| {
+                key.eq_ignore_ascii_case("transfer-encoding")
+                    && value.to_ascii_lowercase().contains("chunked")
+            })
+            .unwrap_or(false)
+    })
 }
 
 fn looks_like_http1_fragment(bytes: &[u8]) -> bool {
@@ -1262,6 +1655,9 @@ fn create_websocket_request_event(
         original_source: "ssl.websocket".to_string(),
         raw_data: include_raw_data.then(|| body.clone()),
         body: Some(body),
+        body_truncated: false,
+        body_truncation_reason: None,
+        body_captured_bytes: None,
     }
     .to_event(original_event)
 }
@@ -1706,19 +2102,18 @@ impl HTTP2State {
         direction: HTTP2Direction,
         block: &[u8],
     ) -> Option<HashMap<String, String>> {
-        let (decoder, valid) = match direction {
-            HTTP2Direction::Request => (&mut self.request_decoder, &mut self.request_hpack_valid),
-            HTTP2Direction::Response => {
-                (&mut self.response_decoder, &mut self.response_hpack_valid)
-            }
+        let decoder = match direction {
+            HTTP2Direction::Request => &mut self.request_decoder,
+            HTTP2Direction::Response => &mut self.response_decoder,
         };
-        if !*valid {
-            return None;
-        }
         let decoded = match decoder.decode(block) {
             Ok(decoded) => decoded,
             Err(_) => {
-                *valid = false;
+                // The decoder may have indexed headers before reaching the
+                // malformed representation. Its dynamic table cannot be
+                // trusted for later blocks after an error, so start over and
+                // let later independently decodable blocks through.
+                *decoder = HpackDecoder::new();
                 return None;
             }
         };
@@ -1901,6 +2296,9 @@ fn create_http2_request_event(
         original_source: "ssl.http2".to_string(),
         raw_data: include_raw_data
             .then(|| String::from_utf8_lossy(&state.request_body).to_string()),
+        body_truncated: false,
+        body_truncation_reason: None,
+        body_captured_bytes: None,
     }
     .to_event(original_event)
 }
@@ -1960,6 +2358,9 @@ fn create_http2_response_event(
         original_source: "ssl.http2".to_string(),
         raw_data: include_raw_data
             .then(|| String::from_utf8_lossy(&state.response_body).to_string()),
+        body_truncated: false,
+        body_truncation_reason: None,
+        body_captured_bytes: None,
     }
     .to_event(original_event)
 }
@@ -2064,7 +2465,7 @@ mod tests {
     use flate2::write::GzEncoder;
     use flate2::{Compress, Compression, FlushCompress};
     use futures::{StreamExt, stream};
-    use hpack::Encoder as HpackEncoder;
+    use loona_hpack::Encoder as HpackEncoder;
     use serde_json::json;
     use std::io::Write;
 
@@ -2731,18 +3132,19 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
     #[test]
     fn http1_chunked_body_waits_for_trailers_and_decodes_payload() {
         let message = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\nx-checksum: ok\r\n\r\n";
-        assert!(
-            parse_next_http1_message(
-                &message[..message.len() - 2],
-                HTTP2Direction::Response,
-                false,
-                false
-            )
-            .is_none()
-        );
+        assert!(matches!(
+            scan_http1_message(&message[..message.len() - 2], false, false),
+            Http1Scan::Incomplete
+        ));
 
-        let (parsed, consumed) =
-            parse_next_http1_message(message, HTTP2Direction::Response, false, false).unwrap();
+        let Http1Scan::Complete {
+            message: parsed,
+            consumed,
+            ..
+        } = scan_http1_message(message, false, false)
+        else {
+            panic!("complete chunked message must scan");
+        };
         assert_eq!(consumed, message.len());
         assert_eq!(parsed.body.as_deref(), Some("hello"));
     }
@@ -2923,5 +3325,1108 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
             output[0].data["http_exchange_id"],
             output[1].data["http_exchange_id"]
         );
+    }
+
+    /// End-of-input finalization adds `http_correlation` terminal records;
+    /// the framing tests below only look at parsed HTTP messages.
+    fn http_parser_events(events: Vec<Event>) -> Vec<Event> {
+        events
+            .into_iter()
+            .filter(|event| event.source == "http_parser")
+            .collect()
+    }
+
+    /// An SSL record without TLS transport identity, as produced by rustls
+    /// captures (Codex, Grok) and by traces recorded before #210. These use the
+    /// per-thread legacy connection key.
+    fn ssl_event_legacy(timestamp: u64, function: &str, bytes: Vec<u8>) -> Event {
+        let mut event = ssl_event(timestamp, function, bytes);
+        if let Some(data) = event.data.as_object_mut() {
+            data.remove("transport_handle");
+            data.remove("process_start_ns");
+            data.remove("tls_library");
+        }
+        event
+    }
+
+    // ---- Behavior ported from master (#226): strict HTTP/1 framing, HPACK recovery ----
+
+    #[test]
+    fn loona_hpack_rejects_malformed_size_updates_without_panicking() {
+        for block in [
+            &[0x3f][..],
+            &[0x3f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f][..],
+        ] {
+            assert!(
+                HpackDecoder::new().decode(block).is_err(),
+                "block: {block:02x?}"
+            );
+        }
+
+        let headers = HpackDecoder::new().decode(&[0x82, 0x84]).unwrap();
+        assert_eq!(
+            headers,
+            vec![
+                (b":method".to_vec(), b"GET".to_vec()),
+                (b":path".to_vec(), b"/".to_vec())
+            ]
+        );
+    }
+
+    #[test]
+    fn loona_hpack_handles_short_arbitrary_blocks_without_panicking() {
+        let mut seed = 0x1234_5678_u32;
+        for len in 1..=8 {
+            for _ in 0..32 {
+                let block: Vec<u8> = (0..len)
+                    .map(|_| {
+                        seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                        (seed >> 24) as u8
+                    })
+                    .collect();
+                let result = std::panic::catch_unwind(|| HpackDecoder::new().decode(&block));
+                assert!(result.is_ok(), "block: {block:02x?}");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn http2_hpack_uses_exact_ssl_bytes_when_json_text_changes_utf8() {
+        let mut encoder = HpackEncoder::new();
+        let header_block = encoder.encode([
+            (&b":method"[..], &b"GET"[..]),
+            (&b":path"[..], &b"/status"[..]),
+            (&b"x-note"[..], &b"caf\xc3\xa9"[..]),
+        ]);
+        assert!(header_block.windows(2).any(|bytes| bytes == b"\xc3\xa9"));
+        let bytes = frame(0x1, 0x5, 1, &header_block);
+        // The userspace JSON encoder keeps valid UTF-8 pairs as one character.
+        // Its data string therefore cannot reconstruct the original HPACK bytes.
+        let text = String::from_utf8_lossy(&bytes).to_string();
+        let event = Event::new_with_timestamp(
+            1,
+            "ssl".to_string(),
+            4242,
+            "node".to_string(),
+            json!({
+                "tid": 7,
+                "function": "WRITE/SEND",
+                "data": text,
+                "data_hex": hex::encode(&bytes),
+            }),
+        );
+        let input: EventStream = Box::pin(stream::iter(vec![event]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].source, "http_parser");
+        assert_eq!(output[0].data["path"], "/status");
+        assert_eq!(output[0].data["headers"]["x-note"], "café");
+    }
+
+    #[tokio::test]
+    async fn malformed_hpack_size_update_does_not_stop_later_http2_capture() {
+        let malformed = frame(0x1, 0x5, 1, &[0x3f]);
+        let valid = frame(0x1, 0x5, 3, &[0x82, 0x84]);
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", malformed),
+            ssl_event_legacy(2, "WRITE/SEND", valid),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["message_type"], "request");
+        assert_eq!(output[0].data["path"], "/");
+        assert_eq!(output[0].data["headers"][":method"], "GET");
+    }
+
+    #[tokio::test]
+    async fn malformed_hpack_after_indexing_does_not_poison_later_streams() {
+        let mut encoder = HpackEncoder::new();
+        let mut block = encoder.encode([(&b"x-temp"[..], &b"value"[..])]);
+        assert_eq!(block[0], 0x40); // This entry is indexed before the error.
+        block.push(0x3f); // Truncated dynamic-table-size update.
+        let malformed = frame(0x1, 0x5, 1, &block);
+        let stale_dynamic_index = frame(0x1, 0x5, 3, &[0xbe]);
+        let valid = frame(0x1, 0x5, 5, &[0x82, 0x84]);
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", malformed),
+            ssl_event_legacy(2, "WRITE/SEND", stale_dynamic_index),
+            ssl_event_legacy(3, "WRITE/SEND", valid),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["message_type"], "request");
+        assert_eq!(output[0].data["path"], "/");
+        assert_eq!(output[0].data["headers"][":method"], "GET");
+    }
+
+    #[tokio::test]
+    async fn reassembles_split_http1_codex_request_into_llm_call() {
+        // Codex 0.153 posts ~40KB /v1/responses bodies. OpenSSL/rustls emit
+        // 8-16KB records, so the first chunk is not valid JSON and used to
+        // be dropped before llm_calls/audit_events were written.
+        let prompt = "agentsight mock prompt collect this exact text";
+        let body = json!({
+            "model": "gpt-agentsight-mock",
+            "input": [{"role": "user", "content": prompt}],
+        })
+        .to_string();
+        let header = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: 127.0.0.1\r\n\
+    Content-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        );
+        let mut raw = header.into_bytes();
+        raw.extend(body.as_bytes());
+        let first = raw.len() / 3;
+        let second = first * 2;
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "READ/RECV", raw[..first].to_vec()),
+            ssl_event_legacy(2, "READ/RECV", raw[first..second].to_vec()),
+            ssl_event_legacy(3, "READ/RECV", raw[second..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].source, "http_parser");
+        assert_eq!(output[0].data["path"], "/v1/responses");
+        assert!(output[0].data["body"].as_str().unwrap().contains(prompt));
+
+        let mut view = MaterializedView::new();
+        view.ingest_event(&output[0]).unwrap();
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].path.as_deref(), Some("/v1/responses"));
+        assert!(calls[0].request.to_string().contains(prompt));
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 8 });
+        assert!(
+            snapshot
+                .audit_events
+                .iter()
+                .any(|event| event.audit_type == "llm"
+                    && event.action.as_deref() == Some("request")
+                    && event.details.to_string().contains(prompt))
+        );
+    }
+
+    #[tokio::test]
+    async fn http1_segmented_body_emits_only_when_content_length_reached() {
+        let body = r#"{"model":"gpt-4","messages":[{"role":"user","content":"boundary probe"}]}"#
+            .to_string();
+        let raw = format!(
+            "POST /v1/chat/completions HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        )
+        .into_bytes();
+        let first = raw.len() / 3;
+        let second = first * 2;
+        let parts = [
+            raw[..first].to_vec(),
+            raw[first..second].to_vec(),
+            raw[second..].to_vec(),
+        ];
+
+        for count in 1..parts.len() {
+            let events: Vec<Event> = parts[..count]
+                .iter()
+                .enumerate()
+                .map(|(i, chunk)| ssl_event_legacy(i as u64 + 1, "WRITE/SEND", chunk.clone()))
+                .collect();
+            let input: EventStream = Box::pin(stream::iter(events));
+            let mut parser = HTTPParser::new().disable_raw_data();
+            let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+            let output = http_parser_events(output);
+            assert_eq!(
+                output.len(),
+                0,
+                "no event may be emitted before Content-Length bytes arrive"
+            );
+        }
+
+        let events: Vec<Event> = parts
+            .iter()
+            .enumerate()
+            .map(|(i, chunk)| ssl_event_legacy(i as u64 + 1, "WRITE/SEND", chunk.clone()))
+            .collect();
+        let input: EventStream = Box::pin(stream::iter(events));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/v1/chat/completions");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), body);
+    }
+
+    #[tokio::test]
+    async fn http1_pipelined_buffer_emits_every_complete_message() {
+        let first_body =
+            r#"{"model":"gpt-4","messages":[{"role":"user","content":"first"}]}"#.to_string();
+        let second_body =
+            r#"{"model":"gpt-4","messages":[{"role":"user","content":"second"}]}"#.to_string();
+        let raw = format!(
+            "POST /first HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n{first_body}\
+    POST /second HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: {}\r\n\r\n{second_body}",
+            first_body.len(),
+            second_body.len()
+        )
+        .into_bytes();
+
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_legacy(
+            1,
+            "WRITE/SEND",
+            raw.clone(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/first");
+        assert_eq!(
+            output[0].data["body"].as_str().unwrap(),
+            first_body,
+            "first message body must be exactly the declared Content-Length"
+        );
+        assert_eq!(output[1].data["path"], "/second");
+        assert_eq!(
+            output[1].data["body"].as_str().unwrap(),
+            second_body,
+            "second message body must be exactly the declared Content-Length"
+        );
+
+        // Split the second message across a TLS chunk boundary: the tail of
+        // the first chunk is retained under the same stream key and the
+        // message only completes once the remaining bytes arrive.
+        let split_at = raw.len() - second_body.len() / 2;
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..split_at].to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", raw[split_at..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/first");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), first_body);
+        assert_eq!(output[1].data["path"], "/second");
+        assert_eq!(
+            output[1].data["body"].as_str().unwrap(),
+            second_body,
+            "split tail must complete from retained bytes plus later chunk"
+        );
+    }
+
+    #[tokio::test]
+    async fn http1_strict_content_length_holds_complete_json_with_trailing_whitespace() {
+        // Declared Content-Length includes trailing legal whitespace bytes,
+        // so the JSON body is syntactically complete before the declared
+        // length is reached. A complete JSON body must not override the
+        // declared Content-Length: nothing may emit before the final byte,
+        // and a stream that ends short must emit nothing at all.
+        let json_body =
+            r#"{"model":"gpt-4","messages":[{"role":"user","content":"strict tail"}]}"#.to_string();
+        let body = format!("{json_body} \n");
+        assert!(serde_json::from_str::<serde_json::Value>(&json_body).is_ok());
+        assert!(
+            body.strip_prefix(&json_body)
+                .is_some_and(|trailing| trailing.bytes().all(|b| b.is_ascii_whitespace()))
+        );
+
+        let raw = format!(
+            "POST /v1/chat/completions HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        )
+        .into_bytes();
+
+        // No event before the final declared byte arrives (also EOF
+        // short-body: the stream ends under the declared Content-Length).
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_legacy(
+            1,
+            "WRITE/SEND",
+            raw[..raw.len() - 1].to_vec(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(
+            output.len(),
+            0,
+            "complete JSON must not override the declared Content-Length"
+        );
+
+        // Exactly one event after the final declared byte arrives.
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..raw.len() - 1].to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", raw[raw.len() - 1..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/v1/chat/completions");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), body);
+    }
+
+    #[tokio::test]
+    async fn http1_no_content_length_requests_end_at_header_end() {
+        // Two GETs without Content-Length pipelined in one record: each
+        // message ends at its header terminator, so neither swallows the
+        // other's bytes as a body.
+        let raw = b"GET /one HTTP/1.1\r\nHost: api.openai.com\r\n\r\n\
+    GET /two HTTP/1.1\r\nHost: api.openai.com\r\n\r\n";
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_legacy(
+            1,
+            "WRITE/SEND",
+            raw.to_vec(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/one");
+        assert_eq!(output[1].data["path"], "/two");
+        assert_eq!(output[0].data["has_body"], false);
+        assert_eq!(output[1].data["has_body"], false);
+    }
+
+    #[tokio::test]
+    async fn http1_split_chunked_completes_incrementally_with_pipelined_next() {
+        let chunked_body = "5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n";
+        let raw = format!(
+            "POST /upload HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Transfer-Encoding: chunked\r\n\r\n{chunked_body}\
+    GET /next HTTP/1.1\r\nHost: api.openai.com\r\n\r\n"
+        )
+        .into_bytes();
+
+        // Whole record at once: the chunked request completes at its zero
+        // chunk + trailer terminator and the pipelined GET parses right after.
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_legacy(
+            1,
+            "WRITE/SEND",
+            raw.clone(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/upload");
+        // The parser removes transfer framing, so the body is already decoded.
+        assert_eq!(output[0].data["is_chunked"], false);
+        assert_eq!(
+            output[0].data["body"].as_str().unwrap(),
+            "hello world",
+            "chunked body must be decoded through the zero chunk"
+        );
+        assert_eq!(output[1].data["path"], "/next");
+
+        // Split across a TLS record inside the last chunk's data: the chunked
+        // message must not emit until the zero chunk and trailer terminator
+        // arrive, then the pipelined GET must still parse from the remainder.
+        let split_at = raw
+            .windows(3)
+            .position(|window| window == b"0\r\n")
+            .unwrap()
+            - 4; // inside " world"
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..split_at].to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", raw[split_at..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/upload");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), "hello world");
+        assert_eq!(output[1].data["path"], "/next");
+
+        // When the final empty line after the zero chunk straddles the record
+        // boundary, its leading CRLF completes the pending message before the
+        // pipelined request. It is not an offset-zero resynchronization point.
+        let split_at = raw
+            .windows(8)
+            .position(|window| window == b"0\r\n\r\nGET")
+            .unwrap()
+            + 3; // after "0\r\n"
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..split_at].to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", raw[split_at..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/upload");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), "hello world");
+        assert_eq!(output[1].data["path"], "/next");
+    }
+
+    #[tokio::test]
+    async fn http1_chunked_waits_for_complete_trailer_section() {
+        let chunked_body = "1\r\na\r\n0\r\nX-Checksum: one\r\nX-Trace: two\r\n\r\n";
+        let raw = format!(
+            "POST /trailers HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Transfer-Encoding: chunked\r\n\r\n{chunked_body}\
+    GET /next HTTP/1.1\r\nHost: api.openai.com\r\n\r\n"
+        )
+        .into_bytes();
+        let split_at = raw
+            .windows(b"X-Trace".len())
+            .position(|window| window == b"X-Trace")
+            .unwrap();
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..split_at].to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", raw[split_at..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/trailers");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), "a");
+        assert_eq!(output[1].data["path"], "/next");
+    }
+
+    #[tokio::test]
+    async fn http1_malformed_or_overflowing_framing_drops_state() {
+        // Non-hex chunk size: the message is malformed, nothing emits, and the
+        // pending state is dropped so a later request on the same key can parse.
+        let malformed = b"POST /bad HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Transfer-Encoding: chunked\r\n\r\nzz\r\n";
+        let recovered = b"GET /after HTTP/1.1\r\nHost: api.openai.com\r\n\r\n";
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", malformed.to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", recovered.to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/after");
+
+        // Chunk size that overflows usize: also malformed, state dropped.
+        let overflow = b"POST /big HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Transfer-Encoding: chunked\r\n\r\nFFFFFFFFFFFFFFFFFFFFF\r\n";
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", overflow.to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", recovered.to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/after");
+
+        // Content-Length that overflows the header/body offset math: malformed,
+        // state dropped, recovery still works.
+        let cl_overflow = b"POST /huge HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Length: 184467440737095516150\r\n\r\n";
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", cl_overflow.to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", recovered.to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["path"], "/after");
+    }
+
+    #[tokio::test]
+    async fn http1_content_length_rejects_malformed_and_conflicting_values() {
+        let recovered = b"GET /after HTTP/1.1\r\nHost: api.openai.com\r\n\r\n";
+        let invalid_messages: [&[u8]; 3] = [
+            b"POST /signed HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Length: +4\r\n\r\ntest",
+            b"POST /overflow HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Length: 184467440737095516150\r\n\r\n",
+            b"POST /conflict HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Length: 4\r\nContent-Length: 5\r\n\r\ntest!",
+        ];
+
+        for invalid in invalid_messages {
+            let input: EventStream = Box::pin(stream::iter(vec![
+                ssl_event_legacy(1, "WRITE/SEND", invalid.to_vec()),
+                ssl_event_legacy(2, "WRITE/SEND", recovered.to_vec()),
+            ]));
+            let mut parser = HTTPParser::new().disable_raw_data();
+            let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+            let output = http_parser_events(output);
+            assert_eq!(output.len(), 1);
+            assert_eq!(output[0].data["path"], "/after");
+        }
+
+        // Identical duplicate values, including a comma-combined field, are
+        // unambiguous and retain the exact body boundary.
+        let valid = b"POST /same HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Length: 4\r\nContent-Length: 4, 4\r\n\r\ntest\
+    GET /next HTTP/1.1\r\nHost: api.openai.com\r\n\r\n";
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_legacy(
+            1,
+            "WRITE/SEND",
+            valid.to_vec(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["path"], "/same");
+        assert_eq!(output[0].data["body"], "test");
+        assert_eq!(output[0].data["content_length"], 4);
+        assert_eq!(output[1].data["path"], "/next");
+    }
+
+    #[tokio::test]
+    async fn http1_close_delimited_response_keeps_http_looking_body_bytes() {
+        let body = "prefix\r\nGET /not-a-pipeline HTTP/1.1\r\nHost: body.example\r\n\r\n";
+        let raw = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n{body}"
+        )
+        .into_bytes();
+        let input: EventStream =
+            Box::pin(stream::iter(vec![ssl_event_legacy(1, "READ/RECV", raw)]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].data["message_type"], "response");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), body);
+    }
+
+    #[tokio::test]
+    async fn http1_many_pipelined_requests_emit_in_order() {
+        let mut raw = Vec::new();
+        for i in 0..10 {
+            raw.extend_from_slice(
+                format!("GET /page{i} HTTP/1.1\r\nHost: api.openai.com\r\n\r\n").as_bytes(),
+            );
+        }
+
+        // All ten in one record.
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_legacy(
+            1,
+            "WRITE/SEND",
+            raw.clone(),
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 10);
+        for (i, event) in output.iter().enumerate() {
+            assert_eq!(event.data["path"], format!("/page{i}"));
+        }
+
+        // Last request split across a record boundary, inside its headers.
+        let split_at = raw.len() - 10;
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..split_at].to_vec()),
+            ssl_event_legacy(2, "WRITE/SEND", raw[split_at..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 10);
+        for (i, event) in output.iter().enumerate() {
+            assert_eq!(event.data["path"], format!("/page{i}"));
+        }
+    }
+
+    #[tokio::test]
+    async fn http1_direction_keys_isolate_request_and_response_streams() {
+        // Same pid/tid, opposite directions: interleaved partial records must
+        // accumulate under separate keys and complete independently.
+        let request_body = "abcdefghijklmnopqrstuvwxyz012345";
+        let response_body = "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345";
+        assert_eq!(request_body.len(), 32);
+        assert_eq!(response_body.len(), 32);
+        let request = format!(
+            "POST /chat HTTP/1.1\r\nHost: api.openai.com\r\n\
+    Content-Length: 32\r\n\r\n{request_body}"
+        )
+        .into_bytes();
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\
+    Content-Length: 32\r\n\r\n{response_body}"
+        )
+        .into_bytes();
+        let cut_req = request.len() - 16; // split inside the body
+        let cut_resp = response.len() - 16;
+
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", request[..cut_req].to_vec()),
+            ssl_event_legacy(2, "READ/RECV", response[..cut_resp].to_vec()),
+            ssl_event_legacy(3, "WRITE/SEND", request[cut_req..].to_vec()),
+            ssl_event_legacy(4, "READ/RECV", response[cut_resp..].to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let output = http_parser_events(output);
+
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["message_type"], "request");
+        assert_eq!(output[0].data["path"], "/chat");
+        assert_eq!(output[0].data["body"].as_str().unwrap(), request_body);
+        assert_eq!(output[1].data["message_type"], "response");
+        assert_eq!(output[1].data["status_code"], 200);
+        assert_eq!(output[1].data["body"].as_str().unwrap(), response_body);
+    }
+
+    fn ssl_event_truncated(timestamp: u64, function: &str, bytes: &[u8]) -> Event {
+        Event::new_with_timestamp(
+            timestamp,
+            "ssl".to_string(),
+            4242,
+            "node".to_string(),
+            json!({
+                "tid": 7,
+                "function": function,
+                "data": bytes_to_ssl_json_string(bytes),
+                "data_hex": hex::encode(bytes),
+                "truncated": true,
+            }),
+        )
+    }
+
+    // ---- #239: oversized and truncated HTTP/1.1 messages are emitted with a marker ----
+
+    #[tokio::test]
+    async fn http1_truncated_event_emits_marked_message_and_recovers() {
+        let body = "abcdefghijklmnopqrstuvwxyz012345";
+        let raw = format!(
+            "POST /chat HTTP/1.1\r\nHost: api.openai.com\r\n\
+Content-Length: {}\r\n\r\n{body}",
+            body.len()
+        )
+        .into_bytes();
+        let recovered = b"GET /after HTTP/1.1\r\nHost: api.openai.com\r\n\r\n";
+
+        // The headers and the first body bytes arrive in an ordinary record
+        // and stay pending; the next record carries a few more body bytes but
+        // lost its tail inside the capture, so the declared body can never
+        // complete. The message is emitted with a truncation marker.
+        let header_len = raw.len() - body.len();
+        let pending_end = header_len + 8;
+        let truncated_end = raw.len() - 10;
+        let events = vec![
+            ssl_event_legacy(1, "WRITE/SEND", raw[..pending_end].to_vec()),
+            ssl_event_truncated(2, "WRITE/SEND", &raw[pending_end..truncated_end]),
+            ssl_event_legacy(3, "WRITE/SEND", recovered.to_vec()),
+        ];
+
+        let input: EventStream = Box::pin(stream::iter(events));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        // The truncated record is consumed into the marked HTTP event, like any
+        // other record that completes a message. The abandoned exchange also
+        // gets a terminal `http_correlation` record, which is not an HTTP event.
+        let output = http_parser_events(output);
+        assert_eq!(output.len(), 2);
+        let parsed: Vec<&Event> = output
+            .iter()
+            .filter(|event| event.source == "http_parser")
+            .collect();
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(parsed[0].data["path"], "/chat");
+        assert_eq!(parsed[0].data["body_truncated"], true);
+        assert_eq!(
+            parsed[0].data["body_truncation_reason"],
+            "capture_truncated"
+        );
+        assert_eq!(parsed[0].data["content_length"], body.len());
+        // The marker reports what was actually retained.
+        assert_eq!(parsed[0].data["body_captured_bytes"], body.len() - 10);
+        assert_eq!(
+            parsed[0].data["body"].as_str().unwrap(),
+            &body[..body.len() - 10],
+            "body must be exactly the retained prefix"
+        );
+        assert_eq!(parsed[1].data["path"], "/after");
+        assert!(parsed[1].data.get("body_truncated").is_none());
+    }
+
+    #[tokio::test]
+    async fn http1_cap_overflow_emits_marked_message_and_recovers() {
+        // The accumulated buffer crosses the 1MiB cap: the message is emitted
+        // with its headers and the body prefix kept (never front-truncated),
+        // marked as cut by the size limit, and the next fresh request parses.
+        let header =
+            "POST /big HTTP/1.1\r\nHost: api.openai.com\r\nContent-Length: 1200000\r\n\r\n";
+        let part1 = format!("{header}{}", "a".repeat(900_000)).into_bytes();
+        let part2 = vec![b'b'; 300_000];
+        let part3 = vec![b'c'; 1000];
+        let recovered = b"GET /after HTTP/1.1\r\nHost: api.openai.com\r\n\r\n";
+        let overflow_event = ssl_event_legacy(2, "WRITE/SEND", part2);
+
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_legacy(1, "WRITE/SEND", part1),
+            overflow_event,
+            // The rest of the oversized body arrives after the cap: ignored.
+            ssl_event_legacy(3, "WRITE/SEND", part3),
+            ssl_event_legacy(4, "WRITE/SEND", recovered.to_vec()),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let parsed: Vec<&Event> = output
+            .iter()
+            .filter(|event| event.source == "http_parser")
+            .collect();
+        assert_eq!(parsed.len(), 2);
+        let big = &parsed[0].data;
+        assert_eq!(big["method"], "POST");
+        assert_eq!(big["path"], "/big");
+        assert_eq!(big["body_truncated"], true);
+        assert_eq!(big["body_truncation_reason"], "body_limit");
+        assert_eq!(big["content_length"], 1_200_000);
+        assert_eq!(
+            big["body_captured_bytes"].as_u64().unwrap() as usize,
+            MAX_HTTP_BODY_BYTES - header.len()
+        );
+        assert_eq!(big["has_body"], true);
+        assert!(big["body"].as_str().unwrap().starts_with("aaaa"));
+        assert!(big["body"].as_str().unwrap().contains("bbbb"));
+        assert_eq!(parsed[1].data["path"], "/after");
+        assert!(parsed[1].data.get("body_truncated").is_none());
+    }
+
+    #[tokio::test]
+    async fn http1_single_record_over_the_cap_is_emitted_marked() {
+        let header =
+            "POST /upload HTTP/1.1\r\nHost: example.test\r\nContent-Length: 2000000\r\n\r\n";
+        let raw = format!("{header}{}", "z".repeat(1_500_000)).into_bytes();
+        let input: EventStream =
+            Box::pin(stream::iter(vec![ssl_event_legacy(1, "WRITE/SEND", raw)]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert_eq!(output.len(), 1);
+        let data = &output[0].data;
+        assert_eq!(data["path"], "/upload");
+        assert_eq!(data["body_truncated"], true);
+        assert_eq!(data["body_truncation_reason"], "body_limit");
+        assert_eq!(data["content_length"], 2_000_000);
+        assert_eq!(
+            data["body_captured_bytes"].as_u64().unwrap() as usize,
+            MAX_HTTP_BODY_BYTES - header.len()
+        );
+    }
+
+    #[tokio::test]
+    async fn http1_truncated_start_record_emits_headers_and_body_prefix() {
+        // A 1.5MB request is captured as one SSL record whose tail was lost.
+        let header = "POST /v1/messages HTTP/1.1\r\nHost: api.example.test\r\nContent-Type: application/json\r\nContent-Length: 1500000\r\n\r\n";
+        let prefix = format!("{header}{{\"big\":\"{}", "x".repeat(1000)).into_bytes();
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_truncated(
+            1,
+            "WRITE/SEND",
+            &prefix,
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let parsed: Vec<&Event> = output
+            .iter()
+            .filter(|e| e.source == "http_parser")
+            .collect();
+        assert_eq!(parsed.len(), 1, "an oversized request must not vanish");
+        let data = &parsed[0].data;
+        assert_eq!(data["message_type"], "request");
+        assert_eq!(data["method"], "POST");
+        assert_eq!(data["path"], "/v1/messages");
+        assert_eq!(data["headers"]["host"], "api.example.test");
+        assert_eq!(data["content_length"], 1_500_000);
+        assert_eq!(data["body_truncated"], true);
+        assert_eq!(data["body_truncation_reason"], "capture_truncated");
+        assert_eq!(data["body_captured_bytes"], prefix.len() - header.len());
+        assert_eq!(data["has_body"], true);
+    }
+
+    #[tokio::test]
+    async fn http1_truncated_record_inside_headers_still_emits_the_message() {
+        let prefix = b"POST /v1/upload HTTP/1.1\r\nHost: api.example.test\r\nContent-Len".to_vec();
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_truncated(
+            1,
+            "WRITE/SEND",
+            &prefix,
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let parsed: Vec<&Event> = output
+            .iter()
+            .filter(|e| e.source == "http_parser")
+            .collect();
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].data["path"], "/v1/upload");
+        assert_eq!(parsed[0].data["body_truncated"], true);
+        assert_eq!(parsed[0].data["body_captured_bytes"], 0);
+        assert_eq!(parsed[0].data["has_body"], false);
+    }
+
+    #[tokio::test]
+    async fn http1_truncated_close_delimited_response_is_marked() {
+        let raw =
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\npartial body"
+                .to_vec();
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_truncated(
+            1,
+            "READ/RECV",
+            &raw,
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let parsed: Vec<&Event> = output
+            .iter()
+            .filter(|e| e.source == "http_parser")
+            .collect();
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].data["message_type"], "response");
+        assert_eq!(parsed[0].data["status_code"], 200);
+        assert_eq!(parsed[0].data["body_truncated"], true);
+        assert_eq!(parsed[0].data["body"], "partial body");
+    }
+
+    #[tokio::test]
+    async fn http1_truncated_record_keeps_complete_pipelined_messages_unmarked() {
+        let mut raw = b"GET /first HTTP/1.1\r\nHost: a.test\r\n\r\n".to_vec();
+        raw.extend_from_slice(
+            b"POST /second HTTP/1.1\r\nHost: a.test\r\nContent-Length: 9000\r\n\r\nhead",
+        );
+        let input: EventStream = Box::pin(stream::iter(vec![ssl_event_truncated(
+            1,
+            "WRITE/SEND",
+            &raw,
+        )]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        let parsed: Vec<&Event> = output
+            .iter()
+            .filter(|e| e.source == "http_parser")
+            .collect();
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(parsed[0].data["path"], "/first");
+        assert!(parsed[0].data.get("body_truncated").is_none());
+        assert_eq!(parsed[1].data["path"], "/second");
+        assert_eq!(parsed[1].data["body_truncated"], true);
+        assert_eq!(parsed[1].data["body_captured_bytes"], 4);
+    }
+
+    #[tokio::test]
+    async fn http1_complete_messages_carry_no_truncation_fields() {
+        let raw = b"POST /ok HTTP/1.1\r\nHost: a.test\r\nContent-Length: 2\r\n\r\nhi".to_vec();
+        let input: EventStream =
+            Box::pin(stream::iter(vec![ssl_event_legacy(1, "WRITE/SEND", raw)]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert_eq!(output.len(), 1);
+        for key in [
+            "body_truncated",
+            "body_truncation_reason",
+            "body_captured_bytes",
+        ] {
+            assert!(output[0].data.get(key).is_none(), "{key} must be absent");
+        }
+    }
+
+    // ---- Exact-identity connections: truncation keeps keep-alive connections usable ----
+
+    fn cut_record(mut event: Event, bytes_lost: usize) -> Event {
+        event.data["truncated"] = json!(true);
+        event.data["bytes_lost"] = json!(bytes_lost);
+        event
+    }
+
+    fn parsed_http(output: &[Event]) -> Vec<&Event> {
+        output
+            .iter()
+            .filter(|event| event.source == "http_parser")
+            .collect()
+    }
+
+    async fn run_parser(input: Vec<Event>) -> Vec<Event> {
+        HTTPParser::new()
+            .disable_raw_data()
+            .process(Box::pin(stream::iter(input)))
+            .await
+            .unwrap()
+            .collect()
+            .await
+    }
+
+    #[tokio::test]
+    async fn exact_connection_survives_a_truncated_large_request_and_still_pairs_responses() {
+        // A 1.5 MB request is captured as one record that kept 2000 body bytes.
+        let header =
+            "POST /v1/messages HTTP/1.1\r\nHost: api.test\r\nContent-Length: 1500000\r\n\r\n";
+        let mut first = header.as_bytes().to_vec();
+        first.extend(vec![b'x'; 2000]);
+        let lost = 1_500_000 - 2000;
+        let ok = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok".to_vec();
+        let input = vec![
+            cut_record(ssl_event(1, "WRITE/SEND", first), lost),
+            ssl_event(2, "READ/RECV", ok.clone()),
+            ssl_event(
+                3,
+                "WRITE/SEND",
+                b"GET /next HTTP/1.1\r\nHost: api.test\r\n\r\n".to_vec(),
+            ),
+            ssl_event(4, "READ/RECV", ok),
+        ];
+        let output = run_parser(input).await;
+        let parsed = parsed_http(&output);
+        assert_eq!(parsed.len(), 4, "{output:#?}");
+        assert_eq!(parsed[0].data["path"], "/v1/messages");
+        assert_eq!(parsed[0].data["body_truncated"], true);
+        assert_eq!(
+            parsed[0].data["body_truncation_reason"],
+            "capture_truncated"
+        );
+        assert_eq!(parsed[0].data["body_captured_bytes"], 2000);
+        assert_eq!(parsed[0].data["content_length"], 1_500_000);
+        assert_eq!(parsed[0].data["completion_reason"], "truncated");
+        assert_eq!(parsed[1].data["message_type"], "response");
+        assert_eq!(
+            parsed[0].data["http_exchange_id"],
+            parsed[1].data["http_exchange_id"]
+        );
+        assert_eq!(parsed[2].data["path"], "/next");
+        assert_eq!(parsed[2].data["correlation_status"], "exact");
+        assert_eq!(
+            parsed[2].data["http_exchange_id"],
+            parsed[3].data["http_exchange_id"]
+        );
+        assert_eq!(
+            parsed[0].data["connection_id"],
+            parsed[3].data["connection_id"]
+        );
+        assert!(
+            output
+                .iter()
+                .all(|event| event.source != "http_correlation"),
+            "no exchange may be left unlinked: {output:#?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn body_bytes_after_a_truncated_record_are_skipped_by_exact_length() {
+        // The request is written in three SSL writes. The first was truncated
+        // inside the capture; the other two carry the rest of the declared
+        // body and contain text that looks like a request, which must not be
+        // parsed as one.
+        let header = "POST /upload HTTP/1.1\r\nHost: api.test\r\nContent-Length: 600000\r\n\r\n";
+        let mut first = header.as_bytes().to_vec();
+        first.extend(vec![b'x'; 2000]);
+        let lost = 300_000 - 2000;
+        let mut decoy = b"GET /decoy HTTP/1.1\r\nHost: x\r\n\r\n".to_vec();
+        decoy.resize(150_000, b'y');
+        let input = vec![
+            cut_record(ssl_event(1, "WRITE/SEND", first), lost),
+            ssl_event(2, "WRITE/SEND", decoy.clone()),
+            ssl_event(3, "WRITE/SEND", decoy),
+            ssl_event(
+                4,
+                "WRITE/SEND",
+                b"GET /next HTTP/1.1\r\nHost: api.test\r\n\r\n".to_vec(),
+            ),
+        ];
+        let output = run_parser(input).await;
+        let parsed = parsed_http(&output);
+        let paths: Vec<_> = parsed.iter().map(|e| e.data["path"].clone()).collect();
+        assert_eq!(paths, vec![json!("/upload"), json!("/next")], "{output:#?}");
+        assert_eq!(parsed[0].data["body_truncated"], true);
+        assert_eq!(
+            parsed[1].data["connection_id"],
+            parsed[0].data["connection_id"]
+        );
+    }
+
+    #[tokio::test]
+    async fn unknown_or_unaligned_loss_stops_matching_the_exact_connection() {
+        let header = "POST /a HTTP/1.1\r\nHost: api.test\r\nContent-Length: 5000\r\n\r\n";
+        let mut first = header.as_bytes().to_vec();
+        first.extend(vec![b'x'; 100]);
+        let next = b"GET /next HTTP/1.1\r\nHost: api.test\r\n\r\n".to_vec();
+
+        // The lost length is not reported: alignment cannot be trusted.
+        let mut unknown = ssl_event(1, "WRITE/SEND", first.clone());
+        unknown.data["truncated"] = json!(true);
+        let output = run_parser(vec![unknown, ssl_event(2, "WRITE/SEND", next.clone())]).await;
+        let parsed = parsed_http(&output);
+        assert_eq!(parsed.len(), 1, "{output:#?}");
+        assert_eq!(parsed[0].data["body_truncated"], true);
+        assert!(output.iter().any(|e| e.source == "http_correlation"));
+
+        // More bytes were lost than the declared message had left: the lost
+        // region also contained the start of something else.
+        let output = run_parser(vec![
+            cut_record(ssl_event(1, "WRITE/SEND", first), 1_000_000),
+            ssl_event(2, "WRITE/SEND", next),
+        ])
+        .await;
+        let parsed = parsed_http(&output);
+        assert_eq!(parsed.len(), 1, "{output:#?}");
+        assert_eq!(parsed[0].data["path"], "/a");
+    }
+
+    #[tokio::test]
+    async fn request_seen_on_the_read_side_pairs_with_a_response_written_back() {
+        // Capturing a server (MCP server, local proxy): requests arrive via
+        // READ and responses leave via WRITE. The start line decides what a
+        // message is, not the TLS direction.
+        let input = vec![
+            ssl_event(
+                1,
+                "READ/RECV",
+                b"POST /rpc HTTP/1.1\r\nHost: local\r\nContent-Length: 2\r\n\r\n{}".to_vec(),
+            ),
+            ssl_event(
+                2,
+                "WRITE/SEND",
+                b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".to_vec(),
+            ),
+        ];
+        let output = run_parser(input).await;
+        let parsed = parsed_http(&output);
+        assert_eq!(parsed.len(), 2, "{output:#?}");
+        assert_eq!(parsed[0].data["message_type"], "request");
+        assert_eq!(parsed[1].data["message_type"], "response");
+        assert_eq!(
+            parsed[0].data["http_exchange_id"],
+            parsed[1].data["http_exchange_id"]
+        );
+    }
+
+    #[tokio::test]
+    async fn malformed_framing_stops_matching_an_exact_connection_but_not_a_legacy_one() {
+        let bad =
+            b"POST /bad HTTP/1.1\r\nHost: a\r\nContent-Length: 5\r\nContent-Length: 6\r\n\r\nhello"
+                .to_vec();
+        let next = b"GET /next HTTP/1.1\r\nHost: a\r\n\r\n".to_vec();
+
+        let output = run_parser(vec![
+            ssl_event(1, "WRITE/SEND", bad.clone()),
+            ssl_event(2, "WRITE/SEND", next.clone()),
+        ])
+        .await;
+        assert!(parsed_http(&output).is_empty(), "{output:#?}");
+
+        let output = run_parser(vec![
+            ssl_event_legacy(1, "WRITE/SEND", bad),
+            ssl_event_legacy(2, "WRITE/SEND", next),
+        ])
+        .await;
+        let parsed = parsed_http(&output);
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].data["path"], "/next");
     }
 }

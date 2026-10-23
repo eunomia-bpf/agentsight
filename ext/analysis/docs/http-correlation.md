@@ -22,12 +22,19 @@ TLS events -> legacy SSE pass-through for known transport identities
 ```
 
 Standalone raw SSE processing remains available. Events with incomplete or
-unknown transport identity retain the legacy best-effort behavior; they must not
-be interpreted as exact connection evidence.
+unknown transport identity (rustls-based captures such as Codex and Grok, and
+traces recorded before #210) use the same HTTP/1 reassembly, keyed per
+`(pid, tid)` as before; their evidence is labeled `inferred` and must not be
+interpreted as exact connection evidence. Because there is no close event for
+them, a response without Content-Length or chunked framing is emitted with the
+bytes buffered so far.
 
-* HTTP/1.1 buffers are separate for each connection and direction. Complete
-  requests receive successive exchange IDs; final responses use the pending
-  request FIFO. Informational responses do not consume that FIFO. HEAD, 204,
+* HTTP/1.1 buffers are separate for each connection and direction. A message
+  is a request or a response according to its start line, not the TLS
+  direction, so a captured server (requests read, responses written) pairs the
+  same way. Complete requests receive successive exchange IDs; final responses
+  use the pending request FIFO. Invalid or conflicting Content-Length values and
+  malformed chunking are protocol errors (see below). Informational responses do not consume that FIFO. HEAD, 204,
   and 304 responses do not require a body. Content-Length, chunked encoding
   (including trailers), and close-delimited responses are supported.
 * HTTP/2 frame remainders, directional HPACK decoders, pending CONTINUATION
@@ -69,6 +76,22 @@ rows retain `status="pending"` for compatibility but gain
 
 ## Loss and incomplete captures
 
+A record that arrives with `truncated: true` lost its tail inside the capture.
+For HTTP/1.1 the message it belongs to is **not dropped**: it is emitted for the
+prefix that was seen (start line, parsed headers, body prefix) with
+`body_truncated: true`, `body_truncation_reason` (`capture_truncated`, or
+`body_limit` when a message passes the 1 MiB cap) and `body_captured_bytes`;
+`content_length` is still the size the peer declared and `completion_reason` is
+`truncated`. Requests still enter the exchange FIFO, so their responses pair
+normally. When the message has a declared Content-Length and the record reports
+how many bytes it lost (`bytes_lost`), the parser discards exactly the rest of
+that body and the connection stays usable for later requests. Otherwise (chunked
+or close-delimited framing, an unreported or too-large loss, a loss that left no
+visible message start) the framing cannot be realigned: the connection's
+pending exchanges are terminated as `truncated` and matching stops until the
+connection is retired. Non-HTTP/1 protocols (HTTP/2 frames, WebSocket
+compression state) stop matching on any truncated record.
+
 The ring-buffer failure counter is tracer-wide. A changed counter, including
 the final `CAPTURE_LOSS` record, invalidates all currently active connections'
 pending parser state. A truncated TLS payload invalidates its connection.
@@ -102,8 +125,10 @@ loss, or plaintext delivered out of protocol order cannot be proven correct
 from TLS handles alone. A new opaque ID is not proof of a new TCP connection.
 
 State is bounded: 1,024 active connections, 1,024 HTTP/2 streams/pending header
-blocks per connection, 64 KiB header blocks, 1 MiB HTTP/2 bodies, and 2 MiB
-HTTP/1 buffers. Buffered fragment provenance is capped at 4,096 entries per
+blocks per connection, 64 KiB header blocks, 1 MiB HTTP/2 bodies, and a 1 MiB
+HTTP/1 message prefix per direction (beyond it the message is emitted with
+`body_truncated`; a chunked or close-delimited message over the cap cannot be
+realigned and stops matching the connection). Buffered fragment provenance is capped at 4,096 entries per
 direction, and HTTP/1 pending request queues at 1,024. Materialization retains
 at most 16,384 pending exchanges with a
 five-minute expiry. Exceeding limits produces terminal evidence rather than a
