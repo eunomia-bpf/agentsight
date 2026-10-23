@@ -20,6 +20,7 @@ fn agentsight_output(args: &[&str]) -> Output {
 fn agentsight_output_with_env(args: &[&str], envs: &[(&str, &std::ffi::OsStr)]) -> Output {
     let output = Command::new(env!("CARGO_BIN_EXE_agentsight"))
         .args(args)
+        .env_remove("CODEX_HOME")
         .envs(envs.iter().copied())
         .output()
         .expect("agentsight command should run");

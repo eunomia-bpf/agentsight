@@ -34,6 +34,19 @@ static void add_writev_signature(uint8_t *data, size_t offset,
 	       sizeof(codex_rustls_writev_copy));
 }
 
+static void add_writev_signature_v2(uint8_t *data, size_t offset,
+				    uint8_t first_branch, uint8_t second_branch)
+{
+	memcpy(data + offset, codex_rustls_writev_prefix,
+	       sizeof(codex_rustls_writev_prefix));
+	data[offset + 18] = first_branch;
+	memcpy(data + offset + 19, codex_rustls_writev_iov_v2,
+	       sizeof(codex_rustls_writev_iov_v2));
+	data[offset + 30] = second_branch;
+	memcpy(data + offset + 31, codex_rustls_writev_copy,
+	       sizeof(codex_rustls_writev_copy));
+}
+
 static char *write_fixture(bool valid)
 {
 	char template[] = "/tmp/agentsight-codex-offsets-test.XXXXXX";
@@ -45,7 +58,7 @@ static char *write_fixture(bool valid)
 	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
 	add_writev_signature(data, 256, 0x24, 0x23);
 	if (valid) {
-		add_writev_signature(data, 1024, 0x23, 0x22);
+		add_writev_signature_v2(data, 1024, 0x26, 0x22);
 		memcpy(data + 1536, codex_rustls_write_prefix,
 		       sizeof(codex_rustls_write_prefix));
 	} else {
@@ -74,7 +87,7 @@ static void test_signature_detection(void)
 	check(offsets.entries[0].offset == 256 && offsets.entries[0].vectored
 	      && offsets.entries[1].offset == 1024 && offsets.entries[1].vectored
 	      && offsets.entries[2].offset == 1536 && !offsets.entries[2].vectored,
-	      "classifies direct and vectored writes");
+	      "classifies legacy, Codex 0.160, and direct writes");
 	check(codex_binary_has_tls_markers(path), "requires Codex and rustls markers");
 	unlink(path);
 	free(path);
@@ -148,12 +161,74 @@ static void test_grok_signature_detection(void)
 	unlink(template);
 }
 
+static void test_codex_buffer_plaintext_signature(void)
+{
+	char template[] = "/tmp/agentsight-codex-plaintext-test.XXXXXX";
+	uint8_t data[2048] = {};
+	size_t offset = 0;
+	int fd = mkstemp(template);
+
+	check(fd >= 0, "created Codex buffer_plaintext fixture");
+	if (fd < 0)
+		return;
+	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
+	memcpy(data + 256, codex_rustls_buffer_plaintext_prefix,
+	       sizeof(codex_rustls_buffer_plaintext_prefix));
+	memcpy(data + 256 + CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET,
+	       codex_rustls_buffer_plaintext_sentinel,
+	       sizeof(codex_rustls_buffer_plaintext_sentinel));
+	check(write(fd, data, sizeof(data)) == sizeof(data),
+	      "wrote Codex buffer_plaintext fixture");
+	close(fd);
+
+	check(codex_find_rustls_buffer_plaintext_offset(template, &offset)
+		      && offset == 256,
+	      "finds Codex/rustls buffer_plaintext signature");
+
+	data[256 + CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET] ^= 0xff;
+	fd = open(template, O_WRONLY | O_TRUNC);
+	check(fd >= 0, "opened Codex plaintext fixture for corruption");
+	if (fd >= 0) {
+		check(write(fd, data, sizeof(data)) == sizeof(data),
+		      "wrote corrupted Codex plaintext fixture");
+		close(fd);
+		check(!codex_find_rustls_buffer_plaintext_offset(template, &offset),
+		      "rejects a Codex signature with a changed sentinel");
+	}
+	unlink(template);
+}
+
+static void test_live_codex_buffer_plaintext(void)
+{
+	static const char *const paths[] = {
+		"/root/.codex/packages/standalone/releases/0.144.5-x86_64-unknown-linux-musl/bin/codex",
+		"/root/.codex/packages/standalone/releases/0.151.0-x86_64-unknown-linux-musl/bin/codex",
+		"/root/.codex/packages/standalone/releases/0.152.0-x86_64-unknown-linux-musl/bin/codex",
+	};
+	size_t i;
+
+	for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
+		size_t offset = 0;
+		char name[256];
+
+		if (access(paths[i], R_OK) != 0)
+			continue;
+		snprintf(name, sizeof(name),
+			 "finds buffer_plaintext in installed %s", paths[i]);
+		check(codex_find_rustls_buffer_plaintext_offset(paths[i], &offset)
+			      && offset != 0,
+		      name);
+	}
+}
+
 int main(void)
 {
 	printf("===== Codex offset tests =====\n");
 	test_signature_detection();
 	test_marker_detection();
 	test_grok_signature_detection();
+	test_codex_buffer_plaintext_signature();
+	test_live_codex_buffer_plaintext();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;

@@ -30,6 +30,7 @@ const SESSION_ID_HEADER_BYTES: u64 = 64 * 1024;
 // against the published agent-session, which lags behind the workspace copy, so
 // production code here cannot reference constants the registry version lacks.
 const CURSOR_AGENT_TYPE: &str = "cursor";
+const CODEBUDDY_AGENT_TYPE: &str = "codebuddy";
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -122,7 +123,7 @@ fn index_session_paths(
 fn session_candidate_id(candidate: &agent_session::SessionCandidate) -> Option<String> {
     if matches!(
         candidate.agent,
-        agent_session::AGENT_CLAUDE | CURSOR_AGENT_TYPE
+        agent_session::AGENT_CLAUDE | CURSOR_AGENT_TYPE | CODEBUDDY_AGENT_TYPE
     ) {
         return candidate
             .path
@@ -236,10 +237,12 @@ fn codex_state_session(
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
     let path = PathBuf::from(rollout_path);
     let (rollout_usage, plan, _) = codex_rollout_summary(&path);
-    let usage = rollout_usage.unwrap_or(TokenUsage {
-        total_tokens: tokens_used.max(0),
-        ..Default::default()
-    });
+    let usage = rollout_usage
+        .filter(|usage| usage.total_tokens > 0)
+        .unwrap_or(TokenUsage {
+            total_tokens: tokens_used.max(0),
+            ..Default::default()
+        });
     let model = model.filter(|value| !value.is_empty());
     let mut model_usage = BTreeMap::new();
     if let Some(model) = model.as_deref() {
@@ -2012,6 +2015,91 @@ mod tests {
         assert_eq!(sessions[0].usage.cache_read_tokens, 9_984);
         assert_eq!(sessions[0].usage.output_tokens, 11);
         assert_eq!(sessions[0].usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_state_db_uses_last_token_usage_when_total_is_empty() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+                "\n",
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{}}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 15);
+        assert_eq!(sessions[0].usage.input_tokens, 11);
+        assert_eq!(sessions[0].usage.output_tokens, 4);
+    }
+
+    #[test]
+    fn codex_state_db_keeps_cumulative_total_when_trailing_last_only() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"last_token_usage":{"total_tokens":15}}}}"#,
+                "\n",
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 100);
+        assert_eq!(sessions[0].usage.input_tokens, 80);
+        assert_eq!(sessions[0].usage.output_tokens, 20);
+    }
+
+    #[test]
+    fn codex_state_db_uses_token_usage_record_before_token_count() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 15);
+        assert_eq!(sessions[0].usage.input_tokens, 11);
+        assert_eq!(sessions[0].usage.output_tokens, 4);
     }
 
     #[test]

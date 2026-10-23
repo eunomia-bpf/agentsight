@@ -24,6 +24,7 @@ static const char *event_type_name(unsigned int type)
 	case EVENT_TYPE_NET_BIND:      return "NET_BIND";
 	case EVENT_TYPE_NET_LISTEN:    return "NET_LISTEN";
 	case EVENT_TYPE_NET_CONNECT:   return "NET_CONNECT";
+	case EVENT_TYPE_NET_ACCEPT:    return "NET_ACCEPT";
 	case EVENT_TYPE_PGRP_CHANGE:   return "PGRP_CHANGE";
 	case EVENT_TYPE_SESSION_CREATE:return "SESSION_CREATE";
 	case EVENT_TYPE_SIGNAL_SEND:   return "SIGNAL_SEND";
@@ -64,6 +65,23 @@ static bool resolve_fd_path(uint32_t pid, int fd, char *out, size_t out_size)
 	return true;
 }
 
+static bool endpoint_address(const char *endpoint, char *address, size_t size)
+{
+	const char *end;
+	const char *begin = endpoint;
+	if (*begin == '[') {
+		begin++;
+		end = strchr(begin, ']');
+	} else {
+		end = strrchr(begin, ':');
+	}
+	if (!end || end <= begin || (size_t)(end - begin) >= size)
+		return false;
+	memcpy(address, begin, end - begin);
+	address[end - begin] = '\0';
+	return true;
+}
+
 static void print_summary_json(const struct agg_key *key, const struct agg_value *val)
 {
 	char detail_esc[MAX_FILENAME_LEN * 2];
@@ -89,15 +107,49 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 		json_escape(key->detail, detail_esc, sizeof(detail_esc));
 
 	printf("{\"timestamp\":%llu,\"event\":\"SUMMARY\","
-	       "\"comm\":\"%s\",\"pid\":%u,"
+	       "\"comm\":\"%s\",\"pid\":%u,\"process_start_ns\":%llu,"
 	       "\"type\":\"%s\",\"detail\":\"%s\","
 	       "\"count\":%llu",
 	       (unsigned long long)val->last_ts, comm_esc, key->pid,
+	       (unsigned long long)key->process_start_ns,
 	       event_type_name(key->event_type), detail_esc,
 	       (unsigned long long)val->count);
 
 	if (val->total_bytes > 0)
 		printf(",\"total_bytes\":%llu", (unsigned long long)val->total_bytes);
+	if (key->protocol) {
+		const char *protocol = key->protocol == 6 ? "tcp" :
+			key->protocol == 17 ? "udp" :
+			key->protocol == 136 ? "udplite" :
+			key->protocol == 1 ? "icmp" : "icmpv6";
+		printf(",\"protocol\":\"%s\",\"port\":%u", protocol, key->port);
+	}
+	else if (key->event_type == EVENT_TYPE_NET_BIND)
+		printf(",\"port\":%u", key->port);
+
+	if (key->event_type == EVENT_TYPE_NET_LISTEN)
+		printf(",\"local_endpoint\":\"%s\"", detail_esc);
+	else if (key->event_type == EVENT_TYPE_NET_ACCEPT) {
+		char local_esc[DETAIL_LEN * 2];
+		json_escape(key->local_endpoint, local_esc, sizeof(local_esc));
+		printf(",\"local_endpoint\":\"%s\",\"peer_endpoint\":\"%s\"", local_esc, detail_esc);
+	}
+	if (key->event_type == EVENT_TYPE_NET_BIND ||
+	    key->event_type == EVENT_TYPE_NET_LISTEN ||
+	    key->event_type == EVENT_TYPE_NET_ACCEPT) {
+		char address[DETAIL_LEN];
+		const char *local = key->event_type == EVENT_TYPE_NET_ACCEPT ?
+			key->local_endpoint : key->detail;
+		if (endpoint_address(local, address, sizeof(address)))
+			printf(",\"address\":\"%s\"", address);
+		if (key->event_type == EVENT_TYPE_NET_ACCEPT) {
+			if (strchr(key->detail, ':') == strrchr(key->detail, ':') &&
+			    endpoint_address(key->detail, address, sizeof(address)))
+				printf(",\"peer\":\"%s\"", address);
+			else if (strchr(key->detail, ':') != strrchr(key->detail, ':'))
+				printf(",\"peer\":\"%s\"", detail_esc);
+		}
+	}
 
 	if (key->event_type == EVENT_TYPE_WRITE && parsed_fd) {
 		printf(",\"fd\":%d", fd);

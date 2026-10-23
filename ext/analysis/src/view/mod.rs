@@ -3,6 +3,7 @@
 
 mod canonical;
 pub(crate) mod llm;
+mod media;
 pub mod process_select;
 mod projection;
 pub mod session_process_match;

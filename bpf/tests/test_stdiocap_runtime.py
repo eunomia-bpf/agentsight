@@ -6,6 +6,8 @@ import sys
 import time
 from pathlib import Path
 
+from test_process_runtime import has_hidden_host_pids
+
 
 BPF_DIR = Path(__file__).resolve().parents[1]
 STDIOCAP = BPF_DIR / "stdiocap"
@@ -56,6 +58,9 @@ def main():
     if not STDIOCAP.exists():
         print(f"missing stdiocap binary at {STDIOCAP}", file=sys.stderr)
         return 1
+    if has_hidden_host_pids():
+        print("SKIP: stdiocap session filtering requires the host PID namespace")
+        return 0
     test_session_captures_child_stdout()
     print("stdiocap runtime tests passed")
     return 0
