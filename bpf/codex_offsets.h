@@ -18,6 +18,7 @@
 struct codex_rustls_offset {
 	size_t offset;
 	bool vectored;
+	bool plaintext; /* buffer_plaintext funnel instead of write/write_vectored */
 };
 
 struct codex_rustls_offsets {
@@ -70,6 +71,28 @@ static const uint8_t codex_rustls_buffer_plaintext_prefix[] = {
 static const uint8_t codex_rustls_buffer_plaintext_sentinel[] = {
 	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x80,
+};
+
+/*
+ * rustls 0.23.46 buffer_plaintext as compiled into Codex CLI 0.164.0 (musl).
+ * write() and write_vectored() are fully inlined into their callers there, so
+ * the funnel is the only stable hook. It is monomorphized once per connection
+ * type, giving several identical copies that differ only in the indirect
+ * call target; every copy is validated and hooked. The probe's
+ * rustls_outbound_chunks view matches the reads at the top of the function:
+ * count at [rsi], data at [rsi+8], start_or_len at [rsi+0x10], end at
+ * [rsi+0x18]. The prefix therefore covers the prologue through the first
+ * branch, which includes all four of those loads.
+ */
+static const uint8_t codex_rustls_buffer_plaintext_v2_prefix[] = {
+	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
+	0x54, 0x53, 0x48, 0x83, 0xec, 0x58, 0x48, 0x89,
+	0xfb, 0x48, 0x8b, 0x0e, 0x48, 0x8b, 0x46, 0x08,
+	0x48, 0x89, 0x44, 0x24, 0x08, 0x4c, 0x8b, 0x76,
+	0x18, 0x4c, 0x8b, 0x7e, 0x10, 0x4d, 0x89, 0xf5,
+	0x4d, 0x29, 0xfd, 0x48, 0x89, 0x4c, 0x24, 0x10,
+	0x48, 0x85, 0xc9, 0x4d, 0x0f, 0x44, 0xef, 0x0f,
+	0x84,
 };
 
 /* rustls 0.23 CommonState::buffer_plaintext, as emitted by rustc 1.92.
@@ -191,6 +214,49 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 		search++;
 	}
 
+	munmap(data, (size_t)st.st_size);
+	close(fd);
+	return out->count > 0;
+}
+
+static bool codex_find_rustls_buffer_plaintext_v2_offsets(
+	const char *binary_path, struct codex_rustls_offsets *out)
+{
+	struct stat st;
+	uint8_t *data;
+	size_t search = 0;
+	int fd;
+
+	memset(out, 0, sizeof(*out));
+	fd = open(binary_path, O_RDONLY);
+	if (fd < 0)
+		return false;
+	if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+		close(fd);
+		return false;
+	}
+	data = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == MAP_FAILED) {
+		close(fd);
+		return false;
+	}
+	while (search + sizeof(codex_rustls_buffer_plaintext_v2_prefix)
+	       <= (size_t)st.st_size) {
+		size_t relative = codex_find_pattern(
+			data + search, (size_t)st.st_size - search,
+			codex_rustls_buffer_plaintext_v2_prefix,
+			sizeof(codex_rustls_buffer_plaintext_v2_prefix));
+		if (relative == (size_t)-1)
+			break;
+		search += relative;
+		if (out->count == CODEX_MAX_RUSTLS_OFFSETS)
+			break;
+		out->entries[out->count++] = (struct codex_rustls_offset) {
+			.offset = search,
+			.plaintext = true,
+		};
+		search++;
+	}
 	munmap(data, (size_t)st.st_size);
 	close(fd);
 	return out->count > 0;

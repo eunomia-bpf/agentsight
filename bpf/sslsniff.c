@@ -387,12 +387,44 @@ static struct boringssl_offsets find_boringssl_offsets(const char *binary_path) 
 		size_t wr_off = find_pattern(data + search_start,
 									 search_end - search_start,
 									 write_pat, sizeof(write_pat));
-		if (wr_off == (size_t)-1) {
-			if (verbose)
-				fprintf(stderr, "BoringSSL: SSL_write pattern not found near SSL_read\n");
-			goto out;
+		if (wr_off != (size_t)-1) {
+			result.ssl_write = search_start + wr_off;
+		} else {
+			/* LTO'd Bun builds (e.g. opencode) can place SSL_write
+			 * hundreds of KiB away from SSL_read, and the prologue alone
+			 * also matches several unrelated functions. Like SSL_read,
+			 * the real SSL_write tests ssl->quic_method ([rdi+0x98])
+			 * right after its prologue; require that to pick it. */
+			static const unsigned char quic_check[] = {
+				0x48, 0x83, 0xbb, 0x98, 0x00, 0x00, 0x00, 0x00
+			};
+			size_t from = 0;
+
+			while (from < file_size) {
+				size_t rel = find_pattern(data + from, file_size - from,
+										  write_pat, sizeof(write_pat));
+				size_t off, tail_start, tail_len;
+
+				if (rel == (size_t)-1)
+					break;
+				off = from + rel;
+				from = off + 1;
+				tail_start = off + sizeof(write_pat);
+				tail_len = 0x40;
+				if (tail_start + tail_len > file_size)
+					continue;
+				if (find_pattern(data + tail_start, tail_len, quic_check,
+								 sizeof(quic_check)) != (size_t)-1) {
+					result.ssl_write = off;
+					break;
+				}
+			}
+			if (result.ssl_write == 0) {
+				if (verbose)
+					fprintf(stderr, "BoringSSL: SSL_write pattern not found\n");
+				goto out;
+			}
 		}
-		result.ssl_write = search_start + wr_off;
 	}
 
 	result.found = true;
@@ -560,7 +592,9 @@ static int attach_codex_rustls(struct sslsniff_bpf *skel, const char *binary,
 {
 	for (size_t i = 0; i < offsets->count; i++) {
 		LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
-		struct bpf_program *program = offsets->entries[i].vectored
+		struct bpf_program *program = offsets->entries[i].plaintext
+			? skel->progs.probe_rustls_buffer_plaintext
+			: offsets->entries[i].vectored
 			? skel->progs.probe_rustls_write_vectored
 			: skel->progs.probe_rustls_write;
 		struct bpf_link *link = bpf_program__attach_uprobe_opts(
@@ -608,17 +642,39 @@ static int attach_grok_rustls(struct sslsniff_bpf *skel, const char *binary,
 static int attach_codex_ssl(struct sslsniff_bpf *skel, const char *binary)
 {
 	struct codex_rustls_offsets write_offsets = {};
+	struct codex_rustls_offsets funnel_offsets = {};
 	size_t plaintext_offset = 0;
 	bool have_write = codex_find_rustls_offsets(binary, &write_offsets);
 	bool have_plain =
 		codex_find_rustls_buffer_plaintext_offset(binary, &plaintext_offset);
+	bool have_funnels = !have_plain
+		&& codex_find_rustls_buffer_plaintext_v2_offsets(binary,
+								 &funnel_offsets);
 	int err = 0;
 
-	if (!have_write && !have_plain) {
+	if (!have_write && !have_plain && !have_funnels) {
 		warn("Failed to attach to %s: Codex/rustls plaintext write "
 		     "signatures were not recognized\n",
 		     binary);
 		return -ENOENT;
+	}
+	if (have_funnels) {
+		fprintf(stderr,
+			"Codex/rustls buffer_plaintext copies detected in %s. "
+			"Attaching %zu offsets...\n",
+			binary, funnel_offsets.count);
+		err = attach_codex_rustls(skel, binary, &funnel_offsets);
+		if (!err) {
+			fprintf(stderr,
+				"Attached Codex/rustls buffer_plaintext copies "
+				"(%zu offsets) for %s\n",
+				funnel_offsets.count, binary);
+			return 0;
+		}
+		warn("buffer_plaintext attach failed for %s (%d)%s\n", binary,
+		     err, have_write ? "; falling back to write hooks" : "");
+		if (!have_write)
+			return err;
 	}
 	/* Prefer the shared buffer_plaintext funnel. write() is often inlined
 	 * into it, and write_vectored also calls it — attaching both would

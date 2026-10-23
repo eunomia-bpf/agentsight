@@ -198,6 +198,49 @@ static void test_codex_buffer_plaintext_signature(void)
 	unlink(template);
 }
 
+static void test_codex_buffer_plaintext_v2_signature(void)
+{
+	char template[] = "/tmp/agentsight-codex-v2-offset-test.XXXXXX";
+	uint8_t data[2048] = {};
+	struct codex_rustls_offsets offsets;
+	int fd = mkstemp(template);
+
+	check(fd >= 0, "created Codex buffer_plaintext v2 fixture");
+	if (fd < 0)
+		return;
+	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
+	memcpy(data + 256, codex_rustls_buffer_plaintext_v2_prefix,
+	       sizeof(codex_rustls_buffer_plaintext_v2_prefix));
+	memcpy(data + 1024, codex_rustls_buffer_plaintext_v2_prefix,
+	       sizeof(codex_rustls_buffer_plaintext_v2_prefix));
+	check(write(fd, data, sizeof(data)) == sizeof(data),
+	      "wrote Codex buffer_plaintext v2 fixture");
+	close(fd);
+
+	check(codex_find_rustls_buffer_plaintext_v2_offsets(template, &offsets)
+		      && offsets.count == 2
+		      && offsets.entries[0].offset == 256
+		      && offsets.entries[1].offset == 1024
+		      && offsets.entries[0].plaintext
+		      && !offsets.entries[0].vectored,
+	      "finds every Codex/rustls v2 buffer_plaintext copy");
+
+	/* A changed OutboundChunks load (rsi+0x10 -> rsi+0x20) must not match. */
+	data[256 + 36] = 0x20;
+	data[1024 + 36] = 0x20;
+	fd = open(template, O_WRONLY | O_TRUNC);
+	check(fd >= 0, "opened Codex v2 fixture for corruption");
+	if (fd >= 0) {
+		check(write(fd, data, sizeof(data)) == sizeof(data),
+		      "wrote corrupted Codex v2 fixture");
+		close(fd);
+		check(!codex_find_rustls_buffer_plaintext_v2_offsets(template,
+								     &offsets),
+		      "rejects a v2 signature with a changed OutboundChunks load");
+	}
+	unlink(template);
+}
+
 static void test_live_codex_buffer_plaintext(void)
 {
 	static const char *const paths[] = {
@@ -228,6 +271,7 @@ int main(void)
 	test_marker_detection();
 	test_grok_signature_detection();
 	test_codex_buffer_plaintext_signature();
+	test_codex_buffer_plaintext_v2_signature();
 	test_live_codex_buffer_plaintext();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
