@@ -650,7 +650,8 @@ static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, 
 		       e->file_op.access & FILE_ACCESS_WRITE ? "true" : "false",
 		       e->file_op.access & FILE_ACCESS_EXEC ? "true" : "false",
 		       e->file_op.layer ? "true" : "false",
-		       e->file_op.dev, major(e->file_op.dev), minor(e->file_op.dev), e->file_op.ino);
+		       e->file_op.dev, kernel_dev_major(e->file_op.dev),
+		       kernel_dev_minor(e->file_op.dev), e->file_op.ino);
 		if (e->file_op.path_error)
 			printf(",\"path_error\":%d", e->file_op.path_error);
 	}
