@@ -87,6 +87,7 @@ int main(void)
 	test_postprocess_full_command_with_arg_len();
 	test_postprocess_full_command_without_arg_len();
 	test_postprocess_full_command_rejects_oversized_arg_len();
+	test_kernel_dev_number_decoding();
 
 	print_test_summary();
 
