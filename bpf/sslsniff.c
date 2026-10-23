@@ -26,6 +26,7 @@
 #include "container_info.h"
 #include "codex_offsets.h"
 #include "jsonl.h"
+#include "sslsniff_output.h"
 
 #define INVALID_UID -1
 #define INVALID_PID -1
@@ -177,8 +178,11 @@ static const struct argp_option opts[] = {
 };
 
 static bool verbose = false;
+#define MAX_SSL_BINARIES 8
 static struct bpf_link *codex_rustls_links[CODEX_MAX_RUSTLS_OFFSETS];
 static size_t codex_rustls_link_count;
+static struct bpf_link *plaintext_links[MAX_SSL_BINARIES];
+static size_t plaintext_link_count;
 static struct bpf_link *grok_rustls_link;
 
 /*
@@ -383,12 +387,44 @@ static struct boringssl_offsets find_boringssl_offsets(const char *binary_path) 
 		size_t wr_off = find_pattern(data + search_start,
 									 search_end - search_start,
 									 write_pat, sizeof(write_pat));
-		if (wr_off == (size_t)-1) {
-			if (verbose)
-				fprintf(stderr, "BoringSSL: SSL_write pattern not found near SSL_read\n");
-			goto out;
+		if (wr_off != (size_t)-1) {
+			result.ssl_write = search_start + wr_off;
+		} else {
+			/* LTO'd Bun builds (e.g. opencode) can place SSL_write
+			 * hundreds of KiB away from SSL_read, and the prologue alone
+			 * also matches several unrelated functions. Like SSL_read,
+			 * the real SSL_write tests ssl->quic_method ([rdi+0x98])
+			 * right after its prologue; require that to pick it. */
+			static const unsigned char quic_check[] = {
+				0x48, 0x83, 0xbb, 0x98, 0x00, 0x00, 0x00, 0x00
+			};
+			size_t from = 0;
+
+			while (from < file_size) {
+				size_t rel = find_pattern(data + from, file_size - from,
+										  write_pat, sizeof(write_pat));
+				size_t off, tail_start, tail_len;
+
+				if (rel == (size_t)-1)
+					break;
+				off = from + rel;
+				from = off + 1;
+				tail_start = off + sizeof(write_pat);
+				tail_len = 0x40;
+				if (tail_start + tail_len > file_size)
+					continue;
+				if (find_pattern(data + tail_start, tail_len, quic_check,
+								 sizeof(quic_check)) != (size_t)-1) {
+					result.ssl_write = off;
+					break;
+				}
+			}
+			if (result.ssl_write == 0) {
+				if (verbose)
+					fprintf(stderr, "BoringSSL: SSL_write pattern not found\n");
+				goto out;
+			}
 		}
-		result.ssl_write = search_start + wr_off;
 	}
 
 	result.found = true;
@@ -556,7 +592,9 @@ static int attach_codex_rustls(struct sslsniff_bpf *skel, const char *binary,
 {
 	for (size_t i = 0; i < offsets->count; i++) {
 		LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
-		struct bpf_program *program = offsets->entries[i].vectored
+		struct bpf_program *program = offsets->entries[i].plaintext
+			? skel->progs.probe_rustls_buffer_plaintext
+			: offsets->entries[i].vectored
 			? skel->progs.probe_rustls_write_vectored
 			: skel->progs.probe_rustls_write;
 		struct bpf_link *link = bpf_program__attach_uprobe_opts(
@@ -572,20 +610,103 @@ static int attach_codex_rustls(struct sslsniff_bpf *skel, const char *binary,
 	return 0;
 }
 
+static int attach_rustls_buffer_plaintext(struct sslsniff_bpf *skel,
+					  const char *binary, size_t offset)
+{
+	LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
+	struct bpf_link *link;
+
+	if (plaintext_link_count >= MAX_SSL_BINARIES)
+		return -ENOSPC;
+	link = bpf_program__attach_uprobe_opts(
+		skel->progs.probe_rustls_buffer_plaintext, env.pid, binary,
+		offset, &opts);
+	long err = link ? libbpf_get_error(link) : -(errno ? errno : EIO);
+	if (err)
+		return (int)err;
+	plaintext_links[plaintext_link_count++] = link;
+	return 0;
+}
+
 static int attach_grok_rustls(struct sslsniff_bpf *skel, const char *binary,
 			      size_t offset)
 {
-	LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
+	int err = attach_rustls_buffer_plaintext(skel, binary, offset);
 
-	grok_rustls_link = bpf_program__attach_uprobe_opts(
-		skel->progs.probe_rustls_buffer_plaintext, env.pid, binary, offset,
-		&opts);
-	long err = grok_rustls_link
-		? libbpf_get_error(grok_rustls_link)
-		: -(errno ? errno : EIO);
-	if (err) {
-		grok_rustls_link = NULL;
-		return (int)err;
+	if (err)
+		return err;
+	grok_rustls_link = plaintext_links[plaintext_link_count - 1];
+	return 0;
+}
+
+static int attach_codex_ssl(struct sslsniff_bpf *skel, const char *binary)
+{
+	struct codex_rustls_offsets write_offsets = {};
+	struct codex_rustls_offsets funnel_offsets = {};
+	size_t plaintext_offset = 0;
+	bool have_write = codex_find_rustls_offsets(binary, &write_offsets);
+	bool have_plain =
+		codex_find_rustls_buffer_plaintext_offset(binary, &plaintext_offset);
+	bool have_funnels = !have_plain
+		&& codex_find_rustls_buffer_plaintext_v2_offsets(binary,
+								 &funnel_offsets);
+	int err = 0;
+
+	if (!have_write && !have_plain && !have_funnels) {
+		warn("Failed to attach to %s: Codex/rustls plaintext write "
+		     "signatures were not recognized\n",
+		     binary);
+		return -ENOENT;
+	}
+	if (have_funnels) {
+		fprintf(stderr,
+			"Codex/rustls buffer_plaintext copies detected in %s. "
+			"Attaching %zu offsets...\n",
+			binary, funnel_offsets.count);
+		err = attach_codex_rustls(skel, binary, &funnel_offsets);
+		if (!err) {
+			fprintf(stderr,
+				"Attached Codex/rustls buffer_plaintext copies "
+				"(%zu offsets) for %s\n",
+				funnel_offsets.count, binary);
+			return 0;
+		}
+		warn("buffer_plaintext attach failed for %s (%d)%s\n", binary,
+		     err, have_write ? "; falling back to write hooks" : "");
+		if (!have_write)
+			return err;
+	}
+	/* Prefer the shared buffer_plaintext funnel. write() is often inlined
+	 * into it, and write_vectored also calls it — attaching both would
+	 * duplicate the same plaintext into the HTTP parser. */
+	if (have_plain) {
+		fprintf(stderr,
+			"Codex/rustls buffer_plaintext detected in %s at 0x%zx. "
+			"Attaching plaintext funnel...\n",
+			binary, plaintext_offset);
+		err = attach_rustls_buffer_plaintext(skel, binary,
+						     plaintext_offset);
+		if (!err) {
+			fprintf(stderr,
+				"Attached Codex/rustls buffer_plaintext at 0x%zx "
+				"(1 offset) for %s\n",
+				plaintext_offset, binary);
+			return 0;
+		}
+		warn("buffer_plaintext attach failed for %s (%d); "
+		     "falling back to write hooks\n",
+		     binary, err);
+		if (!have_write)
+			return err;
+	}
+	if (have_write) {
+		fprintf(stderr,
+			"Codex/rustls plaintext write patterns detected in %s. "
+			"Attaching %zu offsets...\n",
+			binary, write_offsets.count);
+		err = attach_codex_rustls(skel, binary, &write_offsets);
+		if (err)
+			return err;
 	}
 	return 0;
 }
@@ -728,8 +849,14 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	if (env.comm && strcmp(env.comm, event->comm) != 0) {
 		return;
 	}
-	if (env.session_id > 0 && getsid(event->pid) != env.session_id) {
-		return;
+	if (env.session_id > 0) {
+		pid_t sid = getsid((pid_t)event->pid);
+
+		/* Drop only when we can prove a different live session.
+		 * getsid() fails after a short-lived Codex worker exits, and
+		 * sandbox children may create a new sid. */
+		if (sid >= 0 && sid != env.session_id)
+			return;
 	}
 
 	if (start == 0) {
@@ -772,19 +899,9 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Always include handshake field
 	printf("\"is_handshake\":%s,", event->is_handshake ? "true" : "false");
 
-	// Preserve exact bytes for masked WebSocket frames alongside readable text.
+	// Preserve exact TLS plaintext bytes for binary protocols such as HTTP/2.
 	if (buf_size > 0) {
-		// Text data
-		printf("\"data\":");
-		json_print_escaped_quoted(event_buf, buf_size);
-		printf(",");
-		if (buf_size >= 2 && (event_buf[0] & 0x80) && !(event_buf[0] & 0x30)
-		    && (event_buf[0] & 0x0f) <= 2 && (event_buf[1] & 0x80)) {
-			printf("\"data_hex\":\"");
-			for (unsigned int i = 0; i < buf_size; i++)
-				printf("%02x", (unsigned char)event_buf[i]);
-			printf("\",");
-		}
+		sslsniff_print_payload_fields(event_buf, buf_size);
 
 		// Add truncated info if data was truncated
 		if (buf_size < event->len) {
@@ -860,10 +977,8 @@ int main(int argc, char **argv) {
 	LIBBPF_OPTS(bpf_object_open_opts, open_opts);
 	struct sslsniff_bpf *obj = NULL;
 	struct ring_buffer *rb = NULL;
-	struct codex_rustls_offsets codex_offsets = {};
-	bool is_codex = false;
-	bool codex_rustls = false;
 	size_t grok_rustls_offset = 0;
+	bool is_codex = false;
 	bool is_grok = false;
 	bool grok_rustls = false;
 	int err;
@@ -873,8 +988,6 @@ int main(int argc, char **argv) {
 		return err;
 	if (env.extra_lib) {
 		is_codex = codex_binary_has_tls_markers(env.extra_lib);
-		codex_rustls = is_codex
-				&& codex_find_rustls_offsets(env.extra_lib, &codex_offsets);
 		is_grok = grok_binary_has_tls_markers(env.extra_lib);
 		grok_rustls = is_grok
 				&& grok_find_rustls_buffer_plaintext_offset(
@@ -891,11 +1004,11 @@ int main(int argc, char **argv) {
 		warn("failed to open BPF object\n");
 		goto cleanup;
 	}
-	if (!codex_rustls) {
+	if (!is_codex) {
 		bpf_program__set_autoload(obj->progs.probe_rustls_write, false);
 		bpf_program__set_autoload(obj->progs.probe_rustls_write_vectored, false);
 	}
-	if (!grok_rustls)
+	if (!grok_rustls && !is_codex)
 		bpf_program__set_autoload(
 			obj->progs.probe_rustls_buffer_plaintext, false);
 
@@ -999,12 +1112,8 @@ int main(int argc, char **argv) {
 		} else {
 			// Some stripped static clients use rustls; other clients use
 			// the existing generic BoringSSL detector.
-			if (codex_rustls) {
-				fprintf(stderr,
-					"Codex/rustls plaintext write patterns detected in %s. "
-					"Attaching %zu offsets...\n",
-					env.extra_lib, codex_offsets.count);
-				err = attach_codex_rustls(obj, env.extra_lib, &codex_offsets);
+			if (is_codex) {
+				err = attach_codex_ssl(obj, env.extra_lib);
 			} else if (grok_rustls) {
 				fprintf(stderr,
 					"Grok/rustls plaintext buffer pattern detected in %s. "
@@ -1056,6 +1165,12 @@ int main(int argc, char **argv) {
 		fflush(stderr);
 	}
 
+	/* A pinned --binary-path already scopes the ELF; scanning extra Codex
+	 * copies can delay the first TLS burst. */
+	/* Signal readiness after probes, ring buffer, and signal handler exist. */
+	fprintf(stderr, "AGENTSIGHT_SSL_READY\n");
+	fflush(stderr);
+
 	while (!exiting) {
 		err = ring_buffer__poll(rb, PERF_POLL_TIMEOUT_MS);
 		if (err < 0 && err != -EINTR) {
@@ -1069,8 +1184,10 @@ cleanup:
 	if (obj)
 		sslsniff_bpf__detach(obj);
 	destroy_attach_links();
-	if (grok_rustls_link)
-		bpf_link__destroy(grok_rustls_link);
+	for (size_t i = 0; i < plaintext_link_count; i++)
+		bpf_link__destroy(plaintext_links[i]);
+	plaintext_link_count = 0;
+	grok_rustls_link = NULL;
 	destroy_codex_rustls_links();
 	if (rb) {
 		int drain_err;

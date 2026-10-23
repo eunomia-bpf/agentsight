@@ -41,7 +41,7 @@ export function ConnectionDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
-        className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        className="relative max-h-[calc(100dvh-4rem)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         {canClose && onClose && (
           <button type="button" onClick={onClose} aria-label={t('connect.close')}
             className="absolute right-5 top-4 text-2xl text-slate-400 hover:text-slate-700">

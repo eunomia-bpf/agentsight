@@ -256,8 +256,12 @@ run_codex_offset_canary() {
     status=$?
     set -e
 
-    if ! grep -Fq "Codex/rustls plaintext write patterns detected" "$stderr" \
-        || ! grep -Eq "Attaching [1-9][0-9]* offsets" "$stderr"; then
+    if grep -Fq "Attached Codex/rustls buffer_plaintext" "$stderr"; then
+        :
+    elif grep -Fq "Codex/rustls plaintext write patterns detected" "$stderr" \
+        && grep -Eq "Attaching [1-9][0-9]* offsets" "$stderr"; then
+        :
+    else
         echo "Codex sslsniff output did not prove signature attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1

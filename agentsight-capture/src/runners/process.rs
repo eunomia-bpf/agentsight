@@ -46,7 +46,7 @@ impl ProcessRunner {
         self
     }
 
-    fn parse_process_event(json_value: serde_json::Value, errors: &AtomicU64) -> Event {
+    fn parse_process_event(mut json_value: serde_json::Value, errors: &AtomicU64) -> Event {
         if json_value.get("event").and_then(|v| v.as_str()) == Some("CLOCK_SYNC") {
             return Event::new_with_timestamp(
                 current_boot_time_ns(),
@@ -55,6 +55,13 @@ impl ProcessRunner {
                 "process".to_string(),
                 json_value,
             );
+        }
+        if json_value.get("event").and_then(|v| v.as_str()) == Some("PROBE_LIVENESS") {
+            // Older bundled probes emitted liveness without process identity.
+            if let Some(record) = json_value.as_object_mut() {
+                record.entry("pid").or_insert(serde_json::json!(0));
+                record.entry("comm").or_insert(serde_json::json!("process"));
+            }
         }
         parse_json_event("process", "timestamp", json_value, errors)
     }
@@ -78,6 +85,33 @@ impl Runner for ProcessRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn liveness_is_a_process_event_without_parse_errors() {
+        let errors = AtomicU64::new(0);
+        for kind in ["start", "alive"] {
+            let raw = serde_json::json!({
+                "event": "PROBE_LIVENESS", "kind": kind,
+                "timestamp": 25741617824027_u64, "every": 2,
+                "wall_time_ns": 1791244800000000000_u64,
+            });
+            let event = ProcessRunner::parse_process_event(raw.clone(), &errors);
+            assert_eq!(event.source, "process");
+            assert_eq!(event.pid, 0);
+            assert_eq!(event.comm, "process");
+            assert_eq!(event.timestamp, raw["timestamp"].as_u64().unwrap());
+            assert_eq!(event.data["event"], "PROBE_LIVENESS");
+            assert_eq!(event.data["kind"], kind);
+            assert_eq!(event.data["wall_time_ns"], raw["wall_time_ns"]);
+        }
+        assert_eq!(errors.load(std::sync::atomic::Ordering::Relaxed), 0);
+        let invalid = ProcessRunner::parse_process_event(
+            serde_json::json!({"event": "FILE_OPEN", "timestamp": 1}),
+            &errors,
+        );
+        assert_eq!(invalid.data["reason"], "missing pid");
+        assert_eq!(invalid.data["parse_error_count"], 1);
+    }
 
     #[tokio::test]
     #[ignore = "requires real binary and sudo"]

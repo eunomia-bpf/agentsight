@@ -47,6 +47,10 @@ impl FakeRunner {
             .unwrap()
             .as_millis() as u64;
         let pid = 12345 + pair_id as u32;
+        let body = format!(
+            "{{\"model\":\"gpt-4\",\"messages\":[{{\"role\":\"user\",\"content\":\"Test request {}\"}}]}}",
+            pair_id
+        );
         let request_data = format!(
             "POST /v1/chat/completions HTTP/1.1\r\n\
             Host: api.openai.com\r\n\
@@ -56,9 +60,9 @@ impl FakeRunner {
             Content-Type: application/json\r\n\
             User-Agent: OpenAI/Python 1.59.6\r\n\
             Authorization: Bearer sk-test-key\r\n\
-            Content-Length: 150\r\n\r\n\
-            {{\"model\":\"gpt-4\",\"messages\":[{{\"role\":\"user\",\"content\":\"Test request {}\"}}]}}",
-            pair_id
+            Content-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
         );
         Event::new_with_timestamp(
             current_time,
@@ -89,14 +93,18 @@ impl FakeRunner {
             .as_millis() as u64
             + 500;
         let pid = 12345 + pair_id as u32;
+        let body = format!(
+            "{{\"id\":\"chatcmpl-test{}\",\"object\":\"chat.completion\",\"choices\":[{{\"message\":{{\"content\":\"Test response {}\"}}}}]}}",
+            pair_id, pair_id
+        );
         let response_data = format!(
             "HTTP/1.1 200 OK\r\n\
             Content-Type: application/json\r\n\
-            Content-Length: 120\r\n\
+            Content-Length: {}\r\n\
             Date: Fri, 11 Jul 2025 19:01:04 GMT\r\n\
-            Connection: keep-alive\r\n\r\n\
-            {{\"id\":\"chatcmpl-test{}\",\"object\":\"chat.completion\",\"choices\":[{{\"message\":{{\"content\":\"Test response {}\"}}}}]}}",
-            pair_id, pair_id
+            Connection: keep-alive\r\n\r\n{}",
+            body.len(),
+            body
         );
         Event::new_with_timestamp(
             current_time,

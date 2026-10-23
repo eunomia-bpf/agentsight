@@ -5,6 +5,7 @@
 
 #define TASK_COMM_LEN 16
 #define MAX_FILENAME_LEN 127
+#define MAX_FILE_PATH_LEN 4096
 #define MAX_COMMAND_FILTERS 10
 #define MAX_TRACKED_PIDS 4096
 #define MAX_COMMAND_LEN 256
@@ -34,14 +35,24 @@ struct event {
 		char filename[MAX_FILENAME_LEN];     /* for process events */
 		char command[MAX_COMMAND_LEN];       /* for bash readline events */
 		struct {                             /* for file operation events */
-			char filepath[MAX_FILENAME_LEN];
+			char filepath[MAX_FILE_PATH_LEN];
 			int fd;
 			int flags;
 			bool is_open;  /* true for open/openat, false for close */
+			bool resolved; /* security_file_open, not a syscall entry */
+			bool layer;
+			unsigned char access; /* FILE_ACCESS_* */
+			int path_error;
+			unsigned int dev;
+			unsigned long long ino;
 		} file_op;
 	};
 	bool exit_event;
 };
+
+#define FILE_ACCESS_READ  1
+#define FILE_ACCESS_WRITE 2
+#define FILE_ACCESS_EXEC  4
 
 struct command_filter {
 	char comm[TASK_COMM_LEN];
