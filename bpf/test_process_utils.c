@@ -54,6 +54,19 @@ static void test_postprocess_full_command_rejects_oversized_arg_len(void)
 		    "postprocess_full_command ignores oversized arg_len");
 }
 
+static void test_kernel_dev_number_decoding(void)
+{
+	test_assert(kernel_dev_major(0x10300001u) == 259 &&
+		    kernel_dev_minor(0x10300001u) == 1,
+		    "kernel device 259:1 decodes from raw 0x10300001");
+	test_assert(kernel_dev_major(1149u) == 0 &&
+		    kernel_dev_minor(1149u) == 1149,
+		    "kernel device 0:1149 decodes from raw 1149");
+	test_assert(kernel_dev_major(0xffffffffu) == 4095 &&
+		    kernel_dev_minor(0xffffffffu) == 1048575,
+		    "kernel device decoding retains all major/minor bits");
+}
+
 static void print_test_summary(void)
 {
 	printf("\n" YELLOW "===== Test Summary =====" RESET "\n");
