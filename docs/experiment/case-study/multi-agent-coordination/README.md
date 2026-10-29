@@ -192,14 +192,14 @@ class ArchitectAgent(AgentBase):
 - DELETE /tasks/:id - Delete task
 
 ## Data Model
-```json
+\`\`\`json
 {{
   "id": "uuid",
   "title": "string",
   "status": "pending|completed",
   "created_at": "timestamp"
 }}
-```
+\`\`\`
 
 Designed by {self.agent_id} at {datetime.now()}
 """
