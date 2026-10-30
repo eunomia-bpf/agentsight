@@ -559,6 +559,39 @@ fn parse_codebuddy_jsonl(path: &Path, updated: SystemTime, content: &str) -> Opt
     let mut call_index = BTreeMap::<String, usize>::new();
     let mut task_stack = SemanticTaskStack::default();
 
+    // CodeBuddy records reasoning/thinking as standalone `type:"reasoning"`
+    // records whose text lives in `rawContent`/`content` arrays as
+    // `reasoning_text`. Collect it keyed by `messageId` so it can be attached
+    // to the matching assistant response regardless of record order. The
+    // request-scoped `conversationRequestId` is deliberately not used: it spans
+    // every turn of one request, so it would attach unrelated reasoning to
+    // error messages that lack a `messageId`.
+    let mut reasoning_by_key: BTreeMap<String, String> = BTreeMap::new();
+    for line in content.lines() {
+        // Cheap prefilter: the main pass below parses every line anyway, so
+        // skip the full deserialization for lines that cannot be reasoning.
+        if !line.contains("reasoning") {
+            continue;
+        }
+        let Ok(obj) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        if obj.get("type").and_then(Value::as_str) != Some("reasoning") {
+            continue;
+        }
+        let Some(text) = codebuddy_reasoning_text(&obj) else {
+            continue;
+        };
+        let provider = obj.get("providerData").unwrap_or(&Value::Null);
+        if let Some(key) = codebuddy_message_id(provider) {
+            let entry = reasoning_by_key.entry(key.to_string()).or_default();
+            if !entry.is_empty() {
+                entry.push('\n');
+            }
+            entry.push_str(&text);
+        }
+    }
+
     for line in content.lines() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
@@ -601,6 +634,7 @@ fn parse_codebuddy_jsonl(path: &Path, updated: SystemTime, content: &str) -> Opt
                     &mut task_stack,
                     current_prompt_index,
                     &obj,
+                    &reasoning_by_key,
                 ),
                 _ => {}
             },
@@ -644,6 +678,7 @@ fn ingest_codebuddy_assistant(
     task_stack: &mut SemanticTaskStack,
     current_prompt_index: usize,
     obj: &Value,
+    reasoning_by_key: &BTreeMap<String, String>,
 ) {
     let provider = obj.get("providerData").unwrap_or(&Value::Null);
     let model = provider
@@ -735,7 +770,18 @@ fn ingest_codebuddy_assistant(
         }
     }
 
-    let text = content_to_text(content);
+    let mut text = content_to_text(content);
+    // CodeBuddy records reasoning as standalone `type:"reasoning"` records. Fold
+    // that reasoning into the response text so it is surfaced consistently with
+    // other agents (whose thinking blocks are merged into `text` by
+    // `content_to_text`).
+    if let Some(reasoning) = codebuddy_reasoning_for(provider, reasoning_by_key) {
+        if text.trim().is_empty() {
+            text = reasoning.to_string();
+        } else {
+            text = format!("{reasoning}\n\n{text}");
+        }
+    }
     let added_tools = events.tools.len() > tools_before;
     if text.trim().is_empty() && input == 0 && output == 0 && !added_tools {
         return;
@@ -805,6 +851,54 @@ fn apply_codebuddy_tool_results(
             tool.status = if failed { "fail" } else { "ok" }.to_string();
         }
     }
+}
+
+/// Extracts the reasoning/thinking text from a CodeBuddy `type:"reasoning"`
+/// record. CodeBuddy keeps the prose in `rawContent`/`content` arrays as
+/// `reasoning_text` items (and may carry an OpenAI-style `reasoning_content`).
+/// `rawContent` is preferred because newer records mirror the same items into
+/// `content`, which would otherwise duplicate the reasoning.
+fn codebuddy_reasoning_text(obj: &Value) -> Option<String> {
+    for field in ["rawContent", "content"] {
+        let Some(items) = obj.get(field).and_then(Value::as_array) else {
+            continue;
+        };
+        let parts: Vec<&str> = items
+            .iter()
+            .filter_map(|item| {
+                let typ = item.get("type").and_then(Value::as_str).unwrap_or("");
+                let text = match typ {
+                    "reasoning_text" => item.get("text").and_then(Value::as_str),
+                    _ => item.get("reasoning_content").and_then(Value::as_str),
+                };
+                text.filter(|found| !found.is_empty())
+            })
+            .collect();
+        if !parts.is_empty() {
+            return Some(parts.join("\n\n"));
+        }
+    }
+    None
+}
+
+/// Returns the per-message identity shared by a CodeBuddy `reasoning` record
+/// and the assistant message it belongs to.
+fn codebuddy_message_id(provider: &Value) -> Option<&str> {
+    provider
+        .get("messageId")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+}
+
+/// Looks up the reasoning collected for an assistant message by its
+/// `messageId`. `conversationRequestId` is not a per-message key.
+fn codebuddy_reasoning_for<'a>(
+    provider: &Value,
+    reasoning_by_key: &'a BTreeMap<String, String>,
+) -> Option<&'a str> {
+    let reasoning = reasoning_by_key.get(codebuddy_message_id(provider)?)?;
+    let reasoning = reasoning.trim();
+    (!reasoning.is_empty()).then_some(reasoning)
 }
 
 fn observe_codebuddy_clock(acc: &mut SessionAccumulator, obj: &Value) {
@@ -5025,6 +5119,97 @@ mod tests {
             session.events.llm_responses[0].text,
             "你好!有什么我可以帮你的吗?"
         );
+    }
+
+    #[test]
+    fn codebuddy_reasoning_is_folded_into_response_text() {
+        let content = [
+            r#"{"id":"u1","timestamp":1788513380102,"type":"message","role":"user","content":[{"type":"input_text","text":"nihao"}],"sessionId":"cb-session-1"}"#,
+            r#"{"id":"r1","timestamp":1788513381000,"type":"reasoning","providerData":{"messageId":"msg-1","conversationRequestId":"req-1"},"content":[],"rawContent":[{"type":"reasoning_text","text":"Let me think about this first."}]}"#,
+            r#"{"id":"a1","timestamp":1788513384380,"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"你好!"}],"providerData":{"messageId":"msg-1","requestModelId":"claude-sonnet-5"},"sessionId":"cb-session-1"}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEBUDDY,
+            Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("codebuddy session");
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "Let me think about this first.\n\n你好!"
+        );
+    }
+
+    #[test]
+    fn codebuddy_reasoning_after_assistant_still_attaches() {
+        let content = [
+            r#"{"id":"u1","timestamp":1788513380102,"type":"message","role":"user","content":[{"type":"input_text","text":"nihao"}],"sessionId":"cb-session-1"}"#,
+            r#"{"id":"a1","timestamp":1788513384380,"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"你好!"}],"providerData":{"messageId":"msg-1"},"sessionId":"cb-session-1"}"#,
+            r#"{"id":"r1","timestamp":1788513385000,"type":"reasoning","providerData":{"messageId":"msg-1"},"content":[],"rawContent":[{"type":"reasoning_text","text":"Late reasoning."}]}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEBUDDY,
+            Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("codebuddy session");
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "Late reasoning.\n\n你好!"
+        );
+    }
+
+    #[test]
+    fn codebuddy_mirrored_reasoning_is_not_duplicated() {
+        let content = [
+            r#"{"id":"u1","timestamp":1788513380102,"type":"message","role":"user","content":[{"type":"input_text","text":"nihao"}],"sessionId":"cb-session-1"}"#,
+            r#"{"id":"r1","timestamp":1788513381000,"type":"reasoning","providerData":{"messageId":"msg-1"},"content":[{"type":"reasoning_text","text":"Let me think."}],"rawContent":[{"type":"reasoning_text","text":"Let me think."}]}"#,
+            r#"{"id":"a1","timestamp":1788513384380,"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"你好!"}],"providerData":{"messageId":"msg-1"},"sessionId":"cb-session-1"}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEBUDDY,
+            Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("codebuddy session");
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "Let me think.\n\n你好!"
+        );
+    }
+
+    #[test]
+    fn codebuddy_error_message_ignores_request_scoped_reasoning() {
+        let content = [
+            r#"{"id":"u1","timestamp":1788513380102,"type":"message","role":"user","content":[{"type":"input_text","text":"nihao"}],"sessionId":"cb-session-1"}"#,
+            r#"{"id":"r1","timestamp":1788513381000,"type":"reasoning","providerData":{"messageId":"msg-1","conversationRequestId":"req-1"},"rawContent":[{"type":"reasoning_text","text":"first turn reasoning"}]}"#,
+            r#"{"id":"a1","timestamp":1788513384380,"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":"first answer"}],"providerData":{"messageId":"msg-1","conversationRequestId":"req-1"},"sessionId":"cb-session-1"}"#,
+            r#"{"id":"r2","timestamp":1788513385000,"type":"reasoning","providerData":{"messageId":"msg-2","conversationRequestId":"req-1"},"rawContent":[{"type":"reasoning_text","text":"second turn reasoning"}]}"#,
+            r#"{"id":"a2","timestamp":1788513389000,"type":"message","role":"assistant","status":"incomplete","content":[{"type":"output_text","text":"Interrupted by user"}],"providerData":{"conversationRequestId":"req-1","error":"aborted","skipRun":true},"sessionId":"cb-session-1"}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEBUDDY,
+            Path::new("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("codebuddy session");
+        assert_eq!(session.events.llm_responses.len(), 2);
+        assert_eq!(
+            session.events.llm_responses[0].text,
+            "first turn reasoning\n\nfirst answer"
+        );
+        assert_eq!(session.events.llm_responses[1].text, "Interrupted by user");
     }
 
     #[test]
