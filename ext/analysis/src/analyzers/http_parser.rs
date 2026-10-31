@@ -453,16 +453,23 @@ impl HTTPParser {
         self.quarantined.remove(&connection.id);
         let mut events = Vec::new();
         if let Some(mut state) = self.http1.remove(&connection.id) {
-            if completion_reason == "closed"
-                && !state.response_buffer.is_empty()
-                && let Http1Scan::Complete {
-                    message, consumed, ..
-                } = scan_http1_message(
+            if completion_reason == "closed" && !state.response_buffer.is_empty() {
+                let head_request = state.pending.front().is_some_and(|(_, head)| *head);
+                let completed = match scan_http1_message(
                     &state.response_buffer,
-                    state.pending.front().is_some_and(|(_, head)| *head),
+                    head_request,
                     true,
-                )
-            {
+                ) {
+                    Http1Scan::Complete {
+                        message, consumed, ..
+                    } => Some((message, consumed, false)),
+                    Http1Scan::Incomplete if !head_request => {
+                        parse_closed_chunked_response(&state.response_buffer)
+                            .map(|message| (message, state.response_buffer.len(), true))
+                    }
+                    _ => None,
+                };
+                if let Some((message, consumed, closed_before_last_chunk)) = completed {
                 let mut metadata = MessageMetadata::default();
                 state.response_metadata.consume(consumed, &mut metadata);
                 let mut original = event.clone();
@@ -476,6 +483,7 @@ impl HTTPParser {
                 let exchange = state.pending.pop_front().map(|(id, _)| id);
                 let method = exchange.as_ref().map(|_| "h1_connection_fifo");
                 let tid = event.data["tid"].as_u64().unwrap_or(0);
+                let body_captured_bytes = message.body_bytes.as_ref().map_or(0, Vec::len);
                 let mut response = Self::create_http_event(
                     tid,
                     *message,
@@ -487,8 +495,17 @@ impl HTTPParser {
                     None,
                 );
                 response.data["completion_reason"] = serde_json::json!("closed");
+                if closed_before_last_chunk {
+                    response.data["end_stream"] = serde_json::json!(false);
+                    response.data["body_truncated"] = serde_json::json!(true);
+                    response.data["body_truncation_reason"] =
+                        serde_json::json!("closed_before_last_chunk");
+                    response.data["body_captured_bytes"] =
+                        serde_json::json!(body_captured_bytes);
+                }
                 events.push(response);
                 state.response_buffer.drain(..consumed);
+                }
             }
             for (direction, buffer) in [
                 ("request", &state.request_buffer),
@@ -1225,6 +1242,56 @@ fn truncated_http1_message(buf: &[u8]) -> Option<(HTTPMessage, usize)> {
     let captured = body.len();
     message.body_bytes = (!body.is_empty()).then_some(body);
     Some((message, captured))
+}
+
+/// Recover a chunked response on close only if every observed nonzero chunk is
+/// complete and the capture stops exactly at a chunk boundary. Do not claim a
+/// complete HTTP response: the terminating zero chunk was never observed.
+fn parse_closed_chunked_response(buf: &[u8]) -> Option<Box<HTTPMessage>> {
+    let lead = buf
+        .iter()
+        .take_while(|byte| **byte == b'\r' || **byte == b'\n')
+        .count();
+    let bytes = &buf[lead..];
+    let header_end = find_bytes(bytes, b"\r\n\r\n")?.checked_add(4)?;
+    if !bytes.starts_with(b"HTTP/")
+        || !http1_header_is_chunked(&bytes[..header_end - 4])
+    {
+        return None;
+    }
+
+    let mut cursor = header_end;
+    let mut saw_chunk = false;
+    while cursor < bytes.len() {
+        let size_pos = find_crlf(bytes, cursor)?;
+        let size = parse_chunk_size(&bytes[cursor..size_pos])?;
+        // An unfinished zero chunk/trailer is not a clean nonterminal boundary.
+        if size == 0 {
+            return None;
+        }
+        let data_start = size_pos.checked_add(2)?;
+        let data_end = data_start.checked_add(size)?;
+        let next = data_end.checked_add(2)?;
+        if bytes.get(data_end..next)? != b"\r\n" {
+            return None;
+        }
+        cursor = next;
+        saw_chunk = true;
+    }
+    if !saw_chunk || cursor != bytes.len() {
+        return None;
+    }
+
+    // Use the existing strict scanner/dechunker, but do not represent the
+    // synthetic framing as an observed zero chunk in the emitted event.
+    let mut terminated = buf.to_vec();
+    terminated.extend_from_slice(b"0\r\n\r\n");
+    let Http1Scan::Complete {
+        message, consumed, ..
+    } = scan_http1_message(&terminated, false, false) else {
+        return None;
+    };
+    (consumed == terminated.len()).then_some(message)
 }
 
 fn decode_chunked_body(bytes: &[u8]) -> Option<Vec<u8>> {
@@ -3699,6 +3766,70 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert_eq!(output[1].data["path"], "/two");
         assert_eq!(output[0].data["has_body"], false);
         assert_eq!(output[1].data["has_body"], false);
+    }
+
+    #[tokio::test]
+    async fn http1_close_at_chunk_boundary_preserves_correlated_partial_response() {
+        let request = b"GET /events HTTP/1.1\r\nHost: api.example.test\r\n\r\n".to_vec();
+        let body = b"event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n";
+        let mut response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n\r\n{:x}\r\n",
+            body.len()
+        )
+        .into_bytes();
+        response.extend_from_slice(body);
+        response.extend_from_slice(b"\r\n");
+
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_on(1, 7, "0xchunkclose", "WRITE/SEND", request),
+            ssl_event_on(2, 8, "0xchunkclose", "READ/RECV", response),
+            ssl_close_on(3, 9, "0xchunkclose"),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let events: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        let request = events
+            .iter()
+            .find(|event| event.data["message_type"] == "request")
+            .unwrap();
+        let responses: Vec<_> = events
+            .iter()
+            .filter(|event| event.data["message_type"] == "response")
+            .collect();
+        assert_eq!(responses.len(), 1);
+        let response = responses[0];
+        assert_eq!(response.data["http_exchange_id"], request.data["http_exchange_id"]);
+        assert_eq!(response.data["body"], String::from_utf8_lossy(body).as_ref());
+        assert_eq!(response.data["completion_reason"], "closed");
+        assert_eq!(response.data["end_stream"], false);
+        assert_eq!(response.data["body_truncated"], true);
+        assert_eq!(response.data["body_truncation_reason"], "closed_before_last_chunk");
+        assert_eq!(response.data["body_captured_bytes"], body.len());
+        assert!(response.data["raw_data"].is_null());
+        assert!(!events.iter().any(|event| {
+            event.source == "http_correlation"
+                && event.data["http_exchange_id"] == request.data["http_exchange_id"]
+                && event.data["message_type"] != "request"
+        }));
+    }
+
+    #[tokio::test]
+    async fn http1_close_inside_chunk_still_reports_unanswered_exchange() {
+        let request = b"GET /events HTTP/1.1\r\nHost: api.example.test\r\n\r\n".to_vec();
+        let response = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhel".to_vec();
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event_on(1, 7, "0xchunkcut", "WRITE/SEND", request),
+            ssl_event_on(2, 8, "0xchunkcut", "READ/RECV", response),
+            ssl_close_on(3, 9, "0xchunkcut"),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let events: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+        assert!(!events.iter().any(|event| event.data["message_type"] == "response"));
+        assert!(events.iter().any(|event| {
+            event.source == "http_correlation"
+                && event.data["completion_reason"] == "closed"
+                && event.data["http_exchange_id"].is_string()
+        }));
     }
 
     #[tokio::test]
