@@ -50,6 +50,26 @@ Before running the binary in a sensitive environment, compare its SHA-256
 digest with the digest shown for that asset on the GitHub Release page. Ensure
 `~/.local/bin` is in `PATH`, or keep using the absolute path.
 
+### Install shell completions
+
+AgentSight can generate completion scripts for Bash, Elvish, Fish, PowerShell,
+and Zsh. For Fish, install the generated script for the current user:
+
+```bash
+mkdir -p "$HOME/.config/fish/completions"
+agentsight completions fish > "$HOME/.config/fish/completions/agentsight.fish"
+```
+
+For Bash or Zsh, load a generated script in the current shell:
+
+```bash
+source <(agentsight completions bash)
+source <(agentsight completions zsh)
+```
+
+Run `agentsight completions --help` to list every supported shell. Regenerate
+an installed script after upgrading AgentSight so it matches the installed CLI.
+
 ### Start the monitor at boot
 
 AgentSight creates and starts its systemd user unit:
