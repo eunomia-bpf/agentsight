@@ -3,7 +3,8 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{Shell, generate};
 use std::collections::VecDeque;
 use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
@@ -188,6 +189,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Generate a completion script for a supported shell.
+    Completions {
+        /// Shell to generate completions for.
+        #[arg(value_enum)]
+        shell: Shell,
+    },
     /// Render repository file evolution from local agent sessions.
     Vis {
         /// Git worktree to visualize.
@@ -387,6 +394,22 @@ enum MonitorCommands {
     InstallService,
 }
 
+fn generate_completions(shell: Shell, output: &mut dyn Write) -> std::io::Result<()> {
+    let mut command = Cli::command();
+    if shell == Shell::Fish {
+        let mut generated = Vec::new();
+        generate(shell, &mut command, "agentsight", &mut generated);
+        let generated = String::from_utf8(generated).expect("Fish completions should be UTF-8");
+
+        // Fish 3.1 requires a hidden short-name placeholder for long-only optspecs.
+        let generated = generated.replace("string join \\n listen=", "string join \\n l-listen=");
+        output.write_all(generated.as_bytes())
+    } else {
+        generate(shell, &mut command, "agentsight", output);
+        Ok(())
+    }
+}
+
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {
@@ -399,11 +422,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
     let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
-    if !matches!(&cli.command, Commands::Vis { .. }) {
+    if !matches!(
+        &cli.command,
+        Commands::Completions { .. } | Commands::Vis { .. }
+    ) {
         setup_signal_handler(suppress_terminal_output).await;
     }
 
     match &cli.command {
+        Commands::Completions { shell } => {
+            let mut stdout = std::io::stdout().lock();
+            generate_completions(*shell, &mut stdout)?;
+        }
         Commands::Vis {
             path,
             outputs,
@@ -648,7 +678,8 @@ async fn run_with_extractor(
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, Commands, top_uses_tui};
+    use super::{Cli, Commands, generate_completions, top_uses_tui};
+    use clap_complete::Shell;
 
     #[test]
     fn default_interactive_top_uses_tui() {
@@ -666,6 +697,35 @@ mod tests {
         assert!(
             <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--db", "run.db"]).is_err()
         );
+    }
+
+    #[test]
+    fn supported_shells_parse_and_generate_completions() {
+        for (name, shell) in [
+            ("bash", Shell::Bash),
+            ("elvish", Shell::Elvish),
+            ("fish", Shell::Fish),
+            ("powershell", Shell::PowerShell),
+            ("zsh", Shell::Zsh),
+        ] {
+            let cli =
+                <Cli as clap::Parser>::try_parse_from(["agentsight", "completions", name]).unwrap();
+            assert!(matches!(
+                cli.command,
+                Commands::Completions { shell: parsed } if parsed == shell
+            ));
+
+            let mut output = Vec::new();
+            generate_completions(shell, &mut output).unwrap();
+            let output = String::from_utf8(output).unwrap();
+            assert!(output.contains("agentsight"));
+            assert!(output.contains("report"));
+            assert!(output.contains("debug"));
+            if shell == Shell::Fish {
+                assert!(output.contains("string join \\n l-listen="));
+                assert!(!output.contains("string join \\n listen="));
+            }
+        }
     }
 
     #[test]

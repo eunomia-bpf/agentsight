@@ -80,6 +80,24 @@ fn assert_agentsight_success(output: Output, label: &str) {
     );
 }
 
+#[test]
+fn shell_completions_are_generated_without_capture_startup() {
+    let output = run_agentsight_user(&["completions", "fish"]);
+    assert!(
+        output.status.success(),
+        "shell completion generation failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8(output.stdout).expect("completion output should be UTF-8");
+    let stderr = String::from_utf8(output.stderr).expect("completion stderr should be UTF-8");
+    assert!(stdout.contains("complete -c agentsight"));
+    assert!(stdout.contains("report"));
+    assert!(stdout.contains("debug"));
+    assert!(stderr.is_empty(), "unexpected stderr: {stderr}");
+}
+
 fn gemini_token_total(db: &std::path::Path) -> i64 {
     let conn = Connection::open(db).expect("db should open");
     conn.query_row(
