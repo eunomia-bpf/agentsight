@@ -470,41 +470,41 @@ impl HTTPParser {
                     _ => None,
                 };
                 if let Some((message, consumed, closed_before_last_chunk)) = completed {
-                let mut metadata = MessageMetadata::default();
-                state.response_metadata.consume(consumed, &mut metadata);
-                let mut original = event.clone();
-                original.data.as_object_mut().unwrap().extend(
-                    serde_json::to_value(metadata.capture.finish())
-                        .unwrap()
-                        .as_object()
-                        .unwrap()
-                        .clone(),
-                );
-                let exchange = state.pending.pop_front().map(|(id, _)| id);
-                let method = exchange.as_ref().map(|_| "h1_connection_fifo");
-                let tid = event.data["tid"].as_u64().unwrap_or(0);
-                let body_captured_bytes = message.body_bytes.as_ref().map_or(0, Vec::len);
-                let mut response = Self::create_http_event(
-                    tid,
-                    *message,
-                    &original,
-                    self.include_raw_data,
-                    connection,
-                    exchange,
-                    method,
-                    None,
-                );
-                response.data["completion_reason"] = serde_json::json!("closed");
-                if closed_before_last_chunk {
-                    response.data["end_stream"] = serde_json::json!(false);
-                    response.data["body_truncated"] = serde_json::json!(true);
-                    response.data["body_truncation_reason"] =
-                        serde_json::json!("closed_before_last_chunk");
-                    response.data["body_captured_bytes"] =
-                        serde_json::json!(body_captured_bytes);
-                }
-                events.push(response);
-                state.response_buffer.drain(..consumed);
+                    let mut metadata = MessageMetadata::default();
+                    state.response_metadata.consume(consumed, &mut metadata);
+                    let mut original = event.clone();
+                    original.data.as_object_mut().unwrap().extend(
+                        serde_json::to_value(metadata.capture.finish())
+                            .unwrap()
+                            .as_object()
+                            .unwrap()
+                            .clone(),
+                    );
+                    let exchange = state.pending.pop_front().map(|(id, _)| id);
+                    let method = exchange.as_ref().map(|_| "h1_connection_fifo");
+                    let tid = event.data["tid"].as_u64().unwrap_or(0);
+                    let body_captured_bytes = message.body_bytes.as_ref().map_or(0, Vec::len);
+                    let mut response = Self::create_http_event(
+                        tid,
+                        *message,
+                        &original,
+                        self.include_raw_data,
+                        connection,
+                        exchange,
+                        method,
+                        None,
+                    );
+                    response.data["completion_reason"] = serde_json::json!("closed");
+                    if closed_before_last_chunk {
+                        response.data["end_stream"] = serde_json::json!(false);
+                        response.data["body_truncated"] = serde_json::json!(true);
+                        response.data["body_truncation_reason"] =
+                            serde_json::json!("closed_before_last_chunk");
+                        response.data["body_captured_bytes"] =
+                            serde_json::json!(body_captured_bytes);
+                    }
+                    events.push(response);
+                    state.response_buffer.drain(..consumed);
                 }
             }
             for (direction, buffer) in [
@@ -3799,7 +3799,7 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
         assert_eq!(responses.len(), 1);
         let response = responses[0];
         assert_eq!(response.data["http_exchange_id"], request.data["http_exchange_id"]);
-        assert_eq!(response.data["body"], String::from_utf8_lossy(body).as_ref());
+        assert_eq!(response.data["body"].as_str(), Some(std::str::from_utf8(body).unwrap()));
         assert_eq!(response.data["completion_reason"], "closed");
         assert_eq!(response.data["end_stream"], false);
         assert_eq!(response.data["body_truncated"], true);
