@@ -35,6 +35,26 @@ chmod 0755 "$HOME/.local/bin/agentsight"
 在敏感环境运行前，请把下载文件的 SHA-256 与 GitHub Release 页面展示的对应资产摘要比较。
 确保 `~/.local/bin` 在 `PATH` 中，否则继续使用绝对路径。
 
+### 安装 Shell 补全
+
+AgentSight 可以为 Bash、Elvish、Fish、PowerShell 和 Zsh 生成补全脚本。Fish 用户可以把
+生成的脚本安装到当前用户目录：
+
+```bash
+mkdir -p "$HOME/.config/fish/completions"
+agentsight completions fish > "$HOME/.config/fish/completions/agentsight.fish"
+```
+
+Bash 或 Zsh 用户可以在当前 Shell 中直接加载生成的脚本：
+
+```bash
+source <(agentsight completions bash)
+source <(agentsight completions zsh)
+```
+
+运行 `agentsight completions --help` 可以查看所有支持的 Shell。升级 AgentSight 后请重新
+生成已经安装的补全脚本，确保它与当前 CLI 一致。
+
 ### 随系统启动 monitor
 
 AgentSight 可以自动创建并启动 systemd user unit：
