@@ -320,6 +320,11 @@ impl MaterializedView {
             .or_else(|| req.correlation_status.clone());
         call_row.correlation_version = resp.correlation_version.or(req.correlation_version);
         call_row.completion_reason = resp.completion_reason.clone();
+        if resp.attributes.get("incomplete").and_then(Value::as_bool) == Some(true) {
+            call_row.status = "partial".to_string();
+        } else if resp.completion_reason.as_deref() == Some("error") {
+            call_row.status = "error".to_string();
+        }
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
             &llm_call_id,
@@ -440,6 +445,11 @@ impl MaterializedView {
         call_row.correlation_status = Some("unlinked".to_string());
         call_row.correlation_version = resp.correlation_version;
         call_row.completion_reason = resp.completion_reason.clone();
+        if resp.attributes.get("incomplete").and_then(Value::as_bool) == Some(true) {
+            call_row.status = "partial".to_string();
+        } else if resp.completion_reason.as_deref() == Some("error") {
+            call_row.status = "error".to_string();
+        }
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
             &llm_call_id,

@@ -42,10 +42,11 @@ bytes buffered so far.
   stream ID. Actual TIDs are retained, not replaced with synthetic stream TIDs.
   Responses finish at END_STREAM; RST_STREAM and GOAWAY produce terminal
   correlation records for affected streams.
-* The existing SSE processor preserves the HTTP exchange evidence when it
-  converts a complete HTTP body into an SSE aggregate. This stage does **not**
-  emit incremental response-body chunks. Streaming SSE framing, early emission,
-  and bounded incremental aggregation belong to the third stage.
+* The stage-2 baseline converts complete HTTP bodies into SSE aggregates while
+  preserving exchange evidence. [Stage 3](sse-aggregation.md) additionally binds
+  known, uncompressed SSE responses at header completion and emits incremental
+  body chunks for bounded aggregation by exchange. Ordinary HTTP, compressed
+  bodies, and legacy routing retain their complete-body paths.
 
 ## Derived event fields
 
@@ -67,6 +68,9 @@ is counted once per derived HTTP message, including fragments containing only
 a partial header/frame. A single TLS call can contribute to multiple messages;
 therefore their capture length totals are not additive traffic accounting.
 Binary bodies are preserved in `body_hex` before decompression.
+For incremental SSE chunks, `capture_metadata_scope="http_message"` denotes a
+cumulative response snapshot: replace the preceding snapshot rather than
+adding each chunk's capture totals. See the [SSE contract](sse-aggregation.md).
 
 `source="http_correlation"` denotes terminal/partial evidence, not an HTTP
 response. `completion_reason="partial"` may additionally carry
@@ -94,7 +98,10 @@ compression state) stop matching on any truncated record.
 
 The ring-buffer failure counter is tracer-wide. A changed counter, including
 the final `CAPTURE_LOSS` record, invalidates all currently active connections'
-pending parser state. A truncated TLS payload invalidates its connection.
+pending parser state. A truncated TLS payload invalidates its connection unless
+the HTTP/1 Content-Length recovery described above can realign it. Incremental
+SSE conservatively terminates as partial on truncation; it does not introduce
+additional framing recovery.
 Those connection lifetimes stop protocol matching until retirement; raw input
 is retained. This intentionally sacrifices coverage instead of guessing an
 HTTP/1 FIFO position or continuing with an unreliable HPACK dictionary.
@@ -132,5 +139,8 @@ realigned and stops matching the connection). Buffered fragment provenance is ca
 direction, and HTTP/1 pending request queues at 1,024. Materialization retains
 at most 16,384 pending exchanges with a
 five-minute expiry. Exceeding limits produces terminal evidence rather than a
-successful association. Large/long-running SSE responses can therefore remain
-unlinked in this stage; incremental aggregation is deliberately deferred.
+successful association. Stage 3 drains uncompressed SSE incrementally, allowing
+the overall response to exceed the HTTP whole-message bound, but a single
+HTTP/1 transfer chunk still needs complete framing within the buffer. SSE has
+its own [retention limits and partial-result contract](sse-aggregation.md);
+large/long-running or interrupted calls can still be partial or unlinked.

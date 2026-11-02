@@ -9,7 +9,7 @@ use crate::runners::EventStream;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
 
 use super::protocol_events::SSEProcessorEvent;
@@ -33,10 +33,20 @@ struct SSEAccumulator {
     capture_metadata: CaptureMetadataAccumulator,
     template_event: Event,
     message_id: Option<String>,
+    response_id: Option<String>,
+    protocol_mismatch: bool,
+    openai_choices: BTreeMap<u64, String>,
+    openai_refusals: BTreeMap<u64, String>,
+    finish_reasons: BTreeMap<u64, String>,
+    anthropic_blocks: BTreeMap<u64, AnthropicBlockAccumulator>,
+    provider_usage: serde_json::Map<String, Value>,
+    anthropic_stop_reason: Option<String>,
+    provider_model: Option<String>,
+
     accumulated_text: String,
     accumulated_json: String,
     openai_reasoning: String,
-    openai_tool_calls: BTreeMap<u64, OpenAIToolCallAccumulator>,
+    openai_tool_calls: BTreeMap<(u64, u64), OpenAIToolCallAccumulator>,
     events: Vec<SSEEvent>,
     is_complete: bool,
     last_update: u64,
@@ -53,6 +63,18 @@ struct OpenAIToolCallAccumulator {
     function_arguments: String,
 }
 
+#[derive(Clone, Debug, Default)]
+struct AnthropicBlockAccumulator {
+    type_name: Option<String>,
+    id: Option<String>,
+    name: Option<String>,
+    text: String,
+    thinking: String,
+    signature: String,
+    partial_json: String,
+    complete: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct SSEEvent {
     pub event: Option<String>,
@@ -61,6 +83,38 @@ pub struct SSEEvent {
     pub parsed_data: Option<Value>,
     pub raw_data: Option<String>,
 }
+
+impl SSEAccumulator {
+    fn new(event: &Event) -> Self {
+        Self {
+            capture_metadata: CaptureMetadataAccumulator::default(),
+            template_event: event.clone(),
+            message_id: None,
+            response_id: None,
+            protocol_mismatch: false,
+            openai_choices: BTreeMap::new(),
+            openai_refusals: BTreeMap::new(),
+            finish_reasons: BTreeMap::new(),
+            anthropic_blocks: BTreeMap::new(),
+            provider_usage: serde_json::Map::new(),
+            anthropic_stop_reason: None,
+            provider_model: None,
+            accumulated_text: String::new(),
+            accumulated_json: String::new(),
+            openai_reasoning: String::new(),
+            openai_tool_calls: BTreeMap::new(),
+            events: Vec::new(),
+            is_complete: false,
+            last_update: event.timestamp,
+            has_message_start: false,
+            start_time: event.timestamp,
+            end_time: event.timestamp,
+        }
+    }
+}
+
+#[path = "sse_stream.rs"]
+mod sse_stream;
 
 impl SSEProcessor {
     #[cfg(test)]
@@ -518,8 +572,17 @@ impl SSEProcessor {
         for event in events {
             accumulator.events.push(event.clone());
 
-            if accumulator.message_id.is_none() {
-                accumulator.message_id = Self::extract_message_id(std::slice::from_ref(event));
+            if let Some(response_id) = Self::extract_message_id(std::slice::from_ref(event)) {
+                if accumulator
+                    .response_id
+                    .as_deref()
+                    .is_some_and(|existing| existing != response_id)
+                {
+                    accumulator.protocol_mismatch = true;
+                } else {
+                    accumulator.response_id = Some(response_id.clone());
+                    accumulator.message_id.get_or_insert(response_id);
+                }
             }
 
             if let Some(event_type) = &event.event {
@@ -530,11 +593,59 @@ impl SSEProcessor {
                             accumulator.message_id =
                                 Self::extract_message_id(std::slice::from_ref(event));
                         }
+                        if let Some(message) = event
+                            .parsed_data
+                            .as_ref()
+                            .and_then(|data| data.get("message"))
+                        {
+                            accumulator.provider_model = message
+                                .get("model")
+                                .and_then(Value::as_str)
+                                .map(str::to_string);
+                            merge_usage(&mut accumulator.provider_usage, message.get("usage"));
+                        }
+                    }
+                    "content_block_start" => {
+                        if let Some(data) = &event.parsed_data {
+                            let index = data.get("index").and_then(Value::as_u64).unwrap_or(0);
+                            let block = data.get("content_block").unwrap_or(&Value::Null);
+                            let entry = accumulator.anthropic_blocks.entry(index).or_default();
+                            entry.type_name = block
+                                .get("type")
+                                .and_then(Value::as_str)
+                                .map(str::to_string);
+                            entry.id = block.get("id").and_then(Value::as_str).map(str::to_string);
+                            entry.name = block
+                                .get("name")
+                                .and_then(Value::as_str)
+                                .map(str::to_string);
+                            if let Some(text) = block.get("text").and_then(Value::as_str) {
+                                entry.text.push_str(text);
+                                accumulator.accumulated_text.push_str(text);
+                            }
+                            if let Some(thinking) = block.get("thinking").and_then(Value::as_str) {
+                                entry.thinking.push_str(thinking);
+                            }
+                            if let Some(signature) = block.get("signature").and_then(Value::as_str)
+                            {
+                                entry.signature.push_str(signature);
+                            }
+                            if let Some(input) = block.get("input")
+                                && input.as_object().is_some_and(|value| !value.is_empty())
+                            {
+                                entry.partial_json = input.to_string();
+                            }
+                        }
                     }
                     "content_block_delta" => {
                         if let Some(parsed_data) = &event.parsed_data
                             && let Some(delta) = parsed_data.get("delta")
                         {
+                            let index = parsed_data
+                                .get("index")
+                                .and_then(Value::as_u64)
+                                .unwrap_or(0);
+                            let block = accumulator.anthropic_blocks.entry(index).or_default();
                             let delta_type = delta.get("type").and_then(|v| v.as_str());
                             let text = if delta_type == Some("text_delta") {
                                 delta.get("text").and_then(|v| v.as_str())
@@ -544,19 +655,60 @@ impl SSEProcessor {
                                 None
                             };
                             if let Some(t) = text {
-                                accumulator.accumulated_text.push_str(t);
+                                if delta_type == Some("thinking_delta") {
+                                    block.thinking.push_str(t);
+                                } else {
+                                    block.text.push_str(t);
+                                    accumulator.accumulated_text.push_str(t);
+                                }
                             }
                             if let Some(partial_json) =
                                 delta.get("partial_json").and_then(|v| v.as_str())
                             {
                                 accumulator.accumulated_json.push_str(partial_json);
+                                block.partial_json.push_str(partial_json);
                             }
+                            if let Some(signature) = delta.get("signature").and_then(Value::as_str)
+                            {
+                                block.signature.push_str(signature);
+                            }
+                        }
+                    }
+                    "content_block_stop" => {
+                        if let Some(index) = event
+                            .parsed_data
+                            .as_ref()
+                            .and_then(|data| data.get("index"))
+                            .and_then(Value::as_u64)
+                        {
+                            accumulator
+                                .anthropic_blocks
+                                .entry(index)
+                                .or_default()
+                                .complete = true;
+                        }
+                    }
+                    "message_delta" => {
+                        if let Some(data) = &event.parsed_data {
+                            accumulator.anthropic_stop_reason = data
+                                .get("delta")
+                                .and_then(|delta| delta.get("stop_reason"))
+                                .and_then(Value::as_str)
+                                .map(str::to_string)
+                                .or_else(|| accumulator.anthropic_stop_reason.clone());
+                            merge_usage(&mut accumulator.provider_usage, data.get("usage"));
                         }
                     }
                     _ => {}
                 }
             }
             if let Some(parsed_data) = &event.parsed_data {
+                accumulator.provider_model = parsed_data
+                    .get("model")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+                    .or_else(|| accumulator.provider_model.clone());
+                merge_usage(&mut accumulator.provider_usage, parsed_data.get("usage"));
                 Self::accumulate_openai_content(accumulator, parsed_data);
                 Self::accumulate_openai_responses_content(accumulator, parsed_data);
             }
@@ -568,11 +720,29 @@ impl SSEProcessor {
             return;
         };
         for choice in choices {
+            let choice_index = choice.get("index").and_then(|v| v.as_u64()).unwrap_or(0);
             let Some(delta) = choice.get("delta").and_then(|delta| delta.as_object()) else {
+                if let Some(finish_reason) = choice.get("finish_reason").and_then(|v| v.as_str()) {
+                    accumulator
+                        .finish_reasons
+                        .insert(choice_index, finish_reason.to_string());
+                }
                 continue;
             };
             if let Some(content) = delta.get("content").and_then(|v| v.as_str()) {
                 accumulator.accumulated_text.push_str(content);
+                accumulator
+                    .openai_choices
+                    .entry(choice_index)
+                    .or_default()
+                    .push_str(content);
+            }
+            if let Some(refusal) = delta.get("refusal").and_then(|v| v.as_str()) {
+                accumulator
+                    .openai_refusals
+                    .entry(choice_index)
+                    .or_default()
+                    .push_str(refusal);
             }
             if let Some(reasoning) = Self::openai_reasoning_delta(delta) {
                 accumulator.openai_reasoning.push_str(reasoning);
@@ -582,12 +752,18 @@ impl SSEProcessor {
                     Self::accumulate_openai_tool_call(
                         accumulator,
                         tool_call,
+                        choice_index,
                         fallback_index as u64,
                     );
                 }
             }
             if let Some(function_call) = delta.get("function_call") {
-                Self::accumulate_openai_function_call(accumulator, function_call);
+                Self::accumulate_openai_function_call(accumulator, choice_index, function_call);
+            }
+            if let Some(finish_reason) = choice.get("finish_reason").and_then(|v| v.as_str()) {
+                accumulator
+                    .finish_reasons
+                    .insert(choice_index, finish_reason.to_string());
             }
         }
     }
@@ -628,7 +804,7 @@ impl SSEProcessor {
             .get("output_index")
             .and_then(|value| value.as_u64())
             .unwrap_or(accumulator.openai_tool_calls.len() as u64);
-        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        let entry = accumulator.openai_tool_calls.entry((0, index)).or_default();
         entry
             .type_name
             .get_or_insert_with(|| "function".to_string());
@@ -654,7 +830,7 @@ impl SSEProcessor {
             .get("output_index")
             .and_then(|value| value.as_u64())
             .unwrap_or(0);
-        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        let entry = accumulator.openai_tool_calls.entry((0, index)).or_default();
         entry
             .type_name
             .get_or_insert_with(|| "function".to_string());
@@ -674,13 +850,17 @@ impl SSEProcessor {
     fn accumulate_openai_tool_call(
         accumulator: &mut SSEAccumulator,
         tool_call: &Value,
+        choice_index: u64,
         fallback_index: u64,
     ) {
         let index = tool_call
             .get("index")
             .and_then(|v| v.as_u64())
             .unwrap_or(fallback_index);
-        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        let entry = accumulator
+            .openai_tool_calls
+            .entry((choice_index, index))
+            .or_default();
         if let Some(id) = tool_call.get("id").and_then(|v| v.as_str()) {
             entry.id = Some(id.to_string());
         }
@@ -697,8 +877,15 @@ impl SSEProcessor {
         }
     }
 
-    fn accumulate_openai_function_call(accumulator: &mut SSEAccumulator, function_call: &Value) {
-        let entry = accumulator.openai_tool_calls.entry(0).or_default();
+    fn accumulate_openai_function_call(
+        accumulator: &mut SSEAccumulator,
+        choice_index: u64,
+        function_call: &Value,
+    ) {
+        let entry = accumulator
+            .openai_tool_calls
+            .entry((choice_index, 0))
+            .or_default();
         entry
             .type_name
             .get_or_insert_with(|| "function".to_string());
@@ -718,7 +905,12 @@ impl SSEProcessor {
         let metadata_event = &accumulator.template_event;
         let json_content = Self::merged_json_content(accumulator);
 
-        let text_content = accumulator.accumulated_text.clone();
+        let text_content = accumulator
+            .openai_choices
+            .get(&0)
+            .or_else(|| accumulator.openai_choices.values().next())
+            .cloned()
+            .unwrap_or_else(|| accumulator.accumulated_text.clone());
 
         let sse_events_json: Vec<Value> = accumulator
             .events
@@ -842,8 +1034,14 @@ impl SSEProcessor {
     }
 
     fn merged_json_content(accumulator: &SSEAccumulator) -> String {
-        let has_openai_json =
-            !accumulator.openai_reasoning.is_empty() || !accumulator.openai_tool_calls.is_empty();
+        let has_openai_json = !accumulator.openai_reasoning.is_empty()
+            || !accumulator.openai_tool_calls.is_empty()
+            || !accumulator.openai_choices.is_empty()
+            || !accumulator.openai_refusals.is_empty()
+            || !accumulator.finish_reasons.is_empty()
+            || !accumulator.anthropic_blocks.is_empty()
+            || !accumulator.provider_usage.is_empty()
+            || accumulator.anthropic_stop_reason.is_some();
         if !has_openai_json {
             return Self::formatted_accumulated_json(&accumulator.accumulated_json);
         }
@@ -868,23 +1066,99 @@ impl SSEProcessor {
                 Value::String(accumulator.openai_reasoning.clone()),
             );
         }
+        let choice_indices: BTreeSet<_> = accumulator
+            .openai_choices
+            .keys()
+            .chain(accumulator.openai_refusals.keys())
+            .chain(accumulator.finish_reasons.keys())
+            .copied()
+            .collect();
+        if !choice_indices.is_empty() {
+            merged.insert(
+                "choices".to_string(),
+                Value::Array(
+                    choice_indices
+                        .iter()
+                        .map(|index| {
+                            json!({
+                                "index": index,
+                                "text": accumulator.openai_choices.get(index),
+                                "refusal": accumulator.openai_refusals.get(index),
+                                "finish_reason": accumulator.finish_reasons.get(index),
+                            })
+                        })
+                        .collect(),
+                ),
+            );
+        }
         if !accumulator.openai_tool_calls.is_empty() {
             let tool_calls = accumulator
                 .openai_tool_calls
                 .iter()
-                .map(|(index, tool_call)| {
+                .map(|((choice_index, index), tool_call)| {
+                    let arguments_json =
+                        serde_json::from_str::<Value>(&tool_call.function_arguments).ok();
                     json!({
+                        "choice_index": choice_index,
                         "index": index,
                         "id": tool_call.id,
                         "type": tool_call.type_name,
                         "function": {
                             "name": tool_call.function_name,
                             "arguments": tool_call.function_arguments,
+                            "arguments_json": arguments_json,
                         }
                     })
                 })
                 .collect::<Vec<_>>();
             merged.insert("tool_calls".to_string(), Value::Array(tool_calls));
+        }
+        if accumulator.protocol_mismatch {
+            merged.insert("protocol_mismatch".to_string(), Value::Bool(true));
+        }
+        if let Some(model) = &accumulator.provider_model {
+            merged.insert("model".to_string(), Value::String(model.clone()));
+        }
+        if !accumulator.anthropic_blocks.is_empty() {
+            merged.insert(
+                "content_blocks".to_string(),
+                Value::Array(
+                    accumulator
+                        .anthropic_blocks
+                        .iter()
+                        .map(|(index, block)| {
+                            let parsed_input = block
+                                .complete
+                                .then(|| serde_json::from_str::<Value>(&block.partial_json).ok())
+                                .flatten();
+                            json!({
+                                "index": index,
+                                "type": block.type_name,
+                                "id": block.id,
+                                "name": block.name,
+                                "text": block.text,
+                                "thinking": block.thinking,
+                                "signature": block.signature,
+                                "partial_json": block.partial_json,
+                                "input": parsed_input,
+                                "complete": block.complete,
+                            })
+                        })
+                        .collect(),
+                ),
+            );
+        }
+        if !accumulator.provider_usage.is_empty() {
+            merged.insert(
+                "usage".to_string(),
+                Value::Object(accumulator.provider_usage.clone()),
+            );
+        }
+        if let Some(stop_reason) = &accumulator.anthropic_stop_reason {
+            merged.insert(
+                "stop_reason".to_string(),
+                Value::String(stop_reason.clone()),
+            );
         }
         if merged.is_empty() {
             String::new()
@@ -947,7 +1221,15 @@ impl Analyzer for SSEProcessor {
         let max_buffers = self.max_buffers;
         let defer_transport_to_http = self.defer_transport_to_http;
 
-        let processed_stream = stream.filter_map(move |event| {
+        let mut exact_streams = sse_stream::StreamingSSE::new(timeout_ms, max_buffers);
+        let routed = async_stream::stream! {
+            let mut input = stream;
+            while let Some(event) = input.next().await {
+                for output in exact_streams.handle(event) { yield output; }
+            }
+            for output in exact_streams.finish() { yield output; }
+        };
+        let processed_stream = routed.filter_map(move |event| {
             let buffers = Arc::clone(&sse_buffers);
 
             async move {
@@ -1038,21 +1320,7 @@ impl Analyzer for SSEProcessor {
 
                 let accumulator = buffers_lock
                     .entry(final_connection_id.clone())
-                    .or_insert_with(|| SSEAccumulator {
-                        capture_metadata: CaptureMetadataAccumulator::default(),
-                        template_event: event.clone(),
-                        message_id: None,
-                        accumulated_text: String::new(),
-                        accumulated_json: String::new(),
-                        openai_reasoning: String::new(),
-                        openai_tool_calls: BTreeMap::new(),
-                        events: Vec::new(),
-                        is_complete: false,
-                        last_update: event.timestamp,
-                        has_message_start: false,
-                        start_time: event.timestamp,
-                        end_time: event.timestamp,
-                    });
+                    .or_insert_with(|| SSEAccumulator::new(&event));
 
                 accumulator.last_update = event.timestamp;
                 accumulator.end_time = event.timestamp;
@@ -1088,6 +1356,14 @@ impl Analyzer for SSEProcessor {
         });
 
         Ok(Box::pin(processed_stream))
+    }
+}
+
+fn merge_usage(target: &mut serde_json::Map<String, Value>, usage: Option<&Value>) {
+    if let Some(fields) = usage.and_then(Value::as_object) {
+        for (key, value) in fields {
+            target.insert(key.clone(), value.clone());
+        }
     }
 }
 
