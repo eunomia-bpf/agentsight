@@ -54,6 +54,19 @@ static void test_postprocess_full_command_rejects_oversized_arg_len(void)
 		    "postprocess_full_command ignores oversized arg_len");
 }
 
+static void test_find_needed_library(void)
+{
+	char lib[256] = "";
+
+	test_assert(find_needed_library("/proc/self/exe", "libc.", lib, sizeof(lib)) == 0 &&
+		    strncmp(lib, "libc.", 5) == 0,
+		    "find_needed_library finds a DT_NEEDED soname by prefix");
+	test_assert(find_needed_library("/proc/self/exe", "libreadline-missing.", lib, sizeof(lib)) == -ENOENT,
+		    "find_needed_library returns -ENOENT when no soname matches");
+	test_assert(find_needed_library("/nonexistent/bash", "libreadline.", lib, sizeof(lib)) < 0,
+		    "find_needed_library fails for a missing binary");
+}
+
 static void print_test_summary(void)
 {
 	printf("\n" YELLOW "===== Test Summary =====" RESET "\n");
@@ -74,6 +87,7 @@ int main(void)
 	test_postprocess_full_command_with_arg_len();
 	test_postprocess_full_command_without_arg_len();
 	test_postprocess_full_command_rejects_oversized_arg_len();
+	test_find_needed_library();
 
 	print_test_summary();
 

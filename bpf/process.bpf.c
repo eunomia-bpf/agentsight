@@ -64,8 +64,8 @@ const volatile unsigned long long min_duration_ns = 0;
 
 #include "process_ext/bpf_common.h"
 
-/* Bash readline uretprobe handler */
-SEC("uretprobe//usr/bin/bash:readline")
+/* Bash readline uretprobe handler, attached manually from userspace */
+SEC("uretprobe")
 int BPF_URETPROBE(bash_readline, const void *ret)
 {
 	struct event *e;
