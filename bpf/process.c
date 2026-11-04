@@ -359,6 +359,22 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 
 static volatile bool exiting = false;
 
+/* readline is either built into bash or exported by a dynamically linked libreadline */
+static void attach_bash_readline(struct process_bpf *skel)
+{
+	LIBBPF_OPTS(bpf_uprobe_opts, opts, .func_name = "readline", .retprobe = true);
+	const char *target = "/usr/bin/bash";
+	char lib[PATH_MAX];
+
+	if (find_needed_library(target, "libreadline.", lib, sizeof(lib)) == 0)
+		target = lib;
+	skel->links.bash_readline = bpf_program__attach_uprobe_opts(skel->progs.bash_readline,
+								    -1, target, 0, &opts);
+	if (!skel->links.bash_readline)
+		fprintf(stderr, "Warning: failed to attach bash readline probe to %s: %s\n",
+			target, strerror(errno));
+}
+
 static bool process_in_target_session(pid_t pid)
 {
 	if (env.session_id <= 0)
@@ -1205,6 +1221,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to attach BPF skeleton\n");
 		goto cleanup;
 	}
+	attach_bash_readline(skel);
 
 	/* Set up ring buffer polling with pid_tracker as context */
 	rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, &pid_tracker, NULL);

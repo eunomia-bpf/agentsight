@@ -280,7 +280,7 @@ $(filter-out $(TEST_APPS),$(APPS) $(EXPERIMENTAL_APPS)): %: $(OUTPUT)/%.o $(LIBB
 # Special rules for test programs (no libbpf needed)
 test_process_utils: $(OUTPUT)/test_process_utils.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -o $@
 
 test_process_filter: $(OUTPUT)/test_process_filter.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
