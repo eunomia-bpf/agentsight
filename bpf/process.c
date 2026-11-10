@@ -1218,8 +1218,12 @@ int main(int argc, char **argv)
 	uint64_t last_cgroup_refresh_time = 0;
 	uint64_t last_heartbeat_time = (uint64_t)time(NULL);
 	print_clock_sync_anchor("start");
-	if (env.heartbeat_seconds)
+	if (env.heartbeat_seconds) {
 		print_probe_liveness("start");
+		/* Let integration tests and callers observe attach readiness even when
+		 * stdout is redirected to a file or a pipe. */
+		fflush(stdout);
+	}
 
 	/* Process events */
 	while (!exiting) {
