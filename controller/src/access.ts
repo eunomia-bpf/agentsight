@@ -658,7 +658,9 @@ export async function grantLifetimePro(
 export function relayAction(method: 'GET' | 'POST', nodePath: string | null, statusOnly: boolean): Action {
   if (statusOnly) return 'node.read';
   if (method === 'GET'
-    && (nodePath?.startsWith('/api/v1/snapshot') || nodePath === '/api/v1/overview')) {
+    && (nodePath?.startsWith('/api/v1/snapshot')
+      || nodePath === '/api/v1/overview'
+      || nodePath === '/api/v1/nebula')) {
     return 'evidence.read';
   }
   if (method === 'GET' && nodePath?.startsWith('/api/v1/sessions/')) return 'session.read';
