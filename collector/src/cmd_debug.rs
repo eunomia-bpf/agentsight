@@ -122,6 +122,9 @@ enum DebugCommand {
         /// Enable process monitoring
         #[arg(long, action = clap::ArgAction::Set, default_value_t = true)]
         process: bool,
+        /// Capture bind/connect attempts, listeners, and accepted peers.
+        #[arg(long)]
+        trace_net: bool,
         /// Enable stdio payload monitoring (requires --pid)
         #[arg(long, requires = "pid")]
         stdio: bool,
@@ -302,6 +305,7 @@ pub(crate) async fn run(
             ssl_http,
             ssl_raw_data,
             process,
+            trace_net,
             stdio,
             stdio_uid,
             stdio_comm,
@@ -336,6 +340,7 @@ pub(crate) async fn run(
                     ssl_http: *ssl_http,
                     ssl_raw_data: *ssl_raw_data,
                     process: *process,
+                    trace_net: *trace_net,
                     stdio: *stdio,
                     stdio_uid: *stdio_uid,
                     stdio_comm: stdio_comm.clone(),

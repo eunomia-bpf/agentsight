@@ -4,9 +4,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ProcessTreeView } from '@/components/ProcessTreeView';
-import { SessionAnalysis } from '@/components/SessionAnalysis';
+import dynamic from 'next/dynamic';
 import { SessionConsole } from '@/components/SessionConsole';
+import { State } from '@/components/NodeOverview';
 import { type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, SnapshotSession } from '@/types/event';
@@ -26,6 +26,8 @@ import {
 } from '@/utils/sessionData';
 
 type SessionTab = 'conversation' | 'process' | 'analysis';
+const ProcessTreeView = dynamic(() => import('@/components/ProcessTreeView').then((module) => module.ProcessTreeView));
+const SessionAnalysis = dynamic(() => import('@/components/SessionAnalysis').then((module) => module.SessionAnalysis));
 
 function compact(value: number | null | undefined): string {
   const number = value ?? 0;
@@ -127,14 +129,8 @@ export function SessionWorkspace({
     session.agent_type, session.model, session.start_timestamp_ms, sessionId, t]);
 
   useEffect(() => {
-    activeRequest.current = 0;
-    setDetail(null);
-    setDetailError('');
-    setTab('conversation');
-  }, [sessionId]);
-
-  useEffect(() => {
     void loadDetail();
+    return () => { activeRequest.current = 0; };
   }, [client, loadDetail, sessionId]);
 
   useEffect(() => {
@@ -145,7 +141,7 @@ export function SessionWorkspace({
     () => sessionSnapshot(snapshot, session, live, detail, overview),
     [detail, live, overview, session, snapshot],
   );
-  const events = useMemo(() => displayEventsFromSnapshot(scopedSnapshot), [scopedSnapshot]);
+  const events = useMemo(() => tab === 'analysis' ? displayEventsFromSnapshot(scopedSnapshot) : [], [scopedSnapshot, tab]);
   const plan = sessionPlan(session, detail, live);
   const currentPlan = plan.find((step) => step.status === 'in_progress');
   const peakCpu = (scopedSnapshot.resource_samples ?? [])
@@ -166,15 +162,7 @@ export function SessionWorkspace({
               <h1 className="text-xl font-semibold capitalize tracking-tight text-slate-950">
                 {session.agent_type}
               </h1>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium ${
-                running ? 'bg-emerald-50 text-emerald-700'
-                  : activityState === 'recent' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${
-                  running ? 'bg-emerald-500' : activityState === 'recent' ? 'bg-amber-500' : 'bg-slate-400'
-                }`} />
-                {t(`overview.${activityState}`)}
-              </span>
+              <State state={activityState} />
               {session.model && <span className="text-xs text-slate-400">{session.model}</span>}
             </div>
             <p className="mt-2 max-w-3xl truncate text-sm font-medium text-slate-700">
@@ -184,7 +172,7 @@ export function SessionWorkspace({
               {sessionWorkspace(session) || live?.workspace || rawSessionId(session)}
             </p>
           </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid shrink-0 grid-cols-4 gap-2">
             <Metric label={t('overview.tokens')} value={compact(session.total_tokens)} />
             <Metric label={running ? t('sessionDetail.cpuNow') : t('sessionDetail.cpuPeak')}
               value={running ? `${live!.cpu_percent.toFixed(1)}%` : peakCpu ? `${peakCpu.toFixed(1)}%` : '—'} />
@@ -196,11 +184,11 @@ export function SessionWorkspace({
         </div>
 
         {plan.length > 0 && (
-          <div className="mt-5 border-t border-slate-100 pt-4">
-            <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+          <details className="mt-3 border-t border-slate-100 pt-3">
+            <summary className="cursor-pointer text-[11px] font-medium uppercase tracking-wide text-slate-400">
               {t('sessionDetail.plan')}
-            </div>
-            <div className="flex flex-wrap gap-2">
+            </summary>
+            <div className="mt-2 flex flex-wrap gap-2">
               {plan.map((step, index) => (
                 <span key={`${step.step}-${index}`} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs ${
                   step.status === 'completed'
@@ -217,7 +205,7 @@ export function SessionWorkspace({
                 </span>
               ))}
             </div>
-          </div>
+          </details>
         )}
       </section>
 
@@ -226,7 +214,7 @@ export function SessionWorkspace({
         {(['conversation', 'process', 'analysis'] as SessionTab[]).map((item) => (
           <button key={item} type="button" role="tab" aria-selected={tab === item}
             aria-controls={`session-panel-${item}`} onClick={() => setTab(item)}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`min-w-0 flex-1 rounded-lg px-2 py-2 text-xs font-medium transition sm:flex-none sm:whitespace-nowrap sm:px-4 sm:text-sm ${
               tab === item ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
             }`}>
             {t(`sessionDetail.${item}`)}
@@ -250,9 +238,9 @@ export function SessionWorkspace({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-24 rounded-lg bg-slate-50 px-3 py-2">
+    <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-2 sm:min-w-24 sm:px-3">
       <div className="text-[10px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="mt-0.5 font-semibold tabular-nums text-slate-900">{value}</div>
+      <div className="mt-0.5 break-words text-sm font-semibold tabular-nums text-slate-900">{value}</div>
     </div>
   );
 }

@@ -112,6 +112,15 @@ Their totals are available through `summary` and `token_summary`.
 | `view_source` | string | No | No; identifies captured, reconstructed, agent-native, or legacy-unknown provenance. |
 | `confidence` | number | Yes | No; source-specific confidence in the row correlation or reconstruction. |
 
+For `audit_type: "media"`, `details` contains only `media_kind` (`image`,
+`document`, or `audio`), `mime_type` (string or null), and `source`
+(`http_content_type`, `json_mime_type`, `json_block_type`, or `data_url`).
+These are observed HTTP or JSON metadata; the media bytes are not copied into
+the media audit row. An opaque body with no recognized metadata produces no
+media row.
+Rows represent capture observations. Capturing both sides of one local TLS
+exchange can produce more than one row for the same media kind.
+
 `view_source` describes the lineage of each row, not the identity of the logical
 operation. Its values are `view` for rows emitted directly from captured events,
 `sqlite` for rows reconstructed from normalized persisted rows,

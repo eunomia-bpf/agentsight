@@ -730,9 +730,11 @@ fn value_as_u32(value: &serde_json::Value) -> Option<u32> {
 /// Breadth-first search the descendant process tree rooted at `root_pid` for a
 /// concrete SSL attach path.
 ///
-/// Children are read from `/proc/<pid>/task/<pid>/children`, which lists the
-/// immediate child PIDs of a process. Requires permission to read those entries
-/// (root in practice for containerized processes).
+/// Children are read from every `/proc/<pid>/task/<tid>/children`: each file
+/// lists only the children forked by that one thread, so an agent started from
+/// a worker thread (e.g. an OpenShell sandbox's tokio runtime) is invisible if
+/// only the main thread's file is read. Requires permission to read those
+/// entries (root in practice for containerized processes).
 fn find_ssl_target_in_tree(root_pid: u32) -> Option<String> {
     let mut queue = std::collections::VecDeque::from([root_pid]);
     let mut seen = std::collections::HashSet::new();
@@ -747,17 +749,34 @@ fn find_ssl_target_in_tree(root_pid: u32) -> Option<String> {
         if let Some(path) = find_loaded_ssl_library(pid) {
             return Some(path);
         }
-        let children_path = format!("/proc/{}/task/{}/children", pid, pid);
-        if let Ok(children) = std::fs::read_to_string(&children_path) {
-            for child in children
-                .split_whitespace()
-                .filter_map(|s| s.parse::<u32>().ok())
-            {
-                queue.push_back(child);
-            }
-        }
+        queue.extend(child_pids(std::path::Path::new("/proc"), pid));
     }
     None
+}
+
+/// Child PIDs of `pid` across all of its threads, main thread first so the
+/// search order is unchanged for single-threaded parents. A child that is being
+/// reparented can show up under two threads; the caller's `seen` set absorbs it.
+fn child_pids(proc_root: &std::path::Path, pid: u32) -> Vec<u32> {
+    let task_dir = proc_root.join(pid.to_string()).join("task");
+    let mut tids: Vec<u32> = std::fs::read_dir(&task_dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|entry| entry.file_name().to_str()?.parse().ok())
+        .collect();
+    tids.sort_by_key(|tid| (*tid != pid, *tid));
+    tids.into_iter()
+        .filter_map(|tid| {
+            std::fs::read_to_string(task_dir.join(tid.to_string()).join("children")).ok()
+        })
+        .flat_map(|children| {
+            children
+                .split_whitespace()
+                .filter_map(|s| s.parse::<u32>().ok())
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 fn find_loaded_ssl_library(pid: u32) -> Option<String> {
@@ -785,6 +804,68 @@ fn canonicalize_attach_path(path: &str) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn write_children(proc_root: &std::path::Path, pid: u32, tid: u32, children: &str) {
+        let dir = proc_root
+            .join(pid.to_string())
+            .join("task")
+            .join(tid.to_string());
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("children"), children).unwrap();
+    }
+
+    #[test]
+    fn child_pids_reads_children_forked_by_worker_threads() {
+        // PID 1 is a multi-threaded runtime: its main thread forked nothing,
+        // a worker thread forked the agent (the OpenShell sandbox layout).
+        let root = tempfile::tempdir().unwrap();
+        write_children(root.path(), 1, 1, "");
+        write_children(root.path(), 1, 7, "42 ");
+        write_children(root.path(), 1, 9, "43 44 ");
+        assert_eq!(child_pids(root.path(), 1), vec![42, 43, 44]);
+    }
+
+    #[test]
+    fn child_pids_lists_the_main_thread_first_and_tolerates_gaps() {
+        let root = tempfile::tempdir().unwrap();
+        write_children(root.path(), 100, 101, "7 ");
+        write_children(root.path(), 100, 100, "5 6 ");
+        // A task without a readable children file (thread exited) is skipped.
+        std::fs::create_dir_all(root.path().join("100/task/102")).unwrap();
+        assert_eq!(child_pids(root.path(), 100), vec![5, 6, 7]);
+        assert!(child_pids(root.path(), 999).is_empty());
+    }
+
+    #[test]
+    fn child_pids_sees_a_child_forked_by_a_live_worker_thread() {
+        let me = std::process::id();
+        if !std::path::Path::new(&format!("/proc/{me}/task/{me}/children")).exists() {
+            return; // CONFIG_PROC_CHILDREN is off
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
+        let worker = std::thread::spawn(move || {
+            let mut child = std::process::Command::new("sleep")
+                .arg("30")
+                .spawn()
+                .unwrap();
+            tx.send(child.id()).unwrap();
+            done_rx.recv().ok();
+            child.kill().ok();
+            child.wait().ok();
+        });
+        let child = rx.recv().unwrap();
+        let main_thread_only =
+            std::fs::read_to_string(format!("/proc/{me}/task/{me}/children")).unwrap();
+        assert!(
+            !main_thread_only
+                .split_whitespace()
+                .any(|c| c == child.to_string())
+        );
+        assert!(child_pids(std::path::Path::new("/proc"), me).contains(&child));
+        done_tx.send(()).ok();
+        worker.join().unwrap();
+    }
 
     #[test]
     fn parses_docker_double_slash_scheme() {

@@ -78,6 +78,20 @@ Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
 
+The process probe's `FILE_OPEN` JSON records include `read`, `write`, `exec`,
+`layer`, `dev`, and `ino` on kernels that support resolved file-open tracing.
+They cover successful regular-file opens from `open`, `openat2`, io_uring, and
+exec, including the ELF interpreter. They are emitted once per process, file,
+access, and overlay layer until an LRU entry is evicted. `FILE_OPEN_LOST` counts
+ring-buffer drops and BPF recursion misses. On older kernels, the probe
+announces its syscall fallback on stderr and retains the original `FILE_OPEN`
+fields and aggregation behavior.
+
+With `--trace-net`, the process probe also summarizes TCP listeners and accepted
+peers, and successful UDP or ICMP echo binds. Datagram `NET_BIND` records add
+`protocol` and the kernel-assigned local `port`; existing summary fields remain
+available to JSONL consumers.
+
 ## Open this machine in the hosted app
 
 Run the unprivileged binding command to open this Node in the default hosted

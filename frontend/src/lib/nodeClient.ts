@@ -133,7 +133,8 @@ async function directFetch(input: string, init: RequestInit = {}): Promise<Respo
     try {
       return await fetch(input, options);
     } catch (error) {
-      if (init.signal?.aborted) throw error;
+      // A failed response can follow an accepted write; only replay reads.
+      if (options.signal?.aborted || !['GET', 'HEAD'].includes(init.method || 'GET')) throw error;
     }
   }
   const localOptions: LocalFetchInit = { ...options, targetAddressSpace: expectedNodeAddressSpace(endpoint) };

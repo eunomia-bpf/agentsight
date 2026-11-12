@@ -4,8 +4,9 @@
 //! Repository-scoped file actions from native coding-agent sessions.
 
 use agent_session::{
-    AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI, AgentSession, SessionCandidate,
-    discover_session_files, parse_session_content, parse_session_file, session_candidate_from_path,
+    AGENT_CLAUDE, AGENT_CODEBUDDY, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI, AgentSession,
+    SessionCandidate, discover_session_files, parse_session_content, parse_session_file,
+    session_candidate_from_path,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -367,6 +368,11 @@ fn candidate_may_match_repo(
         AGENT_GEMINI => gemini_project_hash(&candidate.path)
             .is_some_and(|project| roots.iter().any(|root| repository_hash(root) == project)),
         AGENT_CURSOR => cursor_project_name(&candidate.path).is_some_and(|project| {
+            roots
+                .iter()
+                .any(|root| encoded_cursor_root(root) == project)
+        }),
+        AGENT_CODEBUDDY => cursor_project_name(&candidate.path).is_some_and(|project| {
             roots
                 .iter()
                 .any(|root| encoded_cursor_root(root) == project)
@@ -798,6 +804,24 @@ mod tests {
             &roots,
             None
         ));
+    }
+
+    #[test]
+    fn codebuddy_candidates_reach_the_repository_matcher() {
+        let root = PathBuf::from("/data/workspace");
+        let roots = vec![root];
+        let candidate = SessionCandidate {
+            agent: AGENT_CODEBUDDY,
+            path: PathBuf::from("/root/.codebuddy/projects/data-workspace/cb-session-1.jsonl"),
+            updated: SystemTime::UNIX_EPOCH,
+        };
+        assert!(candidate_may_match_repo(&candidate, &roots, None));
+        let other = SessionCandidate {
+            agent: AGENT_CODEBUDDY,
+            path: PathBuf::from("/root/.codebuddy/projects/other-repo/cb-session-1.jsonl"),
+            updated: SystemTime::UNIX_EPOCH,
+        };
+        assert!(!candidate_may_match_repo(&other, &roots, None));
     }
 
     #[test]

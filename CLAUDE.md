@@ -151,7 +151,7 @@ running in a Docker container. `resolve_container_binary_path()` in
 `collector/src/binary_resolver.rs` runs `docker inspect --format
 '{{.State.Pid}}'` to get the container's init PID, then
 `find_ssl_target_in_tree()` walks the descendant process tree (via
-`/proc/<pid>/task/<pid>/children`) and returns the first process whose
+every `/proc/<pid>/task/*/children`, so children forked by worker threads are found) and returns the first process whose
 `/proc/<pid>/exe` embeds SSL or whose maps include `libssl.so`.
 
 `--binary-path k8s://pod`, `k8s://namespace/pod`, or
