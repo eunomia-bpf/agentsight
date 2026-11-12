@@ -25,10 +25,12 @@ pub type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
 const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
+const SESSION_ID_HEADER_BYTES: u64 = 64 * 1024;
 // Local copy of agent_session::AGENT_CURSOR. cargo package verifies this crate
 // against the published agent-session, which lags behind the workspace copy, so
 // production code here cannot reference constants the registry version lacks.
 const CURSOR_AGENT_TYPE: &str = "cursor";
+const CODEBUDDY_AGENT_TYPE: &str = "codebuddy";
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -38,6 +40,8 @@ struct ObservedCodexPrompt {
     native_exec: bool,
     comm: Option<String>,
     target: Option<String>,
+    view_source: String,
+    confidence: Option<f32>,
 }
 
 pub fn snapshot(
@@ -81,15 +85,102 @@ pub fn discover_sessions(
         .collect()
 }
 
-fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
-    user_home_dir()
-        .as_deref()
-        .map(|home| codex_state_sessions_in_home(home, limit))
-        .unwrap_or_default()
+fn session_path_index() -> &'static Mutex<HashMap<String, agent_session::SessionCandidate>> {
+    static INDEX: OnceLock<Mutex<HashMap<String, agent_session::SessionCandidate>>> =
+        OnceLock::new();
+    INDEX.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// Resolve one session without applying the 25-row list-view cap or parsing
+/// unrelated transcripts. The bounded ID index is shared by detail and message
+/// requests, while only the matching transcript is hydrated in full.
+pub fn find_session(cache: &mut SessionCache, session_id: &str) -> Option<LocalSession> {
+    let mut candidate = {
+        let mut index = session_path_index().lock().ok()?;
+        if index
+            .get(session_id)
+            .is_none_or(|candidate| !candidate.path.is_file())
+        {
+            index.remove(session_id);
+            index.extend(index_session_paths(agent_session::discover_session_files()));
+        }
+        index.get(session_id).cloned()
+    }?;
+    candidate = agent_session::refresh_session_candidate(&candidate)?;
+    let session = cache.parse_candidate_cached(&candidate)?;
+    (session.session_id == session_id).then(|| hydrate_session(cache, session))
+}
+
+fn index_session_paths(
+    candidates: impl IntoIterator<Item = agent_session::SessionCandidate>,
+) -> HashMap<String, agent_session::SessionCandidate> {
+    candidates
+        .into_iter()
+        .filter_map(|candidate| session_candidate_id(&candidate).map(|id| (id, candidate)))
+        .collect()
+}
+
+fn session_candidate_id(candidate: &agent_session::SessionCandidate) -> Option<String> {
+    if matches!(
+        candidate.agent,
+        agent_session::AGENT_CLAUDE | CURSOR_AGENT_TYPE | CODEBUDDY_AGENT_TYPE
+    ) {
+        return candidate
+            .path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .map(str::to_string);
+    }
+    let mut header = Vec::new();
+    File::open(&candidate.path)
+        .ok()?
+        .take(SESSION_ID_HEADER_BYTES)
+        .read_to_end(&mut header)
+        .ok()?;
+    let header = String::from_utf8_lossy(&header);
+    let header = if candidate.agent == agent_session::AGENT_CODEX {
+        header
+            .lines()
+            .find(|line| line.contains("\"session_meta\""))?
+    } else if candidate.agent == agent_session::AGENT_GEMINI {
+        &header
+    } else {
+        return None;
+    };
+    json_string_field(
+        header,
+        if candidate.agent == agent_session::AGENT_GEMINI {
+            "sessionId"
+        } else {
+            "id"
+        },
+    )
+}
+
+fn json_string_field(text: &str, field: &str) -> Option<String> {
+    let value = text.split_once(&format!("\"{field}\""))?.1;
+    let value = value.split_once(':')?.1.trim_start().strip_prefix('"')?;
+    Some(value.split_once('"')?.0.to_string())
+}
+
+fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
+    let Some(home) = user_home_dir() else {
+        return Vec::new();
+    };
+    let codex_home = std::env::var_os("CODEX_HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .unwrap_or_else(|| home.join(".codex"));
+    codex_state_sessions_in_codex_home(&codex_home, limit)
+}
+
+#[cfg(test)]
 fn codex_state_sessions_in_home(home: &Path, limit: usize) -> Vec<LocalSession> {
-    let db_path = home.join(".codex/state_5.sqlite");
+    codex_state_sessions_in_codex_home(&home.join(".codex"), limit)
+}
+
+fn codex_state_sessions_in_codex_home(codex_home: &Path, limit: usize) -> Vec<LocalSession> {
+    let db_path = codex_home.join("state_5.sqlite");
     let Ok(conn) =
         rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
     else {
@@ -146,10 +237,12 @@ fn codex_state_session(
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
     let path = PathBuf::from(rollout_path);
     let (rollout_usage, plan, _) = codex_rollout_summary(&path);
-    let usage = rollout_usage.unwrap_or(TokenUsage {
-        total_tokens: tokens_used.max(0),
-        ..Default::default()
-    });
+    let usage = rollout_usage
+        .filter(|usage| usage.total_tokens > 0)
+        .unwrap_or(TokenUsage {
+            total_tokens: tokens_used.max(0),
+            ..Default::default()
+        });
     let model = model.filter(|value| !value.is_empty());
     let mut model_usage = BTreeMap::new();
     if let Some(model) = model.as_deref() {
@@ -771,16 +864,19 @@ fn llm_row_for_session(
         total_tokens: usage.total_tokens,
         request,
         response: Value::Null,
+        view_source: AGENT_NATIVE_SOURCE.to_string(),
+        confidence: Some(0.95),
+        ..Default::default()
     }
 }
 
 pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
-    let mut rows = Vec::new();
+    let mut rows: Vec<AuditEventRow> = Vec::new();
     let mut seen = HashSet::new();
     let observed_exec_prompts = observed_codex_exec_prompts(audit_rows);
     let mut seen_exec_prompts: Vec<ObservedCodexPrompt> = Vec::new();
     for observed in observed_exec_prompts {
-        if seen_exec_prompts.iter().any(|seen| {
+        if let Some(index) = seen_exec_prompts.iter().position(|seen| {
             seen.prompt == observed.prompt
                 && timestamps_close(
                     seen.timestamp_ms,
@@ -789,29 +885,19 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 )
                 && (!seen.native_exec || !observed.native_exec)
         }) {
+            if prompt_provenance_is_stronger(&observed, &seen_exec_prompts[index]) {
+                let dedupe_native_exec =
+                    seen_exec_prompts[index].native_exec && observed.native_exec;
+                seen_exec_prompts[index] = observed.clone();
+                // Keep wrapper/native grouping sticky even when the stronger full
+                // observation is native, so a later native row cannot split the group.
+                seen_exec_prompts[index].native_exec = dedupe_native_exec;
+                rows[index] = observed_exec_prompt_row(observed);
+            }
             continue;
         }
         seen_exec_prompts.push(observed.clone());
-        rows.push(AuditEventRow {
-            id: format!(
-                "audit-codex-exec-prompt-{}-{}",
-                observed.timestamp_ms,
-                observed.pid.unwrap_or(0)
-            ),
-            timestamp_ms: observed.timestamp_ms,
-            audit_type: "llm".to_string(),
-            pid: observed.pid,
-            comm: observed.comm.or_else(|| Some("codex".to_string())),
-            subject: None,
-            action: Some("request".to_string()),
-            target: observed.target,
-            status: Some("observed".to_string()),
-            summary: Some(truncate_text(&observed.prompt, 160)),
-            details: serde_json::json!({
-                "text_content": observed.prompt,
-                "prompt_source": "local",
-            }),
-        });
+        rows.push(observed_exec_prompt_row(observed));
     }
     for row in audit_rows {
         if row.audit_type == "process" && row.action.as_deref() == Some("exec") {
@@ -859,9 +945,55 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 "conversation_id": session.conversation_id.as_deref(),
                 "agent_type": session.agent_type,
             }),
+            view_source: AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
         });
     }
     rows
+}
+
+fn observed_exec_prompt_row(observed: ObservedCodexPrompt) -> AuditEventRow {
+    let summary = truncate_text(&observed.prompt, 160);
+    AuditEventRow {
+        id: format!(
+            "audit-codex-exec-prompt-{}-{}",
+            observed.timestamp_ms,
+            observed.pid.unwrap_or(0)
+        ),
+        timestamp_ms: observed.timestamp_ms,
+        audit_type: "llm".to_string(),
+        pid: observed.pid,
+        comm: observed.comm.or_else(|| Some("codex".to_string())),
+        subject: None,
+        action: Some("request".to_string()),
+        target: observed.target,
+        status: Some("observed".to_string()),
+        summary: Some(summary),
+        details: serde_json::json!({
+            "text_content": observed.prompt,
+            "prompt_source": "local",
+        }),
+        view_source: observed.view_source,
+        confidence: observed.confidence,
+    }
+}
+
+fn prompt_provenance_is_stronger(
+    candidate: &ObservedCodexPrompt,
+    current: &ObservedCodexPrompt,
+) -> bool {
+    let source_rank = |source: &str| match source {
+        "agent_native_session" => 4,
+        "view" => 3,
+        "sqlite" => 2,
+        "unknown" => 1,
+        _ => 0,
+    };
+    let candidate_rank = source_rank(&candidate.view_source);
+    let current_rank = source_rank(&current.view_source);
+    candidate_rank > current_rank
+        || (candidate_rank == current_rank
+            && candidate.confidence.unwrap_or(-1.0) > current.confidence.unwrap_or(-1.0))
 }
 
 pub fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) -> Vec<LocalSession> {
@@ -947,6 +1079,8 @@ fn observed_codex_exec_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedCode
                 native_exec: looks_like_native_codex_exec(row),
                 comm: row.comm.clone(),
                 target: row.target.clone(),
+                view_source: row.view_source.clone(),
+                confidence: row.confidence,
             })
         })
         .collect::<Vec<_>>();
@@ -1286,7 +1420,12 @@ pub fn write_cursor_state_db_for_test(home: &Path) {
 #[cfg(any(test, feature = "test-support"))]
 pub fn write_codex_state_db_for_test(home: &Path) {
     let codex_dir = home.join(".codex");
-    fs::create_dir_all(&codex_dir).unwrap();
+    write_codex_state_db_in_for_test(&codex_dir);
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn write_codex_state_db_in_for_test(codex_dir: &Path) {
+    fs::create_dir_all(codex_dir).unwrap();
     let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
     conn.execute_batch(
         "CREATE TABLE threads (
@@ -1354,6 +1493,21 @@ mod tests {
         assert_eq!(
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
+        );
+    }
+
+    #[test]
+    fn codex_state_db_accepts_a_custom_codex_home() {
+        let temp = tempfile::tempdir().unwrap();
+        let codex_home = temp.path().join("agent-state");
+        write_codex_state_db_in_for_test(&codex_home);
+
+        let sessions = codex_state_sessions_in_codex_home(&codex_home, 5);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(
+            sessions[0].session_id,
+            "019f49ca-54e7-7a91-82e7-a52b53cfd456"
         );
     }
 
@@ -1716,6 +1870,77 @@ mod tests {
     }
 
     #[test]
+    fn exact_lookup_is_not_limited_to_the_newest_twenty_five_sessions() {
+        let temp = tempfile::tempdir().unwrap();
+        let sessions = temp.path().join(".codex/sessions/1970/01/01");
+        fs::create_dir_all(&sessions).unwrap();
+        for index in 0..26 {
+            let id = format!("session-{index:02}");
+            fs::write(
+                sessions.join(format!("{id}.jsonl")),
+                format!(
+                    concat!(
+                        "{{\"timestamp\":\"1970-01-01T00:00:01Z\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{}\",\"cwd\":\"/repo\"}}}}\n",
+                        "{{\"timestamp\":\"1970-01-01T00:00:02Z\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"user\",\"content\":[{{\"type\":\"input_text\",\"text\":\"continue {}\"}}]}}}}\n",
+                        "{{\"timestamp\":\"1970-01-01T00:00:03Z\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"assistant\",\"phase\":\"final_answer\",\"content\":[{{\"type\":\"output_text\",\"text\":\"done\"}}]}}}}\n"
+                    ),
+                    id, id
+                ),
+            )
+            .unwrap();
+        }
+        let candidates =
+            agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, &sessions);
+
+        let candidate = index_session_paths(candidates)
+            .remove("session-00")
+            .expect("the oldest session must remain indexed by exact ID");
+        let found = SessionCache::new()
+            .parse_candidate_cached(&candidate)
+            .expect("only the indexed transcript should be parsed");
+
+        assert_eq!(found.session_id, "session-00");
+    }
+
+    #[test]
+    fn exact_lookup_reads_gemini_id_from_a_bounded_header() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("session-test.json");
+        fs::write(&path, r#"{"sessionId":"gemini-session","messages":[]}"#).unwrap();
+        let candidate = agent_session::SessionCandidate {
+            agent: agent_session::AGENT_GEMINI,
+            path,
+            updated: UNIX_EPOCH,
+        };
+
+        assert_eq!(
+            session_candidate_id(&candidate).as_deref(),
+            Some("gemini-session")
+        );
+    }
+
+    #[test]
+    fn exact_lookup_tolerates_utf8_split_at_the_header_boundary() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("rollout.jsonl");
+        let mut content =
+            b"{\"type\":\"session_meta\",\"payload\":{\"id\":\"codex-session\"}}\n".to_vec();
+        content.resize(SESSION_ID_HEADER_BYTES as usize - 1, b'x');
+        content.extend_from_slice("🦀".as_bytes());
+        fs::write(&path, content).unwrap();
+        let candidate = agent_session::SessionCandidate {
+            agent: agent_session::AGENT_CODEX,
+            path,
+            updated: UNIX_EPOCH,
+        };
+
+        assert_eq!(
+            session_candidate_id(&candidate).as_deref(),
+            Some("codex-session")
+        );
+    }
+
+    #[test]
     fn cursor_candidate_updated_tracks_subagent_writes() {
         let temp = tempfile::tempdir().unwrap();
         let transcripts = temp
@@ -1791,6 +2016,91 @@ mod tests {
         assert_eq!(sessions[0].usage.cache_read_tokens, 9_984);
         assert_eq!(sessions[0].usage.output_tokens, 11);
         assert_eq!(sessions[0].usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_state_db_uses_last_token_usage_when_total_is_empty() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15}}}}"#,
+                "\n",
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{}}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 15);
+        assert_eq!(sessions[0].usage.input_tokens, 11);
+        assert_eq!(sessions[0].usage.output_tokens, 4);
+    }
+
+    #[test]
+    fn codex_state_db_keeps_cumulative_total_when_trailing_last_only() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"output_tokens":20,"total_tokens":100},"last_token_usage":{"total_tokens":15}}}}"#,
+                "\n",
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{},"last_token_usage":{"input_tokens":16,"output_tokens":4,"total_tokens":20}}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 100);
+        assert_eq!(sessions[0].usage.input_tokens, 80);
+        assert_eq!(sessions[0].usage.output_tokens, 20);
+    }
+
+    #[test]
+    fn codex_state_db_uses_token_usage_record_before_token_count() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"output_tokens":4,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":4,"total_tokens":15}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 0",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.total_tokens, 15);
+        assert_eq!(sessions[0].usage.input_tokens, 11);
+        assert_eq!(sessions[0].usage.output_tokens, 4);
     }
 
     #[test]
@@ -1889,6 +2199,11 @@ mod tests {
         let projected = observed_session_prompt_rows(&rows);
         assert_eq!(projected[0].comm.as_deref(), Some("node"));
         assert_eq!(projected[0].target.as_deref(), Some("/usr/bin/node"));
+        assert!(
+            projected
+                .iter()
+                .all(|row| row.view_source == "view" && row.confidence == Some(0.75))
+        );
         let prompts = projected
             .into_iter()
             .map(|row| row.summary)
@@ -1906,6 +2221,65 @@ mod tests {
                 Some("agentsight should parse once".to_string()),
             ]
         );
+    }
+
+    #[test]
+    fn codex_exec_prompt_dedupe_keeps_stronger_provenance() {
+        let mut legacy_wrapper = exec_row(
+            "legacy-wrapper",
+            1_000,
+            "node",
+            "/usr/bin/node /opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        legacy_wrapper.view_source = "unknown".to_string();
+        legacy_wrapper.confidence = None;
+        let captured_native = exec_row(
+            "captured-native",
+            1_001,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        let repeated_native = exec_row(
+            "repeated-native",
+            1_002,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+
+        let projected =
+            observed_session_prompt_rows(&[legacy_wrapper, captured_native, repeated_native]);
+
+        assert_eq!(projected.len(), 1);
+        assert_eq!(projected[0].comm.as_deref(), Some("codex"));
+        assert_eq!(projected[0].view_source, "view");
+        assert_eq!(projected[0].confidence, Some(0.75));
+    }
+
+    #[test]
+    fn codex_exec_prompt_dedupe_does_not_promote_unrecognized_provenance() {
+        let mut legacy_wrapper = exec_row(
+            "legacy-wrapper",
+            1_000,
+            "node",
+            "/usr/bin/node /opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        legacy_wrapper.view_source = "unknown".to_string();
+        legacy_wrapper.confidence = Some(0.01);
+        let mut unrecognized_native = exec_row(
+            "unrecognized-native",
+            1_001,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
+        unrecognized_native.view_source = "vieww".to_string();
+        unrecognized_native.confidence = Some(0.99);
+
+        let projected = observed_session_prompt_rows(&[legacy_wrapper, unrecognized_native]);
+
+        assert_eq!(projected.len(), 1);
+        assert_eq!(projected[0].comm.as_deref(), Some("node"));
+        assert_eq!(projected[0].view_source, "unknown");
+        assert_eq!(projected[0].confidence, Some(0.01));
     }
 
     #[test]
@@ -1928,6 +2302,8 @@ mod tests {
                 native_exec: true,
                 comm: Some("codex".to_string()),
                 target: Some("/usr/bin/codex".to_string()),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
             }]
         ));
         assert!(!session_is_in_observed_window(
@@ -1949,6 +2325,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: serde_json::json!({ "full_command": full_command }),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 
@@ -1965,6 +2343,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: serde_json::json!({ "filepath": path.to_string_lossy() }),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

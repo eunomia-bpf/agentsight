@@ -26,7 +26,9 @@ pub(crate) async fn run_bind(
     db_path: Option<String>,
     app_url: &str,
     public_endpoint: Option<&str>,
+    docker_containers: &[String],
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    validate_bind_sources(db_path.as_deref(), docker_containers).map_err(std::io::Error::other)?;
     let ip: IpAddr = listen
         .parse()
         .map_err(|_| format!("agentsight bind requires an IP listen address, got {listen:?}"))?;
@@ -48,6 +50,7 @@ pub(crate) async fn run_bind(
     } else {
         server
     };
+    let server = server.with_docker_containers(docker_containers)?;
     let server = server.with_direct_access(access_token.clone(), node.clone(), allowed_origin);
 
     let handle = tokio::spawn(async move { server.start(addr).await });
@@ -85,6 +88,12 @@ pub(crate) async fn run_bind(
             "Serving the live agent overview and local session history; pass --db for a saved capture."
         );
     }
+    if !docker_containers.is_empty() {
+        println!(
+            "Including agent sessions from Docker containers: {}.",
+            docker_containers.join(", ")
+        );
+    }
     if qr {
         print_qr(&bind_url)?;
     }
@@ -97,6 +106,18 @@ pub(crate) async fn run_bind(
         relay_handle.abort();
     }
     handle.abort();
+    Ok(())
+}
+
+fn validate_bind_sources(
+    db_path: Option<&str>,
+    docker_containers: &[String],
+) -> Result<(), &'static str> {
+    if db_path.is_some() && !docker_containers.is_empty() {
+        return Err(
+            "--db cannot be combined with --docker-container because saved captures are read-only",
+        );
+    }
     Ok(())
 }
 
@@ -405,5 +426,16 @@ mod tests {
         assert!(valid_access_token(&"a".repeat(64)));
         assert!(!valid_access_token("short"));
         assert!(!valid_access_token(&format!("{}!", "a".repeat(63))));
+    }
+
+    #[test]
+    fn saved_captures_reject_docker_session_sources() {
+        let containers = vec!["agent-dev".to_string()];
+        assert_eq!(
+            validate_bind_sources(Some("capture.db"), &containers).unwrap_err(),
+            "--db cannot be combined with --docker-container because saved captures are read-only"
+        );
+        assert!(validate_bind_sources(Some("capture.db"), &[]).is_ok());
+        assert!(validate_bind_sources(None, &containers).is_ok());
     }
 }

@@ -153,6 +153,37 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
   --app-url https://agentsight.example.net/
 ```
 
+如果要把状态和认证留在运行中的 Docker 容器内，同时让宿主 AgentSight Node
+发现容器内的 agent-native 会话，请先在容器内安装同版本 AgentSight，并在启动
+宿主 Node 时指定容器名：
+
+```sh
+agentsight bind --docker-container ebpfos-dev
+```
+
+bridge 没有 provider 特例，而是在容器内复用 AgentSight 现有的通用会话发现和
+消息运行时。目前可发现 Claude Code、Codex、Gemini CLI 和 Cursor 会话；Claude
+Code、Codex 和 Gemini CLI 支持恢复并发送消息。其他命令仍可由普通 `top`/`record`
+观测，但要等对应 provider runtime 支持后才能恢复。认证始终留在容器内。可重复
+传入 `--docker-container`；如果 session ID 冲突，AgentSight 会拒绝猜测目标。
+
+通过该 bridge 恢复 Codex 会话时，指定容器就是外部 sandbox 边界：AgentSight 会对该 turn
+关闭 Codex 的嵌套命令 sandbox 和交互式批准。这样受限 dev container 不需要创建用户命名空间，
+而本机非容器会话仍保留默认策略。只应配置其文件系统和网络访问可以作为可信边界的容器。
+凭据可以在运行时挂载；AgentSight 不会把凭据复制进宿主 Node，也不会写入镜像。
+
+标准 Docker socket 或 `docker` 用户组权限是 daemon 级的，通常等价于宿主 root；
+指定容器名只限制 AgentSight 的行为，不是 Docker 的授权边界。如果需要更窄的边界，请使用
+每用户 rootless Docker daemon，或只放行必需 inspect/exec 操作的 allowlist broker/socket proxy。
+只配置可信容器：该私有 stdio 通道没有额外的带内认证，且会导入容器会话元数据。
+宿主和容器内的 AgentSight 应保持同版本。
+
+开发容器可声明 `com.agentsight.user`、`com.agentsight.workspace` 和
+`com.agentsight.home` labels。AgentSight 用它们设置 `docker exec` 的用户、工作目录和
+HOME；未设置时依次使用镜像的绝对 `HOME`、passwd entry 或路径 owner。provider 专用环境变量
+应保留在容器配置里，而不是写进宿主 AgentSight 配置。AgentSight 会使用绝对 `CODEX_HOME`
+发现 Codex 会话和 state；相对值回退到 `$HOME/.codex`。
+
 监听 `0.0.0.0` 或 `::` 时必须显式提供 `--endpoint`。非 loopback Node 应使用浏览器信任的
 HTTPS；私有网络本身不会绕过浏览器 mixed-content 规则。应把访问密钥视为长期凭据：任何
 持有者都能在 Node 可达时调用 Node API。Direct 请求不经过 AgentSight Cloud；启用

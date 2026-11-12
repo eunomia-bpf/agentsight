@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { fetchLoginProviders, startLogin, type LoginProvider } from '@/lib/controllerClient';
 import { useTranslation } from '@/i18n';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 
 interface ConnectionDialogProps {
   error: string;
@@ -40,16 +41,21 @@ export function ConnectionDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
-        className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        className="relative max-h-[calc(100dvh-4rem)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         {canClose && onClose && (
           <button type="button" onClick={onClose} aria-label={t('connect.close')}
             className="absolute right-5 top-4 text-2xl text-slate-400 hover:text-slate-700">
             ×
           </button>
         )}
-        <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AgentSight</p>
-          <h1 id="connect-title" className="mt-1 text-2xl font-bold text-slate-950">{t('connect.title')}</h1>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AgentSight</p>
+            <h1 id="connect-title" className="mt-1 text-2xl font-bold text-slate-950">{t('connect.title')}</h1>
+          </div>
+          <div className={canClose ? 'mr-8' : ''}>
+            <LanguageSwitcher />
+          </div>
         </div>
 
         {error && (

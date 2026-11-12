@@ -45,7 +45,7 @@ type SharedCodexStdin = Arc<AsyncMutex<Option<ChildStdin>>>;
 type WeakCodexStdin = Weak<AsyncMutex<Option<ChildStdin>>>;
 
 #[derive(Debug, Eq, PartialEq)]
-enum ProviderLine {
+pub(super) enum ProviderLine {
     Complete,
     Oversized,
     Eof,
@@ -76,6 +76,7 @@ enum Runtime {
         state: Arc<StdMutex<CodexState>>,
         responses: PendingCodexResponses,
         next_id: u64,
+        externally_sandboxed: bool,
     },
 }
 
@@ -147,6 +148,7 @@ impl Runtime {
                 state,
                 responses,
                 next_id,
+                externally_sandboxed,
             } => {
                 let (thread_id, active_turn, starting) = state
                     .lock()
@@ -170,11 +172,7 @@ impl Runtime {
                         .lock()
                         .map_err(|_| failed("Codex state lock poisoned"))?
                         .starting = true;
-                    json!({
-                        "method":"turn/start","id":*next_id,
-                        "params":{"threadId":thread_id,
-                            "input":[{"type":"text","text":message}]}
-                    })
+                    codex_turn_start_request(&thread_id, message, *next_id, *externally_sandboxed)
                 };
                 let request_id = *next_id;
                 let (response_tx, response_rx) = oneshot::channel();
@@ -227,6 +225,21 @@ pub async fn submit_message(
     session: &AgentSession,
     message: &str,
 ) -> Result<SubmitResult, SubmitError> {
+    submit_message_with_sandbox(session, message, false).await
+}
+
+pub(super) async fn submit_message_in_external_sandbox(
+    session: &AgentSession,
+    message: &str,
+) -> Result<SubmitResult, SubmitError> {
+    submit_message_with_sandbox(session, message, true).await
+}
+
+async fn submit_message_with_sandbox(
+    session: &AgentSession,
+    message: &str,
+    externally_sandboxed: bool,
+) -> Result<SubmitResult, SubmitError> {
     let slot = {
         let mut map = runtimes().lock().await;
         Arc::clone(
@@ -270,7 +283,7 @@ pub async fn submit_message(
                 Ok((Some(runtime), transport))
             }
             agent_session::AGENT_CODEX => {
-                let mut runtime = start_codex(session).await?;
+                let mut runtime = start_codex(session, externally_sandboxed).await?;
                 let transport = runtime.send(message).await?;
                 Ok((Some(runtime), transport))
             }
@@ -439,7 +452,10 @@ fn claude_error_message(value: &Value) -> String {
         .unwrap_or_else(|| "Claude rejected the request".into())
 }
 
-async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
+async fn start_codex(
+    session: &AgentSession,
+    externally_sandboxed: bool,
+) -> Result<Runtime, SubmitError> {
     let mut command = codex_command(session);
     command.args(["app-server", "--listen", "stdio://"]);
     configure(&mut command, session, true)?;
@@ -501,7 +517,28 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
         state,
         responses,
         next_id: 2,
+        externally_sandboxed,
     })
+}
+
+fn codex_turn_start_request(
+    thread_id: &str,
+    message: &str,
+    request_id: u64,
+    externally_sandboxed: bool,
+) -> Value {
+    let mut params = json!({
+        "threadId":thread_id,
+        "input":[{"type":"text","text":message}]
+    });
+    if externally_sandboxed {
+        params["approvalPolicy"] = json!("never");
+        params["sandboxPolicy"] = json!({
+            "type":"externalSandbox",
+            "networkAccess":"enabled"
+        });
+    }
+    json!({"method":"turn/start","id":request_id,"params":params})
 }
 
 fn codex_resume_request(thread_id: &str) -> Value {
@@ -705,7 +742,7 @@ where
     }
 }
 
-async fn read_provider_line<R>(
+pub(super) async fn read_provider_line<R>(
     reader: &mut R,
     line: &mut Vec<u8>,
     max_bytes: usize,
@@ -1249,7 +1286,7 @@ fn provider_session_home(session_path: &Path) -> Option<PathBuf> {
     let mut directory = session_path.parent();
     while let Some(candidate) = directory {
         if candidate.file_name().is_some_and(|name| {
-            [".claude", ".codex", ".gemini"]
+            [".claude", ".codex", ".gemini", ".codebuddy"]
                 .iter()
                 .any(|marker| name.to_string_lossy().eq_ignore_ascii_case(marker))
         }) {
@@ -1475,6 +1512,16 @@ mod tests {
         session.path = temp.path().join("session.json");
         session.cwd = Some(temp.path().to_string_lossy().to_string());
         std::fs::write(&session.path, b"{}\n").unwrap();
+        if unsafe { libc::geteuid() } == 0 {
+            use std::os::unix::ffi::OsStrExt;
+            let account = unsafe { libc::getpwnam(c"nobody".as_ptr()) };
+            assert!(!account.is_null(), "root test needs a non-root account");
+            let (uid, gid) = unsafe { ((*account).pw_uid, (*account).pw_gid) };
+            for path in [temp.path(), session.path.as_path()] {
+                let path = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+                assert_eq!(unsafe { libc::chown(path.as_ptr(), uid, gid) }, 0);
+            }
+        }
         let previous_program = std::env::var_os(GEMINI_BIN_ENV);
         unsafe {
             std::env::set_var(GEMINI_BIN_ENV, &program);
@@ -1559,6 +1606,12 @@ mod tests {
         assert_eq!(
             provider_session_home(Path::new(
                 "service-user/.gemini/tmp/repo/chats/session.json"
+            )),
+            Some(PathBuf::from("service-user"))
+        );
+        assert_eq!(
+            provider_session_home(Path::new(
+                "service-user/.codebuddy/projects/repo/session.jsonl"
             )),
             Some(PathBuf::from("service-user"))
         );
@@ -1823,6 +1876,20 @@ mod tests {
                 "threadId":"thread-1","excludeTurns":true
             }})
         );
+    }
+
+    #[test]
+    fn codex_container_turn_uses_the_external_sandbox_boundary() {
+        let request = codex_turn_start_request("thread-1", "continue", 3, true);
+        assert_eq!(request["params"]["approvalPolicy"], "never");
+        assert_eq!(
+            request["params"]["sandboxPolicy"],
+            json!({"type":"externalSandbox","networkAccess":"enabled"})
+        );
+
+        let local = codex_turn_start_request("thread-1", "continue", 3, false);
+        assert!(local["params"].get("approvalPolicy").is_none());
+        assert!(local["params"].get("sandboxPolicy").is_none());
     }
 
     #[tokio::test]

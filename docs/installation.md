@@ -17,6 +17,16 @@ commands remain Linux-only and have additional privilege requirements.
 
 ## Linux
 
+### Install with Homebrew
+
+On Linux x86-64:
+
+```bash
+brew tap eunomia-bpf/tap
+brew install eunomia-bpf/tap/agentsight
+agentsight --version
+```
+
 ### Install a release binary
 
 GitHub Releases publish Linux binaries for x86-64 and ARM64:

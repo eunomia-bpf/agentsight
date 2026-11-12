@@ -98,6 +98,16 @@ the `agentsight` package and is the library's primary consumer.
 
 ### Installation
 
+#### Homebrew on Linux
+
+```bash
+brew tap eunomia-bpf/tap
+brew install eunomia-bpf/tap/agentsight
+agentsight --version
+```
+
+The current Homebrew formula supports Linux x86-64.
+
 #### Cargo or Release Binary
 
 For local use, install with `cargo install agentsight` or download the latest
@@ -158,6 +168,11 @@ agentsight report serve                      # open the web UI for the latest se
 agentsight report export -o snapshot.json    # export for web dashboard; see docs/snapshot-schema.md
 agentsight report --local                    # summarize native Claude/Codex/Gemini sessions
 ```
+
+On supported Linux kernels, process `FILE_OPEN` events include resolved paths,
+read/write/exec access, and overlay layer and inode metadata. See the
+[process probe reference](bpf/README.md#1-process-tracer-process) for the JSON
+fields and older-kernel fallback.
 
 ### Offline Agent pprof Profiles
 
@@ -231,6 +246,7 @@ For a saved SQLite session, run `agentsight report serve --db run.db` and open t
 | Python (aider, open-interpreter, …) | `sudo ./agentsight record -c python` |
 | Docker containers (OpenClaw, …) | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
 | Cursor (IDE) | `agentsight top` reads its local sessions, no sudo needed |
+| CodeBuddy CLI | `agentsight top` reads `~/.codebuddy/projects`; `sudo ./agentsight record -c codebuddy` attaches the running Node process |
 | Any command | `sudo ./agentsight record -- <command>` |
 
 See [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md) for agent-specific setup, SSL quirks, browser capture, MCP stdio, and advanced flags.
