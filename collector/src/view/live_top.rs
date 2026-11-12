@@ -908,6 +908,8 @@ mod tests {
                 status: Some("ok".to_string()),
                 summary: None,
                 details: json!({}),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
             }],
             ..Snapshot::empty("test")
         };
@@ -952,6 +954,8 @@ mod tests {
                     status: Some("observed".to_string()),
                     summary: None,
                     details: json!({}),
+                    view_source: "view".to_string(),
+                    confidence: Some(0.75),
                 }],
                 ..Snapshot::empty("capture")
             },
@@ -1104,6 +1108,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: json!({}),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 }

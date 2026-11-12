@@ -26,6 +26,11 @@ impl HTTPDecompressor {
             return event;
         }
 
+        // A cut-off compressed body cannot be decoded faithfully, and the
+        // decompressed length would misreport the declared body size.
+        if event.data.get("body_truncated").and_then(Value::as_bool) == Some(true) {
+            return event;
+        }
         let Some(encoding) = content_encoding(&event.data) else {
             return event;
         };
@@ -186,7 +191,11 @@ mod tests {
                 },
                 "body": bytes_to_http_body_string(&body),
                 "has_body": true,
-                "is_chunked": false
+                "is_chunked": false,
+                "transport_handle": "0xabc",
+                "capture_fragment_count": 2,
+                "capture_original_len": 200,
+                "capture_metadata_complete": true
             }),
         )
     }
@@ -210,6 +219,10 @@ mod tests {
             "data: {\"usage\":{\"input_tokens\":1}}\n\n"
         );
         assert!(event.data["headers"].get("content-encoding").is_none());
+        assert_eq!(event.data["transport_handle"], "0xabc");
+        assert_eq!(event.data["capture_fragment_count"], 2);
+        assert_eq!(event.data["capture_original_len"], 200);
+        assert_eq!(event.data["capture_metadata_complete"], true);
     }
 
     #[test]
@@ -258,6 +271,20 @@ mod tests {
                 .get("decompressed")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn leaves_truncated_compressed_bodies_untouched() {
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(b"hello hello hello hello").unwrap();
+        let compressed = encoder.finish().unwrap();
+        let mut event = http_response(compressed, "gzip");
+        event.data["body_truncated"] = Value::Bool(true);
+
+        let event = HTTPDecompressor::process_event(event);
+
+        assert!(event.data.get("decompressed").is_none());
+        assert_eq!(event.data["headers"]["content-encoding"], "gzip");
     }
 
     #[test]

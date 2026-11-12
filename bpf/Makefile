@@ -31,14 +31,14 @@ CFLAGS += $(ASAN_FLAGS)
 ALL_LDFLAGS += $(ASAN_FLAGS)
 endif
 
-APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
 
 # Experimental programs: built only via `make experimental` (or by name), not
 # shipped in the default build or embedded into the collector.
 EXPERIMENTAL_APPS = browsertrace
 
 # All test programs (no BPF skeleton needed)
-TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets
+TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl
 
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
@@ -122,7 +122,7 @@ help:
 test: unit-test
 	@$(MAKE) runtime-test
 
-unit-test: test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets
+unit-test: test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output
 	@echo "Running process_utils tests..."
 	@./test_process_utils
 	@echo ""
@@ -137,8 +137,11 @@ unit-test: test_process_utils test_process_filter test_process_ext_map_flush tes
 	@echo ""
 	@echo "Running codex offset tests..."
 	@./test_codex_offsets
+	@echo ""
+	@echo "Running SSL JSON output tests..."
+	@./test_sslsniff_output
 
-runtime-test: process stdiocap
+runtime-test: process stdiocap sslsniff test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl
 	@echo ""
 	@echo "Running process runtime tests..."
 	@if [ "$$(id -u)" -eq 0 ]; then \
@@ -157,6 +160,15 @@ runtime-test: process stdiocap
 	else \
 		echo "SKIP: stdiocap runtime tests require root or cached sudo"; \
 	fi
+	@echo ""
+	@echo "Running sslsniff transport identity runtime tests..."
+	@if [ "$$(id -u)" -eq 0 ]; then \
+		python3 tests/test_sslsniff_transport_identity.py; \
+	elif sudo -n true >/dev/null 2>&1; then \
+		sudo -n env PATH="$$PATH" python3 tests/test_sslsniff_transport_identity.py; \
+	else \
+		echo "SKIP: sslsniff runtime tests require root or cached sudo"; \
+	fi
 
 .PHONY: integration-test
 integration-test: process
@@ -171,6 +183,7 @@ $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 $(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPUT)/libbpf
 	$(call msg,LIB,$@)
 	$(Q)$(MAKE) -C $(LIBBPF_SRC) BUILD_STATIC_ONLY=1		      \
+		    EXTRA_CFLAGS=-Wno-error=discarded-qualifiers	      \
 		    OBJDIR=$(dir $@)/libbpf DESTDIR=$(dir $@)		      \
 		    INCLUDEDIR= LIBDIR= UAPIDIR=			      \
 		    install
@@ -178,7 +191,9 @@ $(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPU
 # Build bpftool
 $(BPFTOOL): | $(BPFTOOL_OUTPUT)
 	$(call msg,BPFTOOL,$@)
-	$(Q)$(MAKE) ARCH= CROSS_COMPILE= OUTPUT=$(BPFTOOL_OUTPUT)/ -C $(BPFTOOL_SRC) bootstrap
+	$(Q)$(MAKE) ARCH= CROSS_COMPILE= OUTPUT=$(BPFTOOL_OUTPUT)/ \
+		    EXTRA_CFLAGS=-Wno-error=discarded-qualifiers \
+		    -C $(BPFTOOL_SRC) bootstrap
 
 
 $(LIBBLAZESYM_SRC)/target/release/libblazesym.a::
@@ -215,6 +230,7 @@ $(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS) $(EXPERIMENTAL_APPS
 $(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS))): jsonl.h
 
 $(OUTPUT)/sslsniff.o: codex_offsets.h
+$(OUTPUT)/sslsniff.o: sslsniff_output.h
 
 # Special rule for test programs (no BPF skeleton needed)
 $(OUTPUT)/test_process_utils.o: test_process_utils.c $(wildcard *.h) | $(OUTPUT)
@@ -234,6 +250,17 @@ $(OUTPUT)/test_process_ext_types.o: tests/test_process_ext_types.c $(wildcard *.
 	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
 
 $(OUTPUT)/test_codex_offsets.o: test_codex_offsets.c codex_offsets.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
+
+$(OUTPUT)/test_sslsniff_transport_identity.o: tests/test_sslsniff_transport_identity.c | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -O0 -fno-inline -pthread -c $< -o $@
+
+$(OUTPUT)/test_sslsniff_transport_identity_boringssl.o: tests/test_sslsniff_transport_identity.c | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -O0 -fno-inline -pthread -DBORINGSSL_FIXTURE -c $< -o $@
+$(OUTPUT)/test_sslsniff_output.o: tests/test_sslsniff_output.c sslsniff_output.h jsonl.h | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
 
@@ -269,6 +296,17 @@ test_process_ext_types: $(OUTPUT)/test_process_ext_types.o | $(OUTPUT)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
 
 test_codex_offsets: $(OUTPUT)/test_codex_offsets.o | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
+
+test_sslsniff_transport_identity: $(OUTPUT)/test_sslsniff_transport_identity.o | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -pthread -Wl,--export-dynamic -o $@
+
+test_sslsniff_transport_identity_boringssl: $(OUTPUT)/test_sslsniff_transport_identity_boringssl.o | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -pthread -Wl,--export-dynamic -o $@
+test_sslsniff_output: $(OUTPUT)/test_sslsniff_output.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
 

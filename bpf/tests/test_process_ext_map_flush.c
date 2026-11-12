@@ -74,6 +74,8 @@ static void test_event_type_name_known_types(void)
 	            "NET_LISTEN(21) -> \"NET_LISTEN\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_NET_CONNECT),    "NET_CONNECT")    == 0,
 	            "NET_CONNECT(22) -> \"NET_CONNECT\"");
+	test_assert(strcmp(event_type_name(EVENT_TYPE_NET_ACCEPT),     "NET_ACCEPT")     == 0,
+	            "NET_ACCEPT(23) -> \"NET_ACCEPT\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_PGRP_CHANGE),    "PGRP_CHANGE")    == 0,
 	            "PGRP_CHANGE(30) -> \"PGRP_CHANGE\"");
 	test_assert(strcmp(event_type_name(EVENT_TYPE_SESSION_CREATE), "SESSION_CREATE") == 0,
@@ -183,7 +185,7 @@ static void test_json_escape_truncation(void)
 	json_escape("abcdefgh", dst, sizeof(dst));
 	/* Must be NUL-terminated and at most 3 payload chars. */
 	test_assert(strlen(dst) <= 3, "output is bounded by dst_size");
-	test_assert(dst[sizeof(dst) - 1] == '\0' || dst[3] == '\0',
+	test_assert(memchr(dst, '\0', sizeof(dst)) != NULL,
 	            "output is NUL-terminated");
 }
 
@@ -277,6 +279,35 @@ static void test_print_summary_json_basic_fields(void)
 	            "output contains correct count");
 }
 
+static void test_network_summary_endpoint_fields(void)
+{
+	struct agg_key key = {0};
+	struct agg_value val = {0};
+	char buf[1024];
+	key.pid = 42;
+	key.process_start_ns = 123456;
+	val.count = 1;
+	val.last_ts = 789;
+	strncpy(val.comm, "agent", TASK_COMM_LEN - 1);
+
+	key.event_type = EVENT_TYPE_NET_LISTEN;
+	strncpy(key.detail, "127.0.0.1:8080", DETAIL_LEN - 1);
+	capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(strstr(buf, "\"process_start_ns\":123456") != NULL,
+		    "network summary includes process instance");
+	test_assert(strstr(buf, "\"local_endpoint\":\"127.0.0.1:8080\"") != NULL,
+		    "listener summary has local endpoint");
+
+	key.event_type = EVENT_TYPE_NET_ACCEPT;
+	strncpy(key.detail, "127.0.0.1:54321", DETAIL_LEN - 1);
+	strncpy(key.local_endpoint, "127.0.0.1:8080", DETAIL_LEN - 1);
+	capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(strstr(buf, "\"local_endpoint\":\"127.0.0.1:8080\"") != NULL,
+		    "accept summary has local endpoint");
+	test_assert(strstr(buf, "\"peer_endpoint\":\"127.0.0.1:54321\"") != NULL,
+		    "accept summary has peer endpoint");
+}
+
 static void test_print_summary_json_optional_total_bytes(void)
 {
 	printf("\n" BLUE "Testing print_summary_json() — optional total_bytes field:" RESET "\n");
@@ -306,6 +337,25 @@ static void test_print_summary_json_optional_total_bytes(void)
 	test_assert(n > 0, "output is non-empty (non-zero total_bytes)");
 	test_assert(strstr(buf, "\"total_bytes\":4096") != NULL,
 	            "total_bytes present when non-zero");
+}
+
+static void test_print_summary_json_network_fields(void)
+{
+	struct agg_key key = {.pid = 42, .event_type = EVENT_TYPE_NET_BIND,
+		.port = 54321, .protocol = 17};
+	struct agg_value val = {.last_ts = 1, .count = 1};
+	strcpy(key.detail, "127.0.0.1:54321");
+	strcpy(val.comm, "python");
+	char buf[1024];
+	int n = capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(n > 0 && strstr(buf, "\"protocol\":\"udp\",\"port\":54321"),
+	            "datagram bind includes protocol and assigned port");
+	key.protocol = 0;
+	n = capture_print_summary_json(&key, &val, buf, sizeof(buf));
+	test_assert(n > 0 && !strstr(buf, "\"protocol\"") &&
+	            strstr(buf, "\"port\":54321") &&
+	            strstr(buf, "\"address\":\"127.0.0.1\""),
+	            "bind summary carries requested port and address without protocol");
 }
 
 static void test_print_summary_json_optional_extra(void)
@@ -427,7 +477,9 @@ int main(void)
 
 	/* print_summary_json */
 	test_print_summary_json_basic_fields();
+	test_network_summary_endpoint_fields();
 	test_print_summary_json_optional_total_bytes();
+	test_print_summary_json_network_fields();
 	test_print_summary_json_optional_extra();
 	test_print_summary_json_escaped_fields();
 	test_print_summary_json_newline_terminated();

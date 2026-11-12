@@ -49,6 +49,8 @@ export interface SnapshotAuditEvent {
   status?: string | null;
   summary?: string | null;
   details?: unknown;
+  view_source?: string;
+  confidence?: number | null;
 }
 
 export interface SnapshotProcessNode {

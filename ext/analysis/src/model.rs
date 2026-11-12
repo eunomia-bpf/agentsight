@@ -40,7 +40,7 @@ pub struct TokenUsageRow {
     pub confidence: Option<f32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LlmCallRow {
     pub id: String,
     pub session_id: Option<String>,
@@ -63,6 +63,30 @@ pub struct LlmCallRow {
     pub total_tokens: i64,
     pub request: Value,
     pub response: Value,
+    #[serde(default = "default_audit_view_source")]
+    pub view_source: String,
+    #[serde(default)]
+    pub confidence: Option<f32>,
+    #[serde(default)]
+    pub protocol: Option<String>,
+    #[serde(default)]
+    pub connection_id: Option<String>,
+    #[serde(default)]
+    pub stream_id: Option<u32>,
+    #[serde(default)]
+    pub http_exchange_id: Option<String>,
+    #[serde(default)]
+    pub request_id: Option<String>,
+    #[serde(default)]
+    pub response_id: Option<String>,
+    #[serde(default)]
+    pub correlation_method: Option<String>,
+    #[serde(default)]
+    pub correlation_status: Option<String>,
+    #[serde(default)]
+    pub correlation_version: Option<u16>,
+    #[serde(default)]
+    pub completion_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -177,6 +201,14 @@ pub struct AuditEventRow {
     pub status: Option<String>,
     pub summary: Option<String>,
     pub details: Value,
+    #[serde(default = "default_audit_view_source")]
+    pub view_source: String,
+    #[serde(default)]
+    pub confidence: Option<f32>,
+}
+
+fn default_audit_view_source() -> String {
+    "unknown".to_string()
 }
 
 #[derive(Debug, Clone, Default)]
