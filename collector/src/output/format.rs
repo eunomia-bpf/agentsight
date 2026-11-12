@@ -42,8 +42,21 @@ pub(crate) struct TopOptions {
     pub(crate) view: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
+pub(crate) struct AgentProcessRow {
+    pub(crate) pid: u32,
+    pub(crate) ppid: u32,
+    pub(crate) start_timestamp_ms: Option<u64>,
+    pub(crate) comm: String,
+    pub(crate) command: String,
+    pub(crate) cwd: Option<String>,
+    pub(crate) cpu_percent: f64,
+    pub(crate) rss_mb: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct AgentTopRow {
+    pub(crate) session_id: Option<String>,
     pub(crate) session: String,
     pub(crate) agent: String,
     pub(crate) pid: Option<u32>,
@@ -65,6 +78,10 @@ pub(crate) struct AgentTopRow {
     pub(crate) last_message_at: Option<String>,
     pub(crate) tool_breakdown: Vec<(String, i64)>,
     pub(crate) file_breakdown: Vec<(String, i64)>,
+    pub(crate) process_details: Vec<AgentProcessRow>,
+    pub(crate) plan: Vec<agent_session::PlanStep>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) subscription: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -250,6 +267,7 @@ impl AgentTopRow {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct AgentTopOutput {
     pub(crate) mode: &'static str,
     pub(crate) duration_s: f64,
@@ -394,7 +412,7 @@ pub(crate) fn print_record_sudo_prompt() {
     println!("🔑 eBPF probes require root. Requesting sudo access...");
 }
 
-pub(crate) fn print_record_drop_user(uid: libc::uid_t, gid: libc::gid_t) {
+pub(crate) fn print_record_drop_user(uid: u32, gid: u32) {
     println!("✓ Dropping child to uid={uid} gid={gid}");
 }
 

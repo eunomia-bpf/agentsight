@@ -595,12 +595,18 @@ fn write_monitor_pid_file(pid_file: &MonitorPidFile) -> io::Result<()> {
     std::fs::write(path, json)
 }
 
+#[cfg(unix)]
 fn pid_is_alive(pid: u32) -> bool {
     if pid == 0 {
         return false;
     }
     let result = unsafe { libc::kill(pid as libc::pid_t, 0) };
     result == 0 || io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+}
+
+#[cfg(not(unix))]
+fn pid_is_alive(pid: u32) -> bool {
+    pid != 0 && ProcSnapshot::collect().is_ok_and(|snapshot| snapshot.procs.contains_key(&pid))
 }
 
 struct MonitorPidGuard {

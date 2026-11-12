@@ -78,6 +78,20 @@ Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
 
+The process probe's `FILE_OPEN` JSON records include `read`, `write`, `exec`,
+`layer`, `dev`, and `ino` on kernels that support resolved file-open tracing.
+They cover successful regular-file opens from `open`, `openat2`, io_uring, and
+exec, including the ELF interpreter. They are emitted once per process, file,
+access, and overlay layer until an LRU entry is evicted. `FILE_OPEN_LOST` counts
+ring-buffer drops and BPF recursion misses. On older kernels, the probe
+announces its syscall fallback on stderr and retains the original `FILE_OPEN`
+fields and aggregation behavior.
+
+With `--trace-net`, the process probe also summarizes TCP listeners and accepted
+peers, and successful UDP or ICMP echo binds. Datagram `NET_BIND` records add
+`protocol` and the kernel-assigned local `port`; existing summary fields remain
+available to JSONL consumers.
+
 ## Open this machine in the hosted app
 
 Run the unprivileged binding command to open this Node in the default hosted
@@ -88,13 +102,28 @@ agentsight bind
 ```
 
 The command starts an API on `127.0.0.1:7395` by default, opens a binding link,
-and remains in the foreground while the app reads AgentSight data. It uses the
-latest `agentsight-*.db` in the current directory when present, otherwise it
-reads the local agent session index. Pass `--db <capture.db>` to select a saved
-capture explicitly. A random access key is carried only in the URL fragment,
-removed from the visible URL by the SPA, and lasts only for that command
-process. Chrome may ask you to allow Local network access for a loopback or LAN
-Node.
+and remains in the foreground while the app reads AgentSight data. Without
+`--db`, it reads live processes and the local agent session index; pass
+`--db <capture.db>` to select a saved capture explicitly. The first screen is a
+live, machine-level `top` view of
+running and stopped agents, observed token use, source-reported subscription
+capacity, Agent Plans, CPU, and RSS. Select a session to open its conversation,
+process tree and AI prompts, or Analysis view. Analysis combines token and model
+usage, tool/file/network effects, failures, session resources, and an
+interactive timeline whose events can still be inspected individually; there
+is no separate raw-event or metrics panel. Session detail keeps the newest
+1,000 prompts, 2,000 responses, and 2,000 tool events under bounded text
+budgets. The Node access key is stored in the OS AgentSight config
+directory and reused across restarts. A binding link carries it to the browser
+only in the URL fragment, which the SPA immediately removes from the visible
+URL. Chrome may ask you to allow Local network access for a loopback or LAN Node.
+
+After sign-in, **All machines** is the organization landing view. The browser
+queries each reachable Node's bounded overview over Direct or Relay and
+aggregates machine state, active Agents, reported Tokens, CPU/RSS, Agent Plans,
+and source-reported subscription windows in memory. Use the machine selector to
+switch between the fleet and one Node. AgentSight Cloud keeps the machine
+directory and access policy; the aggregated evidence is not copied into D1.
 
 Use `agentsight bind --no-open` to copy the link manually or `agentsight bind
 --qr` to print the same link as a QR code. The endpoint and presentation plane
@@ -109,13 +138,55 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
   --app-url https://agentsight.example.net/
 ```
 
+To include agent-native sessions whose state and credentials stay inside a
+running Docker container, install the same AgentSight binary in the container
+and name the container when starting the host Node:
+
+```sh
+agentsight bind --docker-container ebpfos-dev
+```
+
+The bridge has no provider-specific dispatch: it reuses AgentSight's existing
+agent-native discovery and message runtime inside the container. Today it
+discovers Claude Code, Codex, Gemini CLI, and Cursor sessions; message resume is
+available for Claude Code, Codex, and Gemini CLI. Other commands remain visible
+through normal `top`/`record` observation but are not resumable until their
+provider runtime supports messaging. Provider credentials stay in the
+container. Repeat `--docker-container` to include more containers; duplicate
+session IDs return a conflict instead of selecting an arbitrary target.
+
+For Codex sessions resumed through this bridge, the named container is the
+external sandbox boundary: AgentSight disables Codex's nested command sandbox
+and interactive approvals for that turn. This avoids user-namespace failures in
+locked-down dev containers while keeping local, non-container session defaults
+unchanged. Configure only containers whose filesystem and network access are an
+acceptable boundary. Credentials may be mounted at runtime; AgentSight neither
+copies them into the host Node nor stores them in the image.
+
+Standard Docker socket or `docker` group access is daemon-wide and is normally
+equivalent to host root; the named-container option limits AgentSight behavior,
+not Docker's authorization boundary. For a narrower boundary, use a rootless
+per-user Docker daemon or an allowlisting broker/socket proxy that exposes only
+the required inspect and exec operations. Configure only containers you trust:
+the private stdio pipe has no separate in-band authentication and imports
+session metadata from the container. Keep the host and container AgentSight
+binaries on the same version.
+
+Dev containers may declare `com.agentsight.user`, `com.agentsight.workspace`,
+and `com.agentsight.home` labels. AgentSight uses them for `docker exec`; absent
+labels fall back to the image's absolute `HOME`, passwd entry, or path owner.
+Keep provider-specific environment in the container configuration rather than
+in host AgentSight settings. An absolute `CODEX_HOME` is honored for Codex
+session discovery and state; relative values fall back to `$HOME/.codex`.
+
 An unspecified listen address requires an explicit browser-reachable
 `--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private
-transport alone does not override browser mixed-content rules. The access key
-authorizes anyone who possesses the fragment while the process
-is running. Direct mode does not upload session contents to AgentSight's
-control plane; optional sign-in stores only identity, session, and Node metadata
-there. Self-hosted sign-in also requires building the SPA with
+transport alone does not override browser mixed-content rules. Treat the access
+key as a long-lived secret: anyone who has it can use the Node API whenever that
+Node is reachable. Direct requests do not pass through AgentSight Cloud. When
+Controller Relay is enabled, selected requests and responses transit the Cloud
+runtime but are not persisted in D1; sign-in stores account, organization and
+Node coordination data. Self-hosted sign-in also requires building the SPA with
 `NEXT_PUBLIC_CONTROL_PLANE_URL` pointed at the matching Worker and setting that
 Worker's `APP_ORIGIN` to the SPA origin.
 

@@ -4,8 +4,17 @@ Use this guide when developing AgentSight or building a local binary from the re
 
 ## Requirements
 
-- Linux with eBPF support
 - Rust toolchain 1.88.0+
+
+The portable agent-native commands (`top`, `bind`, `vis`, and `report`) build on
+Windows, macOS, and Linux. A Windows source build needs the MSVC Rust host
+toolchain and linker; the repository's Windows GitHub Actions workflow provides
+that environment and uploads `agentsight.exe`, so Windows users do not need a
+local compiler when using its artifact.
+
+Building the eBPF capture path additionally requires:
+
+- Linux with eBPF support
 - Node.js 18+
 - clang and LLVM
 - libelf development headers
@@ -38,6 +47,18 @@ Build all components:
 ```bash
 make build
 ```
+
+For a native Windows build of the portable CLI, build the collector crate from
+a Developer PowerShell, or run the Windows workflow and download its artifact:
+
+```powershell
+cargo build --release --manifest-path collector/Cargo.toml
+```
+
+The resulting binary is `collector/target/release/agentsight.exe`. Commands that
+load eBPF (`record` and eBPF-backed debug commands) return a platform-specific
+error on Windows; session discovery, reporting, visualization, binding, and the
+process-backed `top` view remain available.
 
 `make build` rebuilds the frontend and eBPF loaders, then refreshes the
 vendored assets embedded by the Rust binary. The frontend build id is stable for

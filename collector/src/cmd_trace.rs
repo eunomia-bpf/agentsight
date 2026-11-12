@@ -60,6 +60,7 @@ pub(crate) struct TraceConfig {
     pub(crate) ssl_http: bool,
     pub(crate) ssl_raw_data: bool,
     pub(crate) process: bool,
+    pub(crate) trace_net: bool,
     pub(crate) process_seed_pids: Vec<PidSeed>,
     pub(crate) stdio: bool,
     pub(crate) stdio_uid: Option<u32>,
@@ -89,6 +90,7 @@ impl TraceConfig {
             ssl_filter: Vec::new(),
             ssl_http: true,
             process: true,
+            trace_net: true,
             stdio_max_bytes: DEFAULT_RECORD_STDIO_MAX_BYTES,
             system: true,
             system_interval: 2,
@@ -261,21 +263,33 @@ pub(crate) fn build_trace_agent_with_view(
 
 fn build_ssl_args(cfg: &TraceConfig) -> Vec<String> {
     let mut args = Vec::new();
-    if cfg.session_id.is_none() {
+    // A pinned --binary-path already scopes the uprobe to that ELF. Codex 0.153
+    // writes TLS on tokio worker threads and may setsid() inside the sandbox, so
+    // --session/getsid(pid) drops the plaintext after the short-lived child exits.
+    let pin_binary = cfg.binary_path.is_some();
+    if !pin_binary && cfg.session_id.is_none() {
         if let Some(pid) = cfg.pid {
             args.extend(["-p".to_string(), pid.to_string()]);
         }
     }
-    if let Some(session) = cfg.session_id {
-        args.extend(["--session".to_string(), session.to_string()]);
+    if !pin_binary {
+        if let Some(session) = cfg.session_id {
+            args.extend(["--session".to_string(), session.to_string()]);
+        }
     }
     if let Some(uid) = cfg.ssl_uid {
         args.extend(["-u".to_string(), uid.to_string()]);
     }
     // Skip --comm for sslsniff when --binary-path is set: SSL traffic runs on
     // "HTTP Client" thread, not the process name, so comm filter drops everything.
-    if cfg.binary_path.is_none() {
-        if let Some(comm) = cfg.comm.as_deref() {
+    // CodeBuddy CLI is a Node shebang; kernel comm is `node`, so `-c codebuddy`
+    // would drop every TLS event even when system libssl is hooked correctly.
+    if !pin_binary {
+        if let Some(comm) = cfg
+            .comm
+            .as_deref()
+            .filter(|comm| !ssl_comm_is_misleading(comm))
+        {
             args.extend(["-c".to_string(), comm.to_string()]);
         }
     }
@@ -288,8 +302,15 @@ fn build_ssl_args(cfg: &TraceConfig) -> Vec<String> {
     args
 }
 
+fn ssl_comm_is_misleading(comm: &str) -> bool {
+    comm.eq_ignore_ascii_case("codebuddy")
+}
+
 fn build_process_args(cfg: &TraceConfig) -> Vec<String> {
     let mut args = Vec::new();
+    if cfg.trace_net {
+        args.push("--trace-net".to_string());
+    }
     if let Some(pid) = cfg.pid {
         args.extend(["-p".to_string(), pid.to_string()]);
     }
@@ -393,7 +414,7 @@ pub(crate) async fn start_web_server_if_enabled(
     let addr = format!("{}:{}", listen, port)
         .parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
-    let web_server = WebServer::new_with_db_path(view, db_path)
+    let web_server = web_server_for_capture(view, db_path)
         .map_err(|e| format!("Failed to create web server: {}", e))?;
 
     let host = if listen == "0.0.0.0" || listen == "::" {
@@ -424,6 +445,19 @@ pub(crate) async fn start_web_server_if_enabled(
     }))
 }
 
+fn web_server_for_capture(
+    view: SharedMaterializedView,
+    db_path: Option<String>,
+) -> Result<WebServer, Box<dyn std::error::Error + Send + Sync>> {
+    let saved_capture = db_path.is_some();
+    let server = WebServer::new_with_db_path(view, db_path)?;
+    Ok(if saved_capture {
+        server
+    } else {
+        server.with_live_host()
+    })
+}
+
 async fn start_web_server_silent_if_enabled(
     enable_server: bool,
     listen: &str,
@@ -444,6 +478,7 @@ async fn start_web_server_silent_if_enabled(
         .parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
     let web_server = WebServer::new_with_db_path(view, db_path)
+        .map(|server| server.with_live_host())
         .map_err(|e| format!("Failed to create web server: {}", e))?;
 
     let host = if listen == "0.0.0.0" || listen == "::" {
@@ -613,7 +648,9 @@ pub(crate) fn add_http_analyzers(
     http_filter: &[String],
     disable_auth_removal: bool,
 ) -> BinaryRunner {
-    let mut runner = runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
+    let mut runner = runner.add_analyzer(Box::new(
+        SSEProcessor::new_with_timeout(30000).defer_transport_to_http(),
+    ));
     let parser = if include_raw_data {
         HTTPParser::new()
     } else {
@@ -621,7 +658,9 @@ pub(crate) fn add_http_analyzers(
     };
     runner = runner.add_analyzer(Box::new(parser));
     runner = runner.add_analyzer(Box::new(HTTPDecompressor::new()));
-    runner = runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
+    runner = runner.add_analyzer(Box::new(
+        SSEProcessor::new_with_timeout(30000).defer_transport_to_http(),
+    ));
     if !http_filter.is_empty() {
         runner = runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter.to_vec())));
     }
@@ -649,4 +688,53 @@ pub(crate) async fn run_debug_runner<R: Runner>(
     let mut stream = runner.run().await?;
     drive_stream_until_shutdown(&mut stream, !quiet).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn saved_capture_server_does_not_enable_live_host_apis() {
+        let saved = web_server_for_capture(
+            MaterializedView::shared_bounded(),
+            Some("saved.db".to_string()),
+        )
+        .unwrap();
+        let live = web_server_for_capture(MaterializedView::shared_bounded(), None).unwrap();
+
+        assert!(!saved.is_live_host());
+        assert!(live.is_live_host());
+    }
+
+    #[test]
+    fn ssl_args_skip_codebuddy_comm_filter() {
+        let mut cfg = TraceConfig {
+            comm: Some("codebuddy".to_string()),
+            ..TraceConfig::default()
+        };
+        assert!(!build_ssl_args(&cfg).contains(&"-c".to_string()));
+
+        cfg.comm = Some("node".to_string());
+        assert_eq!(
+            build_ssl_args(&cfg),
+            vec!["-c".to_string(), "node".to_string()]
+        );
+    }
+
+    #[test]
+    fn ssl_args_skip_session_filter_when_binary_path_is_pinned() {
+        let cfg = TraceConfig {
+            session_id: Some(4242),
+            comm: Some("codex".to_string()),
+            binary_path: Some("/opt/codex".to_string()),
+            ..TraceConfig::default()
+        };
+        let args = build_ssl_args(&cfg);
+        assert_eq!(
+            args,
+            vec!["--binary-path".to_string(), "/opt/codex".to_string()]
+        );
+        assert!(!args.iter().any(|arg| arg == "--session" || arg == "-c"));
+    }
 }
