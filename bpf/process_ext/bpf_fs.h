@@ -30,6 +30,27 @@ static __always_inline void extract_dir_prefix(const char *path, char *out, int 
 		out[last_slash] = '\0';
 }
 
+/* Copy a NUL-terminated string between two stacks buffers.
+ *
+ * bpf_probe_read_kernel_str() expects a kernel address and returns -EFAULT for a
+ * stack pointer, so using it for stack->stack copies wrote nothing. Copy the
+ * bytes directly, bounded like the kernel helper was.
+ */
+static __always_inline void copy_str_to(char *dst, int dst_len, const char *src)
+{
+	#pragma unroll
+	for (int i = 0; i < DETAIL_LEN; i++) {
+		if (i >= dst_len - 1)
+			break;
+		char c = src[i];
+		dst[i] = c;
+		if (c == '\0')
+			return;
+	}
+	if (dst_len > 0)
+		dst[dst_len - 1] = '\0';
+}
+
 /* Shared helper: aggregate a file path event with extra info */
 static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 {
@@ -53,14 +74,14 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 		__sync_fetch_and_add(&val->count, 1);
 		val->last_ts = bpf_ktime_get_ns();
 		bpf_get_current_comm(val->comm, sizeof(val->comm));
-		bpf_probe_read_kernel_str(val->extra, sizeof(val->extra), filepath);
+		copy_str_to(val->extra, sizeof(val->extra), filepath);
 	} else {
 		struct agg_value new_val = {};
 		new_val.count = 1;
 		new_val.first_ts = bpf_ktime_get_ns();
 		new_val.last_ts = new_val.first_ts;
 		bpf_get_current_comm(new_val.comm, sizeof(new_val.comm));
-		bpf_probe_read_kernel_str(new_val.extra, sizeof(new_val.extra), filepath);
+		copy_str_to(new_val.extra, sizeof(new_val.extra), filepath);
 
 		if (bpf_map_update_elem(&event_agg_map, &key, &new_val, BPF_NOEXIST) < 0) {
 			u32 zero = 0;
@@ -158,7 +179,7 @@ int trace_chdir(struct trace_event_raw_sys_enter *ctx)
 	struct agg_key key = {};
 	key.pid = bpf_get_current_pid_tgid() >> 32;
 	key.event_type = EVENT_TYPE_CHDIR;
-	bpf_probe_read_kernel_str(key.detail, sizeof(key.detail), path);
+	copy_str_to(key.detail, sizeof(key.detail), path);
 
 	update_agg_map(&key, 1, 0);
 	return 0;
