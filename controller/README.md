@@ -86,6 +86,52 @@ Hosted deployment is automatic through Cloudflare Workers Builds. The repository
 
 The OAuth runtime bindings such as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are only used when a person chooses **Sign in with GitHub**. Configure the client ID as a Worker variable or secret and the client secret as a Worker secret. They are not Git repository credentials, Cloudflare deployment credentials, or GitHub Actions secrets. Both Wrangler configs set `keep_vars` so an automatic code deployment preserves these Dashboard-managed bindings.
 
+Google login uses the same pattern with `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET`. Its production OAuth client must authorize
+`https://app.agentsight.us` as a JavaScript origin and
+`https://control.agentsight.us/v1/auth/callback/google` as a redirect URI.
+OAuth identities are keyed only by their provider's stable account ID. A new
+provider is never silently attached by matching its mutable email address; an
+already signed-in user can link another configured provider explicitly from
+the Nodes dialog.
+
+Stripe Billing is optional and fail-closed. The Worker exposes hosted Checkout,
+subscription webhooks, and the Stripe customer portal only when all required
+runtime bindings are present:
+
+- secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`;
+- variables: `STRIPE_PRO_MONTHLY_PRICE_ID` and `STRIPE_PRO_ANNUAL_PRICE_ID`.
+
+When a price changes, keep the new purchasable Price ID in the singular
+variable and retain archived IDs in the optional comma-separated
+`STRIPE_PRO_MONTHLY_LEGACY_PRICE_IDS` or
+`STRIPE_PRO_ANNUAL_LEGACY_PRICE_IDS` allowlist. Stripe subscriptions remain on
+their original Price IDs after a price is archived, so removing an old ID from
+this allowlist before every corresponding subscription is terminal would stop
+its later webhook state from being reconciled.
+
+Configure the Stripe endpoint as
+`https://control.agentsight.us/v1/billing/webhook` and subscribe it to
+`customer.subscription.created`, `customer.subscription.updated`, and
+`customer.subscription.deleted`. Webhook signatures are verified against the
+unmodified request body with Stripe's five-minute replay window. Subscription
+state is derived from the configured Price IDs, not request metadata, and is
+serialized per organization through the existing Durable Object binding before
+it is stored in the existing organization billing columns. A verified webhook
+is acknowledged only after its event is committed to Durable Object storage;
+an alarm reconciles it asynchronously with bounded exponential retries.
+Checkout creation first reserves a 35-minute generation in the organization's
+existing Durable Object, before any Stripe request. Same-price retries reuse
+that generation and a different price fails closed until Stripe confirms the
+previous Checkout has expired, so eventually consistent subscription search is
+only a recovery check rather than the uniqueness boundary. This integration
+adds no D1 migration. During hosted preview,
+billing records remain truthful while the existing unlimited-preview switch
+continues to grant access independently. Self-service Checkout and webhook
+mapping are enabled only for personal Pro monthly/annual. Team remains listed
+at $10/user/month, but all Team Stripe state stays fail-closed until membership
+changes can reconcile the paid quantity durably.
+
 One Worker deployment contains both surfaces from the same repository revision:
 
 - `app.agentsight.us` serves the frontend and static assets;

@@ -6,7 +6,7 @@ import test from 'node:test';
 import {
   allowedBrowserOrigin, allowedReturnTo, configuredOAuthProviders, decryptDirectConfig,
   directConfigNodeIdFromPath, encryptDirectConfig, githubApiHeaders, nodeIdFromPath,
-  normalizeDirectEndpoint, oauthStartAllowed, publicPricing, roleAllows, sha256Base64Url, validNodeId,
+  normalizeDirectEndpoint, oauthStartAllowed, publicPricing, readJson, roleAllows, sha256Base64Url, validNodeId,
 } from './index.ts';
 import {
   AccessError,
@@ -15,6 +15,13 @@ import {
   registerNode,
   relayAction,
 } from './access.ts';
+import {
+  HttpError,
+  linkOAuthAccount,
+  readJson as readCoreJson,
+  upsertUser,
+  type OAuthProfile,
+} from './core.ts';
 
 test('PKCE challenge matches RFC 7636 example', async () => {
   const verifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
@@ -183,4 +190,83 @@ test('rejected client requests do not consume the location OAuth bucket', async 
   const accepted = { limit: async () => ({ success: true }) };
   assert.equal(await oauthStartAllowed(accepted, location, '192.0.2.2'), true);
   assert.equal(locationCalls, 1);
+});
+
+test('a new OAuth subject cannot silently claim an existing email account', async () => {
+  let batches = 0;
+  const db = {
+    prepare: (sql: string) => ({
+      bind: () => ({
+        first: async () => (sql.includes('JOIN users') ? null : { id: 'user_existing' }),
+        run: async () => ({ success: true, meta: { changes: 1 } }),
+      }),
+    }),
+    batch: async () => { batches += 1; return []; },
+  } as unknown as D1Database;
+  const profile: OAuthProfile = {
+    provider: 'google', providerUserId: 'google-stable-subject',
+    email: 'Owner@Example.com', name: 'New Google identity',
+  };
+  await assert.rejects(upsertUser(db, profile), (error: unknown) => (
+    error instanceof HttpError && error.code === 'oauth_account_link_required'
+  ));
+  assert.equal(batches, 0);
+});
+
+test('explicit OAuth linking never moves a provider identity between users', async () => {
+  let writes = 0;
+  const profile: OAuthProfile = {
+    provider: 'google', providerUserId: 'google-stable-subject',
+    email: 'owner@example.com', name: 'Owner',
+  };
+  const db = {
+    prepare: (sql: string) => ({
+      bind: () => ({
+        first: async () => (sql.startsWith('SELECT user_id') ? { user_id: 'user_other' } : null),
+        run: async () => { writes += 1; return { success: true, meta: { changes: 1 } }; },
+      }),
+    }),
+  } as unknown as D1Database;
+  await assert.rejects(linkOAuthAccount(db, 'user_owner', profile), (error: unknown) => (
+    error instanceof HttpError && error.code === 'oauth_account_already_linked'
+  ));
+  assert.equal(writes, 0);
+});
+
+test('JSON body reader cancels an oversized stream before buffering the request', async () => {
+  let cancelled = false;
+  const request = new Request('https://control.agentsight.us/v1/organizations/org_test/billing/checkout', {
+    method: 'POST',
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(64 * 1024));
+        controller.enqueue(new Uint8Array(64 * 1024));
+      },
+      cancel() { cancelled = true; },
+    }),
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  await assert.rejects(readJson(request), (error: unknown) => (
+    error instanceof AccessError && error.status === 413 && error.code === 'request_too_large'
+  ));
+  assert.equal(cancelled, true);
+});
+
+test('OAuth body reader also cancels an oversized stream before buffering it', async () => {
+  let cancelled = false;
+  const request = new Request('https://control.agentsight.us/v1/auth/link/google', {
+    method: 'POST',
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(12 * 1024));
+        controller.enqueue(new Uint8Array(12 * 1024));
+      },
+      cancel() { cancelled = true; },
+    }),
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' });
+  await assert.rejects(readCoreJson(request), (error: unknown) => (
+    error instanceof HttpError && error.status === 413 && error.code === 'request_too_large'
+  ));
+  assert.equal(cancelled, true);
 });

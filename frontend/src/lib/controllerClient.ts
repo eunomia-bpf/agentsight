@@ -6,7 +6,9 @@ import { resolveControllerUrl } from '@/lib/controllerOrigin.mjs';
 
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
-const REQUEST_TIMEOUT_MS = 8_000;
+// Checkout recovery may inspect an expired Session and then make one bounded
+// Stripe create attempt. Keep the browser outside both Controller windows.
+const REQUEST_TIMEOUT_MS = 30_000;
 let cloudCodeExchange: Promise<string> | null = null;
 
 export const controllerUrl = resolveControllerUrl(
@@ -21,6 +23,7 @@ export interface CloudIdentity {
   name: string;
   avatarUrl?: string;
   provider?: 'github' | 'google';
+  providers?: LoginProvider[];
 }
 
 export type OrganizationRole = 'viewer' | 'operator' | 'admin' | 'owner';
@@ -39,6 +42,17 @@ export interface CloudOrganization {
   currentPeriodEnd: number | null;
   contributorPro: boolean;
   createdAt: number;
+}
+
+export type CheckoutPlan = 'pro' | 'team';
+export type BillingInterval = 'monthly' | 'annual';
+
+export interface BillingCheckoutAvailability {
+  enabled: boolean;
+  plans: {
+    pro: { monthly: boolean; annual: boolean };
+    team: { monthly: boolean; annual: boolean };
+  };
 }
 
 export interface CloudNode {
@@ -102,13 +116,38 @@ function authHeaders(token: string, json = false): HeadersInit {
 }
 
 export async function startLogin(provider: 'github' | 'google'): Promise<void> {
+  const { challenge } = await beginPkce();
+  const url = new URL(`${controllerUrl}/v1/auth/start/${provider}`);
+  url.searchParams.set('return_to', `${window.location.origin}/`);
+  url.searchParams.set('code_challenge', challenge);
+  window.location.assign(url.toString());
+}
+
+export async function startAccountLink(token: string, provider: LoginProvider): Promise<void> {
+  const { challenge } = await beginPkce();
+  try {
+    const response = await request(`${controllerUrl}/v1/auth/link/${provider}`, {
+      method: 'POST', headers: authHeaders(token, true),
+      body: JSON.stringify({ code_challenge: challenge }),
+    });
+    if (!response.ok) await responseError(response, `Could not link ${provider}`);
+    const body = await response.json().catch(() => null) as { url?: unknown } | null;
+    if (!body || typeof body.url !== 'string') throw new Error('The Controller returned an invalid link URL.');
+    const authorization = new URL(body.url);
+    const expectedOrigin = provider === 'google' ? 'https://accounts.google.com' : 'https://github.com';
+    if (authorization.origin !== expectedOrigin) throw new Error('The Controller returned an unsafe link URL.');
+    window.location.assign(authorization.toString());
+  } catch (error) {
+    window.sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
+    throw error;
+  }
+}
+
+async function beginPkce(): Promise<{ challenge: string }> {
   const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
   window.sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier);
-  const url = new URL(`${controllerUrl}/v1/auth/start/${provider}`);
-  url.searchParams.set('return_to', `${window.location.origin}/`);
-  url.searchParams.set('code_challenge', base64Url(new Uint8Array(digest)));
-  window.location.assign(url.toString());
+  return { challenge: base64Url(new Uint8Array(digest)) };
 }
 
 export function exchangeCloudCode(code: string): Promise<string> {
@@ -170,6 +209,70 @@ export async function createOrganization(token: string, name: string): Promise<C
   const body = await response.json() as { organization?: CloudOrganization };
   if (!body.organization) throw new Error('The Controller returned an invalid organization.');
   return body.organization;
+}
+
+export async function createBillingCheckout(
+  token: string,
+  organizationId: string,
+  plan: CheckoutPlan,
+  interval: BillingInterval,
+): Promise<string> {
+  const response = await request(
+    `${controllerUrl}/v1/organizations/${encodeURIComponent(organizationId)}/billing/checkout`,
+    {
+      method: 'POST', headers: authHeaders(token, true), body: JSON.stringify({ plan, interval }),
+    },
+  );
+  if (!response.ok) await responseError(response, 'Could not start billing checkout');
+  const body = await response.json() as { url?: unknown };
+  if (!trustedStripeUrl(body.url, 'checkout.stripe.com')) {
+    throw new Error('The Controller returned an invalid checkout URL.');
+  }
+  return body.url;
+}
+
+export async function fetchBillingCheckoutAvailability(
+  token: string,
+  organizationId: string,
+): Promise<BillingCheckoutAvailability> {
+  const response = await request(
+    `${controllerUrl}/v1/organizations/${encodeURIComponent(organizationId)}/billing`,
+    { headers: authHeaders(token), cache: 'no-store' },
+  );
+  if (!response.ok) await responseError(response, 'Could not load billing availability');
+  const body = await response.json().catch(() => null) as {
+    checkout?: BillingCheckoutAvailability;
+  } | null;
+  const checkout = body?.checkout;
+  if (!checkout || typeof checkout.enabled !== 'boolean'
+      || typeof checkout.plans?.pro?.monthly !== 'boolean'
+      || typeof checkout.plans?.pro?.annual !== 'boolean') {
+    throw new Error('The Controller returned invalid billing availability.');
+  }
+  return checkout;
+}
+
+export async function createBillingPortal(token: string, organizationId: string): Promise<string> {
+  const response = await request(
+    `${controllerUrl}/v1/organizations/${encodeURIComponent(organizationId)}/billing/portal`,
+    { method: 'POST', headers: authHeaders(token) },
+  );
+  if (!response.ok) await responseError(response, 'Could not open billing portal');
+  const body = await response.json() as { url?: unknown };
+  if (!trustedStripeUrl(body.url, 'billing.stripe.com')) {
+    throw new Error('The Controller returned an invalid billing portal URL.');
+  }
+  return body.url;
+}
+
+function trustedStripeUrl(value: unknown, hostname: string): value is string {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === hostname && url.port === '';
+  } catch {
+    return false;
+  }
 }
 
 export async function acceptOrganizationInvite(token: string, inviteToken: string): Promise<string> {
