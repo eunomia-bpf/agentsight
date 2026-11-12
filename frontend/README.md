@@ -15,19 +15,11 @@ The AgentSight Frontend provides intuitive visualization of:
 
 ## Features
 
-### Node overview (landing view)
-- Shows live and recently recorded agent sessions, current machine resources, and active coding plans
-- Opens session-scoped conversation, process, timeline, and event views without attributing unrelated Node-wide evidence to a session
-
-### Agent Nebula
-- Repository file evolution: files as stars, path areas as stable colors, agent file actions as a timeline
-- **Server prepares the layout** (`GET /api/v1/nebula`): positions, colors, per-moment deltas, and frame bounds come from the collector; the browser only renders and owns playback/hover/selection
-- Source of truth is the materialized view: `audit_events` with `audit_type=file` (path in `target`, action usually `write`)
-- Payload is bounded (default max 1500 stars, 400 frames) with `meta.shown_*` / `meta.total_*` so the UI can say “showing N of M”
-- Empty sessions show an honest empty state, not a blank or fabricated canvas
-- Transport: play/pause, scrub, speed; hover or select a star for path detail
-- Available as a Node-level view over embedded, Direct, and Controller relay transports; recorded demo data remains unchanged
-- Uses a tree-shaken ECharts scatter import (same chart surface as the CLI Agent Nebula renderer)
+### Machine Overview (landing view)
+- Signed-in organization landing view aggregates all reachable machines in the browser, with filters and a machine selector
+- Live and stopped Agent sessions with root process, current work, CPU, RSS, and observed Token share
+- Source-reported subscription capacity, active Agent Plans, and machine resource totals
+- Session drill-down into Conversation, Process Tree & AI Prompts, and Analysis
 
 ### Timeline View
 - Interactive event timeline with zoom and pan controls
@@ -43,12 +35,9 @@ The AgentSight Frontend provides intuitive visualization of:
 - Parent-child relationship mapping
 - Interactive node expansion and filtering
 
-### Log View
-- Raw event inspection with JSON formatting
-- Syntax highlighting and pretty printing
-- Advanced filtering and search
-- Error detection and validation
-- Export capabilities (JSON, CSV)
+### Session Analysis
+- Token/model usage, tool/file/network effects, failures, and session-scoped resources
+- Interactive timeline with filters and per-event detail inspection
 
 ## Technology Stack
 
@@ -57,7 +46,6 @@ The AgentSight Frontend provides intuitive visualization of:
 - **Styling**: Tailwind CSS with responsive design
 - **State Management**: React hooks and context
 - **Data Processing**: Real-time log parsing and event correlation
-- **Charts**: ECharts (scatter only, tree-shaken) for Agent Nebula
 
 ## Quick Start
 
@@ -137,7 +125,7 @@ open http://localhost:7395/timeline
 - **Details**: Hover for quick info, click for full details
 
 #### Controls
-- **Node View Toggle**: Switch between the machine overview and Agent Nebula
+- **View Toggle**: Switch between Conversation, Process Tree, and Analysis views
 - **Sync Data**: Manual refresh from collector
 - **Clear Data**: Reset all loaded events
 - **Export**: Download filtered data
@@ -175,13 +163,11 @@ agentsight/frontend/
 │   │   ├── page.tsx   # Main application page
 │   │   └── layout.tsx # Application layout
 │   ├── components/    # React components
-│   │   ├── LogView.tsx       # Log inspection view
-│   │   ├── TimelineView.tsx  # Interactive timeline
+│   │   ├── SessionAnalysis.tsx # Session metrics + interactive timeline
 │   │   ├── ProcessTreeView.tsx # Process hierarchy
 │   │   ├── UploadPanel.tsx   # File upload interface
 │   │   ├── common/           # Shared components
 │   │   ├── dashboard/        # Overview dashboard panels + SVG charts
-│   │   ├── log/              # Log view components
 │   │   ├── process-tree/     # Process tree components
 │   │   └── timeline/         # Timeline components
 │   ├── lib/           # Utility libraries

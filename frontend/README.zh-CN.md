@@ -15,15 +15,11 @@ AgentSight 前端提供以下数据的直观可视化：
 
 ## 功能特性
 
-### Node 概览
-- 展示实时与近期录制的 Agent 会话、当前机器资源和活动 Coding Plan
-- 进入会话级对话、进程、时间线与事件视图，不把无关的 Node 级证据归入某个会话
-
-### Agent 星云
-- 将仓库文件显示为星点，以稳定颜色区分路径区域，并按时间回放 Agent 文件操作
-- 布局由 collector 的 `GET /api/v1/nebula` 预计算，浏览器只负责渲染、播放与选择
-- 数据来自物化视图中 `audit_type=file` 的 `audit_events`；响应有星点与帧数上限，并如实报告截断和空数据
-- 支持嵌入、Direct 与 Controller relay 三种 Node 传输；录制演示数据保持不变
+### 机器概览（首页）
+- 登录后的组织首页在浏览器内聚合所有可达机器，可筛选并切换到单机视图
+- 显示运行中与已停止的 Agent 会话、根进程、当前工作、CPU、RSS 和观测 Token 占比
+- 显示数据源报告的订阅容量、活动 Agent Plan 和机器资源汇总
+- 可进入对话记录、进程树 & AI 提示和分析三个 Session 视图
 
 ### 时间线视图
 - 交互式事件时间线，支持缩放和平移
@@ -39,12 +35,9 @@ AgentSight 前端提供以下数据的直观可视化：
 - 父子关系映射
 - 交互式节点展开和过滤
 
-### 日志视图
-- 原始事件检查，支持 JSON 格式化
-- 语法高亮和美化打印
-- 高级过滤和搜索
-- 错误检测和验证
-- 导出功能（JSON、CSV）
+### Session 分析
+- Token/模型用量、工具/文件/网络影响、失败和 Session 资源
+- 带筛选和单事件详情的交互式时间线
 
 ## 技术栈
 
@@ -53,7 +46,6 @@ AgentSight 前端提供以下数据的直观可视化：
 - **样式**：Tailwind CSS，响应式设计
 - **状态管理**：React hooks 和 context
 - **数据处理**：实时日志解析和事件关联
-- **图表**：Agent 星云使用 tree-shaken ECharts scatter
 
 ## 快速开始
 
@@ -133,7 +125,7 @@ open http://localhost:7395/timeline
 - **详情**：悬停查看快速信息，点击查看完整详情
 
 #### 控制面板
-- **Node 视图切换**：在机器概览与 Agent 星云之间切换
+- **视图切换**：在对话记录、进程树和分析视图之间切换
 - **同步数据**：从 collector 手动刷新
 - **清除数据**：重置所有加载的事件
 - **导出**：下载过滤后的数据
@@ -171,12 +163,10 @@ agentsight/frontend/
 │   │   ├── page.tsx   # 主应用页面
 │   │   └── layout.tsx # 应用布局
 │   ├── components/    # React 组件
-│   │   ├── LogView.tsx       # 日志检查视图
-│   │   ├── TimelineView.tsx  # 交互式时间线
+│   │   ├── SessionAnalysis.tsx # Session 指标与交互式时间线
 │   │   ├── ProcessTreeView.tsx # 进程层级
 │   │   ├── UploadPanel.tsx   # 文件上传界面
 │   │   ├── common/           # 共享组件
-│   │   ├── log/              # 日志视图组件
 │   │   ├── process-tree/     # 进程树组件
 │   │   └── timeline/         # 时间线组件
 │   ├── lib/           # 工具库
