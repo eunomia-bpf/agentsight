@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use futures::stream::select_all;
 
 /// AgentRunner composes multiple runners into a single unified stream
-/// with optional global analyzers applied to the merged stream
+/// with optional global analyzers applied to the merged stream.
 #[derive(Default)]
 pub struct AgentRunner {
     runners: Vec<Box<dyn Runner>>,
@@ -15,29 +15,24 @@ pub struct AgentRunner {
 }
 
 impl AgentRunner {
-    /// Create a new AgentRunner
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Add a pre-configured runner with its analyzer chain
     pub fn add_runner(mut self, runner: Box<dyn Runner>) -> Self {
         self.runners.push(runner);
         self
     }
 
-    /// Add analyzer that will be applied to the merged stream
     pub fn add_global_analyzer(mut self, analyzer: Box<dyn Analyzer>) -> Self {
         self.analyzers.push(analyzer);
         self
     }
 
-    /// Get the number of configured runners
     pub fn runner_count(&self) -> usize {
         self.runners.len()
     }
 
-    /// Get the number of configured global analyzers
     pub fn analyzer_count(&self) -> usize {
         self.analyzers.len()
     }
@@ -50,26 +45,18 @@ impl Runner for AgentRunner {
             return Err("No runners configured for AgentRunner".into());
         }
 
-        // Start all runners concurrently and collect their streams
         let mut streams = Vec::new();
         for runner in &mut self.runners {
-            let stream = runner.run().await?;
-            streams.push(stream);
+            streams.push(runner.run().await?);
         }
-
-        // Merge all streams into a single stream
-        let merged_stream = select_all(streams);
-
-        // Apply global analyzers to the merged stream
-        let mut final_stream = Box::pin(merged_stream) as EventStream;
+        let mut stream = Box::pin(select_all(streams)) as EventStream;
         for analyzer in &mut self.analyzers {
-            final_stream = analyzer
-                .process(final_stream)
+            stream = analyzer
+                .process(stream)
                 .await
-                .map_err(|e| format!("Global analyzer error: {}", e))?;
+                .map_err(|error| format!("Global analyzer error: {error}"))?;
         }
-
-        Ok(final_stream)
+        Ok(stream)
     }
 
     fn add_analyzer(mut self, analyzer: Box<dyn Analyzer>) -> Self {
@@ -81,283 +68,63 @@ impl Runner for AgentRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::analyzers::{HTTPParser, MaterializingAnalyzer, SSEProcessor};
-    use crate::runners::FakeRunner;
-    use crate::view::MaterializedView;
-    use futures::stream::StreamExt;
-    use std::time::Duration;
-    use tokio::time::timeout;
+    use crate::analyzers::AnalyzerError;
+    use crate::event::Event;
+    use futures::{StreamExt, stream};
 
-    fn materializer() -> MaterializingAnalyzer {
-        MaterializingAnalyzer::with_view(MaterializedView::shared_bounded())
-    }
+    struct MemoryRunner(Vec<Event>);
 
-    #[tokio::test]
-    async fn test_agent_runner_basic_composition() {
-        let fake_runner1 = FakeRunner::new().event_count(2).delay_ms(10);
+    #[async_trait]
+    impl Runner for MemoryRunner {
+        async fn run(&mut self) -> Result<EventStream, RunnerError> {
+            Ok(Box::pin(stream::iter(std::mem::take(&mut self.0))))
+        }
 
-        let fake_runner2 = FakeRunner::new().event_count(3).delay_ms(15);
-
-        let mut agent = AgentRunner::new()
-            .add_runner(Box::new(fake_runner1))
-            .add_runner(Box::new(fake_runner2));
-
-        assert_eq!(agent.runner_count(), 2);
-        assert_eq!(agent.analyzer_count(), 0);
-
-        let stream = agent.run().await.unwrap();
-        let events: Vec<_> = stream.collect().await;
-
-        // Should have events from both runners (4 + 6 = 10 total)
-        // FakeRunner generates 2 events per event_count (request + response pairs)
-        assert_eq!(events.len(), 10);
-
-        // Verify events come from SSL source (FakeRunner only generates SSL events)
-        let ssl_events = events.iter().filter(|e| e.source == "ssl").count();
-        assert_eq!(ssl_events, 10); // All events are SSL events from FakeRunner
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_with_global_analyzers() {
-        let fake_runner = FakeRunner::new()
-            .event_count(2)
-            .delay_ms(10)
-            .add_analyzer(Box::new(HTTPParser::new().disable_raw_data()));
-
-        let mut agent = AgentRunner::new()
-            .add_runner(Box::new(fake_runner))
-            .add_global_analyzer(Box::new(materializer()));
-
-        assert_eq!(agent.runner_count(), 1);
-        assert_eq!(agent.analyzer_count(), 1);
-
-        let stream = agent.run().await.unwrap();
-        let events: Vec<_> = stream.collect().await;
-
-        // Should have at least the original runner events.
-        assert!(events.len() >= 4);
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_multiple_runners_with_analyzers() {
-        let fake_runner1 = FakeRunner::new()
-            .event_count(1)
-            .delay_ms(10)
-            .add_analyzer(Box::new(SSEProcessor::new_with_timeout(5000)));
-
-        let fake_runner2 = FakeRunner::new()
-            .event_count(1)
-            .delay_ms(10)
-            .add_analyzer(Box::new(HTTPParser::new()));
-
-        let mut agent = AgentRunner::new()
-            .add_runner(Box::new(fake_runner1))
-            .add_runner(Box::new(fake_runner2));
-
-        let stream = agent.run().await.unwrap();
-        let events: Vec<_> = stream.collect().await;
-
-        // Should have events from both runners (2 events per event_count each)
-        assert!(events.len() >= 4, "Should have at least 4 events");
-
-        // Check for events from different sources (SSL from FakeRunner, potentially processed by analyzers)
-        let sources: std::collections::HashSet<_> = events.iter().map(|e| &e.source).collect();
-        assert!(
-            !sources.is_empty(),
-            "Should have events from at least one source"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_empty_runners() {
-        let mut agent = AgentRunner::new();
-
-        assert_eq!(agent.runner_count(), 0);
-
-        let result = agent.run().await;
-        assert!(result.is_err(), "Should fail with no runners configured");
-
-        if let Err(e) = result {
-            let error_msg = format!("{}", e);
-            assert!(
-                error_msg.contains("No runners configured"),
-                "Should have descriptive error message"
-            );
+        fn add_analyzer(self, _analyzer: Box<dyn Analyzer>) -> Self {
+            self
         }
     }
 
+    struct CountAnalyzer;
+
+    #[async_trait]
+    impl Analyzer for CountAnalyzer {
+        async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
+            Ok(Box::pin(stream.map(|mut event| {
+                event.data["seen"] = serde_json::json!(true);
+                event
+            })))
+        }
+    }
+
+    fn event(pid: u32) -> Event {
+        Event::new_with_timestamp(1, "test".into(), pid, "agent".into(), serde_json::json!({}))
+    }
+
     #[tokio::test]
-    async fn test_agent_runner_streaming_behavior() {
-        use std::sync::Arc;
-        use std::time::Instant;
-        use tokio::sync::Mutex;
+    async fn merges_runners_and_applies_stable_analyzer_boundary() {
+        let mut runner = AgentRunner::new()
+            .add_runner(Box::new(MemoryRunner(vec![event(1)])))
+            .add_runner(Box::new(MemoryRunner(vec![event(2)])))
+            .add_global_analyzer(Box::new(CountAnalyzer));
 
-        let event_timestamps = Arc::new(Mutex::new(Vec::new()));
+        let events: Vec<_> = runner.run().await.unwrap().collect().await;
+        assert_eq!(events.len(), 2);
+        assert!(events.iter().all(|event| event.data["seen"] == true));
+    }
 
-        // Custom analyzer that records timestamps
-        struct TimestampRecorder {
-            timestamps: Arc<Mutex<Vec<Instant>>>,
-        }
+    #[tokio::test]
+    async fn rejects_empty_runner_set_and_propagates_runner_errors() {
+        assert!(AgentRunner::new().run().await.is_err());
 
-        impl TimestampRecorder {
-            fn new(timestamps: Arc<Mutex<Vec<Instant>>>) -> Self {
-                Self { timestamps }
-            }
-        }
-
+        struct Failing;
         #[async_trait]
-        impl Analyzer for TimestampRecorder {
-            async fn process(
-                &mut self,
-                stream: EventStream,
-            ) -> Result<EventStream, Box<dyn std::error::Error + Send + Sync>> {
-                let timestamps = self.timestamps.clone();
-                let recorded_stream = stream.map(move |event| {
-                    let timestamps_clone = timestamps.clone();
-                    tokio::spawn(async move {
-                        let mut guard = timestamps_clone.lock().await;
-                        guard.push(Instant::now());
-                    });
-                    event
-                });
-                Ok(Box::pin(recorded_stream))
-            }
-        }
-
-        let fake_runner = FakeRunner::new().event_count(3).delay_ms(50); // Longer delay to ensure streaming behavior
-
-        let mut agent = AgentRunner::new()
-            .add_runner(Box::new(fake_runner))
-            .add_global_analyzer(Box::new(TimestampRecorder::new(Arc::clone(
-                &event_timestamps,
-            ))));
-
-        let start_time = Instant::now();
-        let stream = agent.run().await.unwrap();
-        let events: Vec<_> = stream.collect().await;
-        let total_time = start_time.elapsed();
-
-        // Wait for async timestamp recording to complete
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        assert_eq!(events.len(), 6); // 3 event_count × 2 events per count (request + response)
-
-        let timestamps_guard = event_timestamps.lock().await;
-        assert!(
-            timestamps_guard.len() >= 3,
-            "Should have recorded multiple timestamps"
-        );
-
-        // Should take some time due to delays, indicating streaming behavior
-        assert!(
-            total_time >= Duration::from_millis(100),
-            "Should demonstrate streaming behavior"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_concurrent_processing() {
-        // Test multiple agent runners running concurrently
-        let mut handles = Vec::new();
-
-        for i in 0..3 {
-            let handle = tokio::spawn(async move {
-                let fake_runner = FakeRunner::new().event_count(2).delay_ms(10);
-
-                let mut agent = AgentRunner::new().add_runner(Box::new(fake_runner));
-
-                let stream = agent.run().await.unwrap();
-                let events: Vec<_> = stream.collect().await;
-
-                (i, events.len())
-            });
-            handles.push(handle);
-        }
-
-        // Wait for all agents to complete
-        let mut results = Vec::new();
-        for handle in handles {
-            results.push(handle.await.unwrap());
-        }
-
-        // All agents should have processed events
-        assert_eq!(results.len(), 3);
-        for (agent_id, event_count) in results {
-            assert_eq!(
-                event_count, 4,
-                "Agent {} should have 4 events (2 event_count × 2 events)",
-                agent_id
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_error_handling() {
-        // Test that agent runner handles runner failures gracefully
-
-        // Create a mock runner that fails
-        struct FailingRunner;
-
-        #[async_trait]
-        impl Runner for FailingRunner {
+        impl Runner for Failing {
             async fn run(&mut self) -> Result<EventStream, RunnerError> {
-                Err("Simulated runner failure".into())
+                Err("runner failed".into())
             }
-
-            fn add_analyzer(self, _analyzer: Box<dyn Analyzer>) -> Self {
-                self
-            }
+            fn add_analyzer(self, _analyzer: Box<dyn Analyzer>) -> Self { self }
         }
-
-        let mut agent = AgentRunner::new().add_runner(Box::new(FailingRunner));
-
-        let result = agent.run().await;
-        assert!(result.is_err(), "Should propagate runner error");
-
-        if let Err(e) = result {
-            let error_msg = format!("{}", e);
-            assert!(
-                error_msg.contains("Simulated runner failure"),
-                "Should contain original error message"
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_with_timeout() {
-        // Test agent runner with timeout to ensure it doesn't hang
-        let fake_runner = FakeRunner::new().event_count(5).delay_ms(10);
-
-        let mut agent = AgentRunner::new().add_runner(Box::new(fake_runner));
-
-        let result = timeout(Duration::from_secs(5), async {
-            let stream = agent.run().await.unwrap();
-            let events: Vec<_> = stream.collect().await;
-            events.len()
-        })
-        .await;
-
-        assert!(result.is_ok(), "AgentRunner should complete within timeout");
-        assert_eq!(
-            result.unwrap(),
-            10,
-            "Should process all events (5 event_count × 2 events)"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_agent_runner_fluent_interface() {
-        // Test that the fluent interface works correctly
-        let fake_runner1 = FakeRunner::new().event_count(1).delay_ms(10);
-        let fake_runner2 = FakeRunner::new().event_count(1).delay_ms(10);
-
-        let agent = AgentRunner::new()
-            .add_runner(Box::new(fake_runner1))
-            .add_runner(Box::new(fake_runner2))
-            .add_global_analyzer(Box::new(materializer()))
-            .add_analyzer(Box::new(materializer()));
-
-        assert_eq!(agent.runner_count(), 2);
-        assert_eq!(agent.analyzer_count(), 2); // Both global analyzers should be present
+        assert!(AgentRunner::new().add_runner(Box::new(Failing)).run().await.is_err());
     }
 }

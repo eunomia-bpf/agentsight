@@ -2,7 +2,7 @@
 
 状态：产品设计记录。文中“当前已有”和“需要实现”严格分开；未实现能力不是发布承诺。
 
-记录日期：2026-08-11。
+记录日期：2026-08-11；实现状态更新：2026-08-13。
 
 讨论来源：[ChatGPT 分享记录：跨平台代理管理工具](https://chatgpt.com/share/6a7ab2ee-4f9c-83ea-a873-614543f3bbbe)。
 
@@ -139,10 +139,9 @@ AgentSight Cloud。
 - collaboration、share link 和 billing metadata。
 
 它没有 raw telemetry ingest API，不保存完整 session body，也不参与 Node 的本地 capture
-正确性。讨论中的第一版参考部署是静态 SPA + Cloudflare Worker + D1；当前 SPA 由本仓库的
-GitHub Pages workflow 发布并经 Cloudflare 自定义域名提供，迁移到 Cloudflare Pages 不改变
-协议。Durable Objects 只用于 presence/WSS routing，connection relay 与 control API 逻辑
-分离。也可以替换为 Lambda 或一个小型 Rust service，而无需改变 data plane。
+正确性。当前部署把静态 SPA assets、Controller router、D1 binding 和 Durable Object relay
+编译为同一个 Cloudflare Worker version，并一次原子发布；源码和构建仍按 `frontend/` 与
+`controller/` 分层。Direct 和自托管路径继续使用同一 Node Protocol，不依赖该 Worker。
 
 ### Presentation Plane
 
@@ -181,8 +180,13 @@ agentsight report serve --db run.db
 ```
 
 目标体验是打开 presentation SPA 后先自动发现 same-origin AgentSight Node；没有发现时再让
-用户连接 Direct Node、登录或进入 demo。`agentsight bind` 默认生成 loopback endpoint，但
-Local 不是另一套特殊协议或页面模式。数据仍写入本地 SQLite，用户不需要 Cloud account。当前 release 仍内嵌并 serve UI，这是
+匿名用户连接 Direct Node、登录或进入 demo。登录但尚未直连 Node 的用户进入机器目录，
+看到账号中已注册的 Node 元数据、当前浏览器的直连状态和准确的重新连接指引，不再重复
+显示匿名三选一弹窗。目录中的 `Registered` 只表示最近一次成功注册，不是在线 heartbeat；
+Direct 访问详细数据需要当前浏览器持有 Node capability；已登录的账号成员也可通过授权 relay
+访问，不会因此获得 Direct bearer。`agentsight bind` 默认生成 loopback endpoint，但 Local
+不是另一套特殊协议或页面模式。`record` 可写入本地 SQLite；bind 显式 `--db` 时只读已有
+saved SQLite，不带 `--db` 时只读取 live processes 和本地 agent session。用户不需要 Cloud account。当前 release 仍内嵌并 serve UI，这是
 待移除的兼容实现，不是最终 presentation architecture。完全离线时使用 CLI/TUI、已缓存
 PWA，或在可信网络里部署同一份静态 bundle。
 
@@ -208,7 +212,7 @@ ssh -N -L 27395:127.0.0.1:7395 server
 统一 fleet 入口仍是 `app.agentsight.us`；目标 `DirectFleetProvider` 通过 authenticated
 Node Protocol 查询配置的节点并在浏览器合并，不要求用户学习另一组采集命令。本轮实现的
 `agentsight bind` 默认开放 loopback，也允许显式指定 listen IP、port、browser endpoint
-和 self-hosted app URL；它把随机 process-lifetime bearer 直接放在 URL fragment 中，SPA
+和 self-hosted app URL；它把持久化 Node bearer 通过 URL fragment 交给浏览器，SPA
 读取后立即清除 fragment，不再增加短码交换协议。现有 `record` server 的兼容接口没有因此变成可公开的远程 API。Direct Mode
 不需要 AgentSight backend；SSH 只是现有可用的 tunnel，不是独立 provider。
 
@@ -529,18 +533,17 @@ agent evidence，而不是采集最多 telemetry。
 | Capture pipeline | 已有 SSL/process/stdio/system、analyzer、MaterializedView 和 sinks |
 | Local persistence | 已有 SQLite，但产品化 lifecycle 仍不完整 |
 | Container targeting | 已支持 Docker/Kubernetes binary resolution |
-| Static app | `app.agentsight.us` 托管本仓库 SPA；无连接时明确选择 Bind、OAuth 登录或 recorded demo |
-| Node bind | `agentsight bind` 用 URL fragment 交付随机 process-lifetime bearer；默认自动发现 loopback，但可指定 listen IP、port、browser endpoint 和自托管 app URL；Node ID 持久化，token 随进程失效 |
-| Direct API | `/api/v1/info` 和 bearer-protected `/api/v1/snapshot`；CORS origin 来自本次选择的 hosted/self-hosted app；bind 默认读取最新 SQLite 或本地 session index |
-| Cloud control | Cloudflare Worker + D1 已实现带浏览器 PKCE 的 GitHub/Google OAuth flow、session 和 owner-scoped Direct Node metadata registry；不接收 snapshot；provider 上线仍需配置四个 OAuth secrets |
-| Managed relay/Gateway | 尚未实现；当前跨机仍需 BYO connectivity，登录不会让不可达 Node 自动上线 |
+| Static app | `app.agentsight.us` 托管本仓库 SPA；匿名且无连接时选择 Bind、OAuth 登录或 recorded demo；登录后显示 metadata-only Node 目录，当前直连 Node 进入数据概览 |
+| Node bind | `agentsight bind` 用 URL fragment 向浏览器交付持久化 Node bearer；默认自动发现 loopback，也可指定 listen IP、port、browser endpoint 和自托管 app URL；Node ID 和 token 均跨进程复用 |
+| Direct API | `/api/v1/info`、机器级 `/api/v1/overview`、`/api/v1/snapshot` 和按需 session detail/message；CORS origin 来自本次选择的 hosted/self-hosted app；bind 默认读取 live processes 和本地 agent session index，只有显式 `--db` 才读取 saved SQLite |
+| Cloud control | 同一 Cloudflare Worker 原子部署 SPA 与 Controller；D1 已实现 PKCE OAuth、organization、membership/RBAC、Node registry、配置与计费元数据；Direct 配置加密保存 |
+| Managed relay | 已实现 Node outbound WSS、Durable Object routing、浏览器 relay fallback 和基础 capability gate；relay payload 仅在请求期间转发，不写入 D1 |
+| Enterprise Gateway | 尚未实现；大规模 site federation 仍是后续能力 |
 
-本轮是可 dogfood 的 Local/Direct saved-session/index 切片，不是跨进程 eBPF live relay 或完整
-enterprise claim：仍保留 embedded assets
-以兼容旧入口；Snapshot 仍是迁移接口；direct access 仍是 process-lifetime bearer，而不是
-浏览器 key + proof-of-possession；organization、RBAC/capability、revocation、managed relay、
-Site Gateway 和 bounded typed query 仍未完成。Node API 不能直接暴露到公网、LAN 或 tailnet；
-公开协议还必须补齐 HTTPS、pagination、deadline、response limit 和 disclosure policy。
+当前实现已可 dogfood Local、Direct 和 Managed relay，但不是完整 enterprise claim：仍保留
+embedded assets 以兼容旧入口，Snapshot 仍是迁移接口，持久化 bearer 还没有
+proof-of-possession 或 revocation，relay 也没有 E2E content encryption。Site Gateway、bounded
+typed query、完整 disclosure audit、SAML/SCIM、HA 和 enterprise rollout 仍未完成。
 
 ## 还差哪些部分
 
@@ -560,24 +563,19 @@ Site Gateway 和 bounded typed query 仍未完成。Node API 不能直接暴露�
 
 ### 个人和小团队首先需要
 
-1. static node registry；
-2. `DirectFleetProvider`；
-3. scoped local token、public-key trust 和 pairing；
-4. 保留现有 CLI 入口，在 hosted UI 中增加 multi-node navigation；
-5. snapshot merge、timeout、offline 和 partial-result UI；
-6. Tailscale/VPN/LAN/SSH tunnel 等 BYO connectivity。
+1. public-key trust 和 proof-of-possession；
+2. snapshot merge、timeout、offline 和 partial-result UI；
+3. Tailscale/VPN/LAN/SSH tunnel 等 BYO connectivity 的部署验证。
 
 这些完成后，个人就有无需 backend 的统一多机体验，同时验证企业 federation 最关键的
 protocol 和 merge semantics。
 
 ### 企业随后增加
 
-1. UserIdentity、NodeIdentity、enrollment、rotation 和 revoke；
-2. OIDC、organization、capability、field policy 和 admin audit；
-3. metadata-only control plane 和 node/site discovery；
-4. Site Gateway 的 index、cache、aggregation 和 ephemeral retention；
-5. outbound WSS/TLS relay，随后 E2E relay、direct upgrade 和 private deployment；
-6. version rollout、rollback、HA、SAML/SCIM 和 enterprise runbook。
+1. Node/client proof-of-possession、rotation 和 revoke；
+2. field policy、query/disclosure audit 和 E2E relay；
+3. Site Gateway 的 index、cache、aggregation 和 ephemeral retention；
+4. direct upgrade、private deployment、HA、SAML/SCIM 和 enterprise runbook。
 
 ### 可上线的最小 SaaS 切片
 
@@ -591,43 +589,24 @@ remote-access adapter：
 4. 后台服务可选建立 outbound WSS，并复用同一个授权校验和 query handler；
 5. 移除 Node release 对前端 assets 的依赖，但保持现有 CLI 命令和本地离线能力。
 
-最小 hosted stack 只有：静态 SPA（当前 GitHub Pages，也可换 Cloudflare Pages），OIDC/
-organization/Node registry/capability signing API，D1 中的 identity/public key/policy/
-allowlisted metadata/admin audit，
-以及 Node 主动连接的 WSS routing/relay。不需要 Kafka、ClickHouse、对象存储或 raw ingest。
+最小 hosted stack 已收敛为一个 Cloudflare Worker version：静态 SPA assets、OIDC/
+organization/Node registry API、D1 bindings 和 Durable Object WSS relay。它不需要 Kafka、
+ClickHouse、对象存储或 raw ingest，也不替代 Direct、自托管或离线 CLI 路径。
 
 上线的真正安全阻塞是 Node/client identity、一次性配对、短期 capability +
 proof-of-possession、revocation、精确 CORS/LNA，以及 relay 的资源边界。如果宣传
 “AgentSight 看不到查询内容”，E2E 也是发布阻塞；如果首版先使用 TLS relay，则必须如实
 宣传为“不持久化、不建设中央 telemetry store”，而不是 zero-knowledge。
 
-## 当前发布阻塞与非阻塞项
-
-截至 2026-08-11：
-
-- 最新 release 是 [v1.0.5](https://github.com/eunomia-bpf/agentsight/releases/tag/v1.0.5)；
-- [Issue #22](https://github.com/eunomia-bpf/agentsight/issues/22) 的 Linux ARM64 release
-  已由 master 上的 CI/release 改动关闭；
-- [PR #144](https://github.com/eunomia-bpf/agentsight/pull/144) 的 session-level OTel trace
-  correlation 尚未合入 master；
-- [PR #148](https://github.com/eunomia-bpf/agentsight/pull/148) 的 audit source/confidence
-  provenance 尚未合入 master。
-
-Linux x86_64 个人本地使用不被这些事项阻塞。ARM64 是相应设备的发布阻塞；audit
-provenance 是跨来源 merge 的 P0；OTel session correlation 是标准化 export 的 P0，但不是
-Direct Fleet 本地查询的前置条件。
-
 ## 实施顺序
 
 架构实施应从共同底座向外扩展，而不是先造企业 backend：
 
 1. 保持现有 `top`/`record`/`report`/`monitor` 入口和 capture/storage 路径不变；
-2. 将静态 SPA 与 Node binary 解耦，在现有 view 上加最小 bounded Node API；
-3. 加入 Node/client key、managed enrollment 和 capability validation；
-4. 交付 Local/Direct provider，并让后台服务可选建立 outbound WSS；
-5. 上线 metadata-only coordination，先用明确披露信任边界的 relay 自己 dogfood；
-6. 再补 E2E、direct-path upgrade、provenance/detection/storage lifecycle；
-7. 最后按真实企业需求加入 Site Gateway、HA 和 identity lifecycle。
+2. 保持 SPA/Controller 单 Worker 原子部署和 Node binary 解耦；
+3. 在现有 Local/Direct/relay provider 上补 proof-of-possession、revocation 和 bounded query；
+4. 再补 E2E、direct-path upgrade、provenance/detection/storage lifecycle；
+5. 最后按真实企业需求加入 Site Gateway、HA 和 identity lifecycle。
 
 这条顺序让每一步都产生可用产品：个人模式不是被企业版淘汰的临时实现，而是企业数据面
 的最小、可独立运行单元。

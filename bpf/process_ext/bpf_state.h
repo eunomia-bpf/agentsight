@@ -39,6 +39,21 @@ struct {
 	__type(value, struct exit_mem_info);
 } exit_mem SEC(".maps");
 
+struct accept_peer_key {
+	__u64 start_time;
+	__u32 pid;
+	__u16 port;
+	__u16 family;
+	__u8 peer[16];
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 16384);
+	__type(key, struct accept_peer_key);
+	__type(value, __u8);
+} accept_peers_seen SEC(".maps");
+
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 8192);
@@ -46,10 +61,21 @@ struct {
 	__type(value, int);
 } write_ctx_map SEC(".maps");
 
+/* Keep the socket across inet_listen entry/return so only successful listens
+ * are reported, with the assigned port (including implicit/ephemeral binds). */
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 4096);
+	__type(key, u64);
+	__type(value, u64);
+} listen_socket_map SEC(".maps");
+
 const volatile bool filter_pids = false;
 const volatile bool filter_cgroup = false;
 const volatile bool filter_cgroup_children = false;
 const volatile unsigned long long target_cgroup_id = 0;
+const volatile unsigned long long target_pidns_dev = 0;
+const volatile unsigned long long target_pidns_ino = 0;
 const volatile bool trace_fs_mutations = false;
 const volatile bool trace_network = false;
 const volatile bool trace_signals = false;
