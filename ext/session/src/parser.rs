@@ -5120,6 +5120,30 @@ mod tests {
     }
 
     #[test]
+    fn codex_token_usage_record_updates_session_totals() {
+        let codex = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-agentsight-mock","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"agentsight macos live token check"}]}}"#,
+            "\n",
+            r#"{"type":"token_usage_record","payload":{"usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"turn_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15},"thread_token_usage":{"input_tokens":11,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":4,"reasoning_output_tokens":0,"total_tokens":15}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.model.as_deref(), Some("gpt-agentsight-mock"));
+        assert_eq!(session.usage.input_tokens, 11);
+        assert_eq!(session.usage.output_tokens, 4);
+        assert_eq!(session.usage.total_tokens, 15);
+    }
+
+    #[test]
     fn claude_exact_skill_calls_create_prompt_bounded_latest_wins_scopes() {
         let claude = [
             r#"{"type":"system","skill_listing":["availability only"]}"#,
