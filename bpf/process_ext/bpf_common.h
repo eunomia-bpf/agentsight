@@ -16,8 +16,43 @@ static __always_inline bool is_pid_tracked(void)
 	return bpf_map_lookup_elem(&tracked_pids, &pid) != NULL;
 }
 
-static __always_inline bool is_cgroup_tracked(void)
+/* Kernel PID namespace nesting is capped at 32 levels (MAX_PID_NS_LEVEL). */
+#define PIDNS_MAX_LEVEL 32
+
+/*
+ * True when the target PID namespace appears anywhere in the current task's
+ * struct pid chain, i.e. when the task is visible from that namespace. That
+ * covers the namespace itself and every namespace nested inside it (for
+ * example a bubblewrap/unshare --pid sandbox started by the target).
+ * bpf_get_ns_current_pid_tgid() is not usable here: it only succeeds when the
+ * task's innermost namespace is exactly the target. Namespace inode numbers
+ * are unique within nsfs, so the inode alone identifies the namespace.
+ */
+static __noinline bool task_visible_in_target_pidns(void)
 {
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct pid *thread_pid = BPF_CORE_READ(task, thread_pid);
+	unsigned int level;
+
+	if (!thread_pid)
+		return false;
+	level = BPF_CORE_READ(thread_pid, level);
+	for (int i = 0; i < PIDNS_MAX_LEVEL; i++) {
+		struct pid_namespace *ns;
+
+		if (i > level)
+			break;
+		ns = BPF_CORE_READ(thread_pid, numbers[i].ns);
+		if (ns && BPF_CORE_READ(ns, ns.inum) == target_pidns_ino)
+			return true;
+	}
+	return false;
+}
+
+static __always_inline bool is_scope_tracked(void)
+{
+	if (target_pidns_ino && !task_visible_in_target_pidns())
+		return false;
 	if (!filter_cgroup)
 		return true;
 	u64 cgroup_id = bpf_get_current_cgroup_id();
@@ -30,11 +65,23 @@ static __always_inline bool is_cgroup_tracked(void)
 
 static __always_inline bool is_event_tracked(void)
 {
-	return is_cgroup_tracked() && is_pid_tracked();
+	return is_scope_tracked() && is_pid_tracked();
+}
+
+static __always_inline u64 current_process_start_ns(void)
+{
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct task_struct *leader = BPF_CORE_READ(task, group_leader);
+	if (!leader)
+		leader = task;
+	if (bpf_core_field_exists(leader->start_boottime))
+		return BPF_CORE_READ(leader, start_boottime);
+	return BPF_CORE_READ(leader, start_time);
 }
 
 static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 bytes)
 {
+	key->process_start_ns = current_process_start_ns();
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, key);
 	if (val) {
 		__sync_fetch_and_add(&val->count, count);
@@ -63,6 +110,8 @@ static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 b
 /* Format "fd=N" into a detail buffer without bpf_snprintf */
 static __always_inline void format_fd_detail(char *buf, int buf_len, int fd)
 {
+	/* Keep LLVM from folding stack pointer arithmetic into bitwise OR. */
+	barrier_var(buf);
 	/* "fd=" prefix */
 	if (buf_len < 4) return;
 	buf[0] = 'f'; buf[1] = 'd'; buf[2] = '=';
@@ -103,6 +152,8 @@ static __always_inline void format_fd_detail(char *buf, int buf_len, int fd)
 /* Fully unrolled for BPF verifier (no loops / back-edges) */
 static __always_inline void write_octet(char *buf, int buf_len, int *pos, u8 val)
 {
+	/* Keep LLVM from folding stack pointer arithmetic into bitwise OR. */
+	barrier_var(buf);
 	if (val >= 100 && *pos < buf_len - 1) buf[(*pos)++] = '0' + val / 100;
 	if (val >= 10  && *pos < buf_len - 1) buf[(*pos)++] = '0' + (val / 10) % 10;
 	if (*pos < buf_len - 1)               buf[(*pos)++] = '0' + val % 10;
@@ -110,6 +161,8 @@ static __always_inline void write_octet(char *buf, int buf_len, int *pos, u8 val
 
 static __always_inline void format_ipv4_port(char *buf, int buf_len, u32 ip, u16 port)
 {
+	/* Keep LLVM from folding stack pointer arithmetic into bitwise OR. */
+	barrier_var(buf);
 	int pos = 0;
 	u8 o0 = ip & 0xFF;
 	u8 o1 = (ip >> 8) & 0xFF;

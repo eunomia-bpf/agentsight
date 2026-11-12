@@ -38,7 +38,7 @@ agentsight top
 ```
 
 <div align="center">
-  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/ext/vis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
   <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across the ACTplane repository</em></p>
 </div>
 
@@ -98,6 +98,16 @@ the `agentsight` package and is the library's primary consumer.
 
 ### Installation
 
+#### Homebrew on Linux
+
+```bash
+brew tap eunomia-bpf/tap
+brew install eunomia-bpf/tap/agentsight
+agentsight --version
+```
+
+The current Homebrew formula supports Linux x86-64.
+
 #### Cargo or Release Binary
 
 For local use, install with `cargo install agentsight` or download the latest
@@ -109,6 +119,10 @@ The unsuffixed `agentsight` asset remains an x86_64 compatibility alias.
 Native Windows builds are exercised by the Windows CI workflow; until a Windows
 release asset is published, download its `agentsight-windows-x86_64` artifact or
 build the collector crate from source.
+
+For Linux and Windows installation, background monitoring, Node binding,
+automatic startup, upgrades, and removal, see
+[Installation and Automatic Startup](docs/installation.md).
 
 #### Docker
 
@@ -163,13 +177,18 @@ agentsight report export -o snapshot.json    # export for web dashboard; see doc
 agentsight report --local                    # summarize native Claude/Codex/Gemini sessions
 ```
 
+On supported Linux kernels, process `FILE_OPEN` events include resolved paths,
+read/write/exec access, and overlay layer and inode metadata. See the
+[process probe reference](bpf/README.md#1-process-tracer-process) for the JSON
+fields and older-kernel fallback.
+
 ### Offline Agent pprof Profiles
 
 Use `agentpprof` when you want a no-sudo pprof/folded-stack/SVG summary of
 local Codex or Claude session history:
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- \
+cargo run --manifest-path ext/pprof/Cargo.toml -- \
   --project-root . \
   --view tokens \
   -o agent.pb.gz
@@ -186,7 +205,7 @@ prompt tag, model, and token kind.
   <p><em>Offline token profile generated from real local bpf-benchmark coding-agent sessions</em></p>
 </div>
 
-See [agentpprof/README.md](agentpprof/README.md) for CLI details and the
+See [ext/pprof/README.md](ext/pprof/README.md) for CLI details and the
 [agentpprof profiling guide](docs/agentpprof.md#example-flamegraphs) for
 flamegraph examples, rendering, view selection, and deterministic tagging rules.
 
@@ -236,6 +255,7 @@ For a saved SQLite session, run `agentsight report serve --db run.db` and open t
 | Python (aider, open-interpreter, …) | `sudo ./agentsight record -c python` |
 | Docker containers (OpenClaw, …) | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
 | Cursor (IDE) | `agentsight top` reads its local sessions, no sudo needed |
+| CodeBuddy CLI | `agentsight top` reads `~/.codebuddy/projects`; `sudo ./agentsight record -c codebuddy` attaches the running Node process |
 | Any command | `sudo ./agentsight record -- <command>` |
 
 See [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md) for agent-specific setup, SSL quirks, browser capture, MCP stdio, and advanced flags.

@@ -18,6 +18,7 @@
 struct codex_rustls_offset {
 	size_t offset;
 	bool vectored;
+	bool plaintext; /* buffer_plaintext funnel instead of write/write_vectored */
 };
 
 struct codex_rustls_offsets {
@@ -42,9 +43,56 @@ static const uint8_t codex_rustls_writev_prefix[] = {
 static const uint8_t codex_rustls_writev_iov[] = {
 	0x49, 0x89, 0xfe, 0x48, 0x83, 0xfa, 0x01, 0x75,
 };
+/* Codex CLI 0.160.0 emits an additional saved-register move before the same
+ * iovec copy. The second argument remains the iovec pointer in rsi and the
+ * third remains its count in rdx, as required by probe_rustls_write_vectored. */
+static const uint8_t codex_rustls_writev_iov_v2[] = {
+	0x48, 0x89, 0xd3, 0x49, 0x89, 0xff,
+	0x48, 0x83, 0xfa, 0x01, 0x75,
+};
 static const uint8_t codex_rustls_writev_copy[] = {
 	0xf3, 0x0f, 0x6f, 0x06, 0xf3, 0x0f, 0x7f, 0x44,
 	0x24, 0x10,
+};
+
+/*
+ * rustls 0.23 CommonState::buffer_plaintext as compiled into Codex
+ * 0.144.5 / 0.151.0 / 0.152.0 (musl, rustc != Grok's 1.92 layout).
+ * write() is often inlined; this function remains the single plaintext
+ * funnel from both write and write_vectored.
+ */
+static const uint8_t codex_rustls_buffer_plaintext_prefix[] = {
+	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
+	0x54, 0x53, 0x48, 0x83, 0xec, 0x28, 0x49, 0x89,
+	0xd6, 0x48, 0x89, 0xf3, 0x4c, 0x8b, 0xa7, 0x08,
+	0x03, 0x00, 0x00,
+};
+#define CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET 0x1b
+static const uint8_t codex_rustls_buffer_plaintext_sentinel[] = {
+	0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x80,
+};
+
+/*
+ * rustls 0.23.46 buffer_plaintext as compiled into Codex CLI 0.164.0 (musl).
+ * write() and write_vectored() are fully inlined into their callers there, so
+ * the funnel is the only stable hook. It is monomorphized once per connection
+ * type, giving several identical copies that differ only in the indirect
+ * call target; every copy is validated and hooked. The probe's
+ * rustls_outbound_chunks view matches the reads at the top of the function:
+ * count at [rsi], data at [rsi+8], start_or_len at [rsi+0x10], end at
+ * [rsi+0x18]. The prefix therefore covers the prologue through the first
+ * branch, which includes all four of those loads.
+ */
+static const uint8_t codex_rustls_buffer_plaintext_v2_prefix[] = {
+	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
+	0x54, 0x53, 0x48, 0x83, 0xec, 0x58, 0x48, 0x89,
+	0xfb, 0x48, 0x8b, 0x0e, 0x48, 0x8b, 0x46, 0x08,
+	0x48, 0x89, 0x44, 0x24, 0x08, 0x4c, 0x8b, 0x76,
+	0x18, 0x4c, 0x8b, 0x7e, 0x10, 0x4d, 0x89, 0xf5,
+	0x4d, 0x29, 0xfd, 0x48, 0x89, 0x4c, 0x24, 0x10,
+	0x48, 0x85, 0xc9, 0x4d, 0x0f, 0x44, 0xef, 0x0f,
+	0x84,
 };
 
 /* rustls 0.23 CommonState::buffer_plaintext, as emitted by rustc 1.92.
@@ -135,12 +183,19 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 		if (relative == (size_t)-1)
 			break;
 		size_t offset = search + relative;
-		if (offset + 28 + sizeof(codex_rustls_writev_copy)
+		bool old_layout = offset + 28 + sizeof(codex_rustls_writev_copy)
 				<= (size_t)st.st_size
-		    && memcmp(data + offset + 19, codex_rustls_writev_iov,
-			      sizeof(codex_rustls_writev_iov)) == 0
-		    && memcmp(data + offset + 28, codex_rustls_writev_copy,
-			      sizeof(codex_rustls_writev_copy)) == 0) {
+			&& memcmp(data + offset + 19, codex_rustls_writev_iov,
+				  sizeof(codex_rustls_writev_iov)) == 0
+			&& memcmp(data + offset + 28, codex_rustls_writev_copy,
+				  sizeof(codex_rustls_writev_copy)) == 0;
+		bool new_layout = offset + 31 + sizeof(codex_rustls_writev_copy)
+				<= (size_t)st.st_size
+			&& memcmp(data + offset + 19, codex_rustls_writev_iov_v2,
+				  sizeof(codex_rustls_writev_iov_v2)) == 0
+			&& memcmp(data + offset + 31, codex_rustls_writev_copy,
+				  sizeof(codex_rustls_writev_copy)) == 0;
+		if (old_layout || new_layout) {
 			if (!codex_add_rustls_offset(out, offset, true))
 				break;
 		}
@@ -162,6 +217,88 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 	munmap(data, (size_t)st.st_size);
 	close(fd);
 	return out->count > 0;
+}
+
+static bool codex_find_rustls_buffer_plaintext_v2_offsets(
+	const char *binary_path, struct codex_rustls_offsets *out)
+{
+	struct stat st;
+	uint8_t *data;
+	size_t search = 0;
+	int fd;
+
+	memset(out, 0, sizeof(*out));
+	fd = open(binary_path, O_RDONLY);
+	if (fd < 0)
+		return false;
+	if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+		close(fd);
+		return false;
+	}
+	data = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == MAP_FAILED) {
+		close(fd);
+		return false;
+	}
+	while (search + sizeof(codex_rustls_buffer_plaintext_v2_prefix)
+	       <= (size_t)st.st_size) {
+		size_t relative = codex_find_pattern(
+			data + search, (size_t)st.st_size - search,
+			codex_rustls_buffer_plaintext_v2_prefix,
+			sizeof(codex_rustls_buffer_plaintext_v2_prefix));
+		if (relative == (size_t)-1)
+			break;
+		search += relative;
+		if (out->count == CODEX_MAX_RUSTLS_OFFSETS)
+			break;
+		out->entries[out->count++] = (struct codex_rustls_offset) {
+			.offset = search,
+			.plaintext = true,
+		};
+		search++;
+	}
+	munmap(data, (size_t)st.st_size);
+	close(fd);
+	return out->count > 0;
+}
+
+static bool codex_find_rustls_buffer_plaintext_offset(const char *binary_path,
+						       size_t *offset)
+{
+	struct stat st;
+	uint8_t *data;
+	size_t found;
+	int fd;
+
+	fd = open(binary_path, O_RDONLY);
+	if (fd < 0)
+		return false;
+	if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+		close(fd);
+		return false;
+	}
+	data = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == MAP_FAILED) {
+		close(fd);
+		return false;
+	}
+	found = codex_find_pattern(data, (size_t)st.st_size,
+				   codex_rustls_buffer_plaintext_prefix,
+				   sizeof(codex_rustls_buffer_plaintext_prefix));
+	if (found == (size_t)-1
+	    || found > (size_t)st.st_size
+		       - CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET
+		       - sizeof(codex_rustls_buffer_plaintext_sentinel)
+	    || memcmp(data + found + CODEX_RUSTLS_BUFFER_PLAINTEXT_SENTINEL_OFFSET,
+		      codex_rustls_buffer_plaintext_sentinel,
+		      sizeof(codex_rustls_buffer_plaintext_sentinel)) != 0)
+		found = (size_t)-1;
+	munmap(data, (size_t)st.st_size);
+	close(fd);
+	if (found == (size_t)-1)
+		return false;
+	*offset = found;
+	return true;
 }
 
 static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,

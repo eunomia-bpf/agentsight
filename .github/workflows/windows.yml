@@ -14,17 +14,44 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
 
       - name: Test portable session parser
-        run: cargo test --manifest-path agent-session/Cargo.toml
+        run: cargo test --manifest-path ext/session/Cargo.toml
 
       - name: Test portable capture and native CLI
         run: |
+          cargo test --manifest-path agentsight-protocol/Cargo.toml
           cargo test --manifest-path agentsight-capture/Cargo.toml
+          cargo test --manifest-path compat/agentsight-capture/Cargo.toml
           cargo test --manifest-path collector/Cargo.toml
+
+      - name: Verify canonical cross-platform source layout
+        shell: pwsh
+        run: |
+          $manifests = @(
+            "agentsight-protocol/Cargo.toml",
+            "ext/session/Cargo.toml",
+            "ext/pprof/Cargo.toml",
+            "ext/vis/Cargo.toml"
+          )
+          foreach ($manifest in $manifests) {
+            if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+              throw "missing canonical manifest: $manifest"
+            }
+          }
+
+      - name: Test frontend shell and web extensions
+        run: |
+          npm --prefix frontend ci
+          npm --prefix frontend run test:workers
+          npm --prefix frontend run build
 
       - name: Build and smoke test agentsight.exe
         shell: pwsh
@@ -37,7 +64,7 @@ jobs:
           $fixtureDir = Join-Path $env:HOME ".codex/sessions/2026/06/18"
           New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
           $fixturePath = Join-Path $fixtureDir "public-agentpprof-fixture.jsonl"
-          Get-Content "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" |
+          Get-Content "ext/pprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" |
             ForEach-Object {
               $record = $_ | ConvertFrom-Json
               if ($record.payload.cwd) {
@@ -153,7 +180,18 @@ jobs:
               -ContentType "application/json" `
               -Body '{"message":"windows bind smoke"}' `
               -SkipHttpErrorCheck
-            if ([int]$messageProbe.StatusCode -ne 202) {
+            $principal = [Security.Principal.WindowsPrincipal]::new(
+              [Security.Principal.WindowsIdentity]::GetCurrent()
+            )
+            $elevated = $principal.IsInRole(
+              [Security.Principal.WindowsBuiltInRole]::Administrator
+            )
+            if ($elevated) {
+              if ([int]$messageProbe.StatusCode -ne 502 -or
+                  $messageProbe.Content -notmatch "elevated Windows") {
+                throw "elevated agentsight bind did not fail closed before starting the provider"
+              }
+            } elseif ([int]$messageProbe.StatusCode -ne 202) {
               throw "agentsight bind did not submit through the Windows codex.cmd shim"
             }
           } finally {

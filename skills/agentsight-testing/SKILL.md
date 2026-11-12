@@ -25,10 +25,10 @@ has been exercised end to end.
 
 1. Unit/regression tests:
    - `cargo test --manifest-path collector/Cargo.toml <test_name> -- --nocapture`
-   - `cargo test --manifest-path agent-session/Cargo.toml <test_name> -- --nocapture`
+   - `cargo test --manifest-path ext/session/Cargo.toml <test_name> -- --nocapture`
 2. Component suites:
    - `cargo test --manifest-path collector/Cargo.toml`
-   - `cargo test --manifest-path agent-session/Cargo.toml`
+   - `cargo test --manifest-path ext/session/Cargo.toml`
    - `cd frontend && npm run lint && npm run build`
 3. CLI command smoke:
    - `collector/target/debug/agentsight top --plain --once`

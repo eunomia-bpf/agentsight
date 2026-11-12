@@ -620,6 +620,7 @@ mod tests {
                 file_breakdown: Vec::new(),
                 process_details: Vec::new(),
                 plan: Vec::new(),
+                subscription: None,
             }],
             sections: Vec::new(),
             failures: Vec::new(),
