@@ -114,14 +114,27 @@ static inline void flush_agg_map(int map_fd)
 {
 	struct agg_key key = {}, next_key;
 	struct agg_value val;
+	struct agg_key deleted[64];
+	size_t deleted_len = 0;
 
+	/*
+	 * Deleting the entry that produced the next-key cursor invalidates that
+	 * cursor for a hash map: the kernel may resume from the removed element
+	 * and skip everything after it, so a sweep that deletes as it goes can
+	 * print only the first few buckets and silently drop the rest. Collect
+	 * the keys on this pass and delete them afterwards, as
+	 * flush_pid_from_agg_map already does.
+	 */
 	while (bpf_map_get_next_key(map_fd, &key, &next_key) == 0) {
 		if (bpf_map_lookup_elem(map_fd, &next_key, &val) == 0 && val.count > 0) {
 			print_summary_json(&next_key, &val);
-			bpf_map_delete_elem(map_fd, &next_key);
+			if (deleted_len < sizeof(deleted) / sizeof(deleted[0]))
+				deleted[deleted_len++] = next_key;
 		}
 		key = next_key;
 	}
+	for (size_t i = 0; i < deleted_len; i++)
+		bpf_map_delete_elem(map_fd, &deleted[i]);
 	fflush(stdout);
 }
 

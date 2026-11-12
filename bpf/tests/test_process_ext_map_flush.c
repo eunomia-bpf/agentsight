@@ -406,6 +406,154 @@ static void print_test_summary(void)
 		printf(RED "Some tests failed!" RESET "\n");
 }
 
+/* ---- flush_agg_map(): deletion must not disturb the sweep cursor -------- */
+
+/*
+ * Regression for a sweep that deleted each entry as it printed it and then
+ * passed the now-deleted key back as the cursor. A hash map may resume from a
+ * removed element and skip the rest, which is how the filesystem SUMMARY
+ * assertion came to see one event type where it expected four.
+ *
+ * The fake below models that: the cursor is resolved by position, so a key
+ * that has been deleted still resumes from its slot and the entries after it
+ * survive. A sweep that deletes while walking therefore reports fewer entries
+ * than it visited.
+ */
+#define FAKE_MAX 6
+static struct agg_key fake_keys[FAKE_MAX];
+static struct agg_value fake_vals[FAKE_MAX];
+static int fake_live[FAKE_MAX];
+static int fake_count;
+
+static int fake_keys_equal(const struct agg_key *a, const struct agg_key *b)
+{
+	return a->pid == b->pid && a->event_type == b->event_type &&
+	       memcmp(a->detail, b->detail, sizeof(a->detail)) == 0;
+}
+
+static int fake_slot_of(const struct agg_key *key)
+{
+	for (int i = 0; i < fake_count; i++)
+		if (fake_keys_equal(&fake_keys[i], key))
+			return i;
+	return -1;
+}
+
+static int fake_next_key(int fd, const void *key, void *next_key)
+{
+	(void)fd;
+	int start = 0;
+	if (key) {
+		static const struct agg_key zero_key;
+		if (!fake_keys_equal((const struct agg_key *)key, &zero_key)) {
+			int slot = fake_slot_of((const struct agg_key *)key);
+			/*
+			 * A deleted cursor no longer names a slot, so the kernel's
+			 * resume point is lost: model that by restarting at the
+			 * beginning, which re-visits earlier buckets and, for a sweep
+			 * that also deletes them, ends early.
+			 */
+			if (slot < 0) {
+				start = 0;
+			} else if (!fake_live[slot]) {
+				/* The cursor names an entry that was just deleted:
+				 * the map resumes past its neighbour, which is the
+				 * skip a delete-while-walking sweep suffers. */
+				start = slot + 2;
+			} else {
+				start = slot + 1;
+			}
+		}
+	}
+	for (int i = start; i < fake_count; i++) {
+		if (fake_live[i]) {
+			memcpy(next_key, &fake_keys[i], sizeof(struct agg_key));
+			return 0;
+		}
+	}
+	return -1;
+}
+
+static int fake_lookup(int fd, const void *key, void *value)
+{
+	(void)fd;
+	int idx = fake_slot_of((const struct agg_key *)key);
+	if (idx < 0 || !fake_live[idx])
+		return -1;
+	memcpy(value, &fake_vals[idx], sizeof(struct agg_value));
+	return 0;
+}
+
+static int fake_delete(int fd, const void *key)
+{
+	(void)fd;
+	int idx = fake_slot_of((const struct agg_key *)key);
+	if (idx < 0 || !fake_live[idx])
+		return -1;
+	fake_live[idx] = 0;
+	return 0;
+}
+
+static void test_flush_agg_map_reports_every_entry(void)
+{
+	printf("\n" BLUE "Testing flush_agg_map() — every live entry is reported:" RESET "\n");
+
+	const int n = 5;
+	fake_count = n;
+	for (int i = 0; i < n; i++) {
+		memset(&fake_keys[i], 0, sizeof(fake_keys[i]));
+		memset(&fake_vals[i], 0, sizeof(fake_vals[i]));
+		fake_keys[i].pid = 100 + i;
+		fake_keys[i].event_type = EVENT_TYPE_DIR_CREATE + i;
+		snprintf(fake_keys[i].detail, DETAIL_LEN, "dir%d", i);
+		fake_vals[i].count = 1;
+		fake_vals[i].last_ts = 1;
+		strncpy(fake_vals[i].comm, "t", TASK_COMM_LEN - 1);
+		fake_live[i] = 1;
+	}
+
+	bpf_map_get_next_key_hook = fake_next_key;
+	bpf_map_lookup_elem_hook  = fake_lookup;
+	bpf_map_delete_elem_hook  = fake_delete;
+
+	int pipefd[2];
+	test_assert(pipe(pipefd) == 0, "created capture pipe");
+	fflush(stdout);
+	int saved_stdout = dup(STDOUT_FILENO);
+	test_assert(saved_stdout >= 0, "duplicated stdout");
+	test_assert(dup2(pipefd[1], STDOUT_FILENO) >= 0, "redirected stdout");
+	close(pipefd[1]);
+
+	flush_agg_map(42);
+	fflush(stdout);
+
+	test_assert(dup2(saved_stdout, STDOUT_FILENO) >= 0, "restored stdout");
+	close(saved_stdout);
+
+	int lines = 0;
+	{
+		char buf[65536];
+		ssize_t got = read(pipefd[0], buf, sizeof(buf) - 1);
+		if (got > 0) {
+			buf[got] = '\0';
+			for (char *q = buf; (q = strstr(q, "\"event\":\"SUMMARY\"")); q++)
+				lines++;
+		}
+	}
+	close(pipefd[0]);
+
+	test_assert(lines == n, "flush_agg_map reports every live entry");
+
+	int remaining = 0;
+	for (int i = 0; i < n; i++)
+		remaining += fake_live[i];
+	test_assert(remaining == 0, "flush_agg_map deletes every reported entry");
+
+	bpf_map_get_next_key_hook = NULL;
+	bpf_map_lookup_elem_hook  = NULL;
+	bpf_map_delete_elem_hook  = NULL;
+}
+
 int main(void)
 {
 	printf(BLUE "===== map_flush.h Test Suite =====" RESET "\n");
@@ -432,6 +580,10 @@ int main(void)
 	test_print_summary_json_escaped_fields();
 	test_print_summary_json_newline_terminated();
 
+	/* flush_agg_map */
+	test_flush_agg_map_reports_every_entry();
+
 	print_test_summary();
 	return (tests_failed > 0) ? 1 : 0;
 }
+
