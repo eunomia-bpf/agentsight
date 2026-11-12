@@ -3,7 +3,6 @@
 
 mod canonical;
 pub(crate) mod llm;
-mod media;
 pub mod process_select;
 mod projection;
 pub mod session_process_match;
@@ -42,7 +41,6 @@ pub struct MaterializedView {
     audit_order: VecDeque<String>,
     sinks: Vec<Box<dyn ViewSink>>,
     pending: HashMap<(u32, u64), VecDeque<PendingRequest>>,
-    pending_by_exchange: HashMap<String, PendingRequest>,
     active_processes: HashMap<u32, String>,
     counts: ViewCounts,
     start_timestamp_ms: Option<u64>,
@@ -75,13 +73,6 @@ struct PendingRequest {
     host: Option<String>,
     path: Option<String>,
     request_id: Option<String>,
-    protocol: Option<String>,
-    connection_id: Option<String>,
-    stream_id: Option<u32>,
-    http_exchange_id: Option<String>,
-    correlation_method: Option<String>,
-    correlation_status: Option<String>,
-    correlation_version: Option<u16>,
     body_json: Option<Value>,
 }
 
@@ -107,7 +98,6 @@ impl MaterializedView {
             audit_order: self.audit_order.clone(),
             sinks: Vec::new(),
             pending: self.pending.clone(),
-            pending_by_exchange: self.pending_by_exchange.clone(),
             active_processes: self.active_processes.clone(),
             counts: self.counts.clone(),
             start_timestamp_ms: self.start_timestamp_ms,
@@ -840,7 +830,6 @@ mod tests {
             response: json!({}),
             view_source: "view".to_string(),
             confidence: Some(0.75),
-            ..Default::default()
         }
     }
 

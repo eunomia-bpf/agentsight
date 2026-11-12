@@ -305,7 +305,6 @@ fn local_prompt_llm_call_row(row: &AuditEventRow) -> Option<LlmCallRow> {
         response: Value::Null,
         view_source: row.view_source.clone(),
         confidence: row.confidence,
-        ..Default::default()
     })
 }
 
@@ -708,7 +707,6 @@ mod tests {
             response: Value::Null,
             view_source: "view".to_string(),
             confidence: Some(0.75),
-            ..Default::default()
         }
     }
 

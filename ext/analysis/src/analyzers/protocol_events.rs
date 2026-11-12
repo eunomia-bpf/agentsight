@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use super::capture_metadata::CaptureMetadata;
 use crate::event::Event;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,19 +9,7 @@ use std::collections::HashMap;
 /// SSE Processor Event - represents a complete SSE interaction with timing information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSEProcessorEvent {
-    #[serde(flatten)]
-    pub(crate) capture_metadata: CaptureMetadata,
     pub connection_id: String,
-    pub connection_generation: Option<u32>,
-    pub stream_id: Option<u32>,
-    pub http_exchange_id: Option<String>,
-    pub response_id: Option<String>,
-    pub correlation_method: Option<String>,
-    pub correlation_status: Option<String>,
-    pub confidence: Option<f32>,
-    pub correlation_version: Option<u16>,
-    pub completion_reason: Option<String>,
-    pub protocol: Option<String>,
     pub message_id: Option<String>,
     pub start_time: u64,
     pub end_time: u64,
@@ -65,23 +52,9 @@ impl SSEProcessorEvent {
 }
 
 /// HTTP Event - represents a parsed HTTP request or response
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HTTPEvent {
-    #[serde(flatten)]
-    pub(crate) capture_metadata: CaptureMetadata,
     pub tid: u64,
-    pub connection_id: Option<String>,
-    pub connection_generation: Option<u32>,
-    pub stream_id: Option<u32>,
-    pub http_exchange_id: Option<String>,
-    pub correlation_method: Option<String>,
-    pub correlation_status: Option<String>,
-    pub confidence: Option<f32>,
-    #[serde(default)]
-    pub correlation_version: u16,
-    pub completion_reason: Option<String>,
-    #[serde(default)]
-    pub end_stream: bool,
     pub message_type: String,
     pub first_line: String,
     pub method: Option<String>,
@@ -98,19 +71,6 @@ pub struct HTTPEvent {
     pub content_length: Option<usize>,
     pub original_source: String,
     pub raw_data: Option<String>,
-    /// Set when the message is incomplete because AgentSight stopped
-    /// collecting it: the HTTP/1.1 size cap was reached or the SSL capture
-    /// itself truncated the record. `body` (if any) is only a prefix, and
-    /// `content_length` (if present) is the size the peer declared. Absent
-    /// on complete messages.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub body_truncated: bool,
-    /// Why the body was cut: `body_limit` or `capture_truncated`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub body_truncation_reason: Option<String>,
-    /// Body bytes actually retained when `body_truncated` is set.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub body_captured_bytes: Option<usize>,
 }
 
 impl HTTPEvent {
