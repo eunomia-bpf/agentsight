@@ -11,16 +11,9 @@ import {
   filterFleetNodes, fleetSubscriptions, fleetTotals, isRunningSession,
   type FleetNodeSample,
 } from '@/lib/fleetData';
-import { Subscription } from '@/components/NodeOverview';
+import { count, Stat, Subscription } from '@/components/NodeOverview';
 
 type Filter = 'all' | 'running' | 'idle' | 'unreachable';
-
-function count(value: number): string {
-  if (Math.abs(value) >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
-  return Math.round(value).toLocaleString();
-}
 
 function planTitle(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -56,7 +49,7 @@ export function FleetOverview({
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Stat label={t('fleet.machines')} value={`${totals.online}/${totals.machines}`}
           hint={t('fleet.onlineHint')} />
         <Stat label={t('overview.running')} value={String(totals.running)} hint={t('fleet.runningHint')} />
@@ -189,16 +182,6 @@ function Status({ state }: { state: FleetNodeSample['state'] }) {
   const style = state === 'online' ? 'bg-emerald-50 text-emerald-700'
     : state === 'checking' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500';
   return <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${style}`}>{t(`fleet.${state}`)}</span>;
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">{value}</div>
-      <div className="mt-0.5 truncate text-[11px] text-slate-400">{hint}</div>
-    </div>
-  );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

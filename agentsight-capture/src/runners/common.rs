@@ -14,6 +14,19 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
+use tokio::sync::oneshot;
+
+const SSL_READY_MARKER: &str = "AGENTSIGHT_SSL_READY";
+
+fn ssl_probe_reports_readiness(binary_path: &str) -> bool {
+    // Direct `cargo build` can still embed the older vendored loader. Keep
+    // its startup delay until `make build` refreshes the bundled BPF binary.
+    std::fs::read(binary_path).is_ok_and(|bytes| {
+        bytes
+            .windows(SSL_READY_MARKER.len())
+            .any(|window| window == SSL_READY_MARKER.as_bytes())
+    })
+}
 
 /// Type alias for JSON stream
 pub type JsonStream = Pin<Box<dyn Stream<Item = serde_json::Value> + Send>>;
@@ -296,11 +309,17 @@ impl BinaryExecutor {
         let binary_path = self.binary_path.clone();
         let label = runner_label(runner_name.as_deref(), &binary_path);
 
-        // Spawn a task to read and log stderr
+        // Wait for sslsniff's readiness marker before releasing a launched
+        // client. A fixed delay can expire while a large static binary is
+        // still being scanned for probe offsets.
+        let wait_for_ssl_ready =
+            runner_name.as_deref() == Some("SSL") && ssl_probe_reports_readiness(&self.binary_path);
+        let (ready_tx, ready_rx) = oneshot::channel();
         let stderr_label = label.clone();
         tokio::spawn(async move {
             let mut stderr_reader = BufReader::new(stderr);
             let mut stderr_line = String::new();
+            let mut ready_tx = Some(ready_tx);
 
             loop {
                 stderr_line.clear();
@@ -311,6 +330,12 @@ impl BinaryExecutor {
                     }
                     Ok(_) => {
                         let trimmed = stderr_line.trim();
+                        if trimmed == SSL_READY_MARKER {
+                            if let Some(tx) = ready_tx.take() {
+                                let _ = tx.send(());
+                            }
+                            continue;
+                        }
                         if !trimmed.is_empty() {
                             log::warn!("[{}] STDERR: {}", stderr_label, trimmed);
                         }
@@ -325,7 +350,9 @@ impl BinaryExecutor {
             }
         });
 
-        let startup_delay_ms = if self
+        let startup_delay_ms = if wait_for_ssl_ready {
+            None
+        } else if self
             .additional_args
             .iter()
             .any(|arg| arg == "--binary-path")
@@ -343,6 +370,28 @@ impl BinaryExecutor {
                 return Err(RunnerError::from(runner_startup_exit_message(
                     label, status, needs_sudo,
                 )));
+            }
+        }
+
+        if wait_for_ssl_ready {
+            match tokio::time::timeout(tokio::time::Duration::from_secs(10), ready_rx).await {
+                Ok(Ok(())) => {}
+                Ok(Err(_)) => {
+                    let status = child.try_wait()?;
+                    if status.is_none() {
+                        ProbeProcessGuard::new(child.id(), needs_sudo).terminate();
+                    }
+                    return Err(RunnerError::from(match status {
+                        Some(status) => runner_startup_exit_message("SSL", status, needs_sudo),
+                        None => "SSL probe closed stderr before reporting readiness".to_string(),
+                    }));
+                }
+                Err(_) => {
+                    ProbeProcessGuard::new(child.id(), needs_sudo).terminate();
+                    return Err(RunnerError::from(
+                        "SSL probe did not report readiness within 10 seconds".to_string(),
+                    ));
+                }
             }
         }
 

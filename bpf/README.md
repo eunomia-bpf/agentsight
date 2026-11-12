@@ -12,9 +12,9 @@ An advanced eBPF-based process monitoring tool that traces process lifecycles an
 
 **Key Features:**
 - Monitor process creation and termination
-- Track file open operations with deduplication
+- Track successful regular-file reads, writes, and executable opens with resolved paths
 - Configurable filtering modes for different monitoring levels
-- 60-second sliding window aggregation for repetitive file opens
+- Kernel LRU deduplication by process, file, access, and overlay layer
 - JSON output format for integration with analysis frameworks
 - Verbose debugging mode for troubleshooting
 
@@ -36,6 +36,7 @@ sudo ./process [OPTIONS]
 | `--pid=PID` | `-p PID` | Trace only this specific PID | all |
 | `--mode=MODE` | `-m MODE` | Filter mode (0=all, 1=proc, 2=filter) | 2 |
 | `--all` | `-a` | Deprecated: use `-m 0` instead | - |
+| `--trace-net` | - | Capture bind/connect attempts and successful TCP listeners/accepted peers | disabled |
 
 **Filter Modes:**
 - `0 (all)`: Trace all processes and all file open operations
@@ -61,14 +62,64 @@ sudo ./process -v -p 1234
 
 # Trace multiple commands with minimum duration
 sudo ./process -c "curl,wget" -d 500
+
+# Observe listener endpoints and accepted peers for a process tree
+sudo ./process -p 1234 --trace-net
+
+# Emit a start record and an alive record every five seconds
+sudo ./process -m 0 --trace-net --heartbeat 5
 ```
 
 **File Open Deduplication:**
-- First occurrence of file opens reported immediately (`count=1`)
-- Subsequent identical file opens within 60-second window are aggregated
-- Aggregated results reported when window expires (`count=N`)
-- All pending aggregations flushed on process exit
-- Reduces event volume by 80-95% for repetitive file opens
+- On kernels with `security_file_open` fexit and `bpf_d_path`, the first successful
+  regular-file open for each process, file, access, and overlay layer is reported
+  (`count=1`). A later read, write, or exec access gets its own record. The
+  kernel LRU can evict entries; a later open then reports that file again.
+- `filepath` is resolved in the opener's mount namespace, up to 4095 bytes.
+  Invalid UTF-8 bytes are displayed as replacement characters and the exact
+  path bytes are included in `filepath_hex`. `layer:true` marks
+  an overlay layer open, with `dev` and `ino` naming the underlying file.
+  Container-runtime layer opens using initial-namespace mount credentials are
+  suppressed. A failed path resolution has an empty `filepath` and `path_error`.
+- Kernels without this hook or helper use the original syscall-entry path and
+  60-second userspace aggregation. Those paths may be relative and failed opens
+  can appear. The loader prints a fallback notice to stderr.
+- `FILE_OPEN_LOST` reports ring-buffer reservations and BPF recursion misses.
+
+**Network evidence (`--trace-net`):**
+- Existing `NET_BIND`, `NET_LISTEN`, and `NET_CONNECT` summaries remain available.
+- Successful UDP, UDP-Lite, and ICMP echo binds add a `NET_BIND` summary with
+  `protocol` and the assigned local `port`, including when the application binds
+  port zero. For IPv4, `detail` contains the local address and assigned port.
+- `NET_ACCEPT` reports each TCP peer once per process and listener port. Its
+  `port` is the listener port; repeated accepts from that peer are deduplicated.
+  `AGG_MAP_OVERFLOW` warns when the shared summary map cannot store an event.
+- Successful `NET_LISTEN` rows include `protocol`, `address`, and the assigned
+  local `port`, including autobind and bind-to-zero IPv4 or IPv6 listeners.
+- `--heartbeat SECONDS` emits `PROBE_LIVENESS` start and alive records on the
+  raw probe's JSONL stream and the collector's normal process event stream.
+  Start includes active trace flags; both records include `pid:0`,
+  `comm:"process"`, `every`, a monotonic nanosecond `timestamp`, and
+  `wall_time_ns` (Unix epoch nanoseconds) for direct staleness checks.
+
+**Container scoping from a privileged sidecar:**
+- `--pidns-of PID` keeps events from the PID namespace of `/proc/PID` and from
+  every PID namespace nested inside it (for example a bubblewrap or
+  `unshare --pid` sandbox started by the target), i.e. every task visible from
+  that namespace.
+  Use a target container's PID visible in the sidecar's `/proc` (for example,
+  with a host PID namespace sidecar). This includes independently started
+  processes such as `docker exec`, without needing the sibling's cgroup path
+  under the sidecar's private `/sys/fs/cgroup` mount.
+- The filter applies in BPF to process, file, and extension events and combines
+  with existing PID/command/cgroup filters. It does not distinguish containers
+  sharing one PID namespace. The probe
+  pins the namespace at startup; restart it for a replacement container.
+
+```bash
+sudo ./process -m 0 --pidns-of 1234 --trace-net --heartbeat 2
+sudo ./agentsight debug process -- -m 0 --pidns-of 1234 --trace-net --heartbeat 2
+```
 
 **Verbose Debug Output (`-v`):**
 - Shows when events are deduplicated/aggregated
@@ -179,6 +230,7 @@ When `--binary-path` is specified, sslsniff:
 - eBPF capture is bounded by `MAX_BUF_SIZE` per event; oversized reads are marked truncated
 - Events include timestamps, process info, and SSL data
 - Handshake events show SSL negotiation details
+- With `--verbose`, stderr emits `SSLSNIFF_READY` after probes and the ring buffer are ready
 
 **Filtering Options:**
 - **PID filtering**: Only capture traffic from specific process
@@ -295,8 +347,13 @@ All events follow a common base schema with event-specific fields:
 
 **File Open Event Fields:**
 - `count`: Number of aggregated file opens (uint32)
-- `filepath`: Full path to the file being opened (string, max 256 chars)
+- `filepath`: Resolved path to the file being opened (string, max 4095 bytes)
+- `filepath_hex`: Exact path bytes in hex when `filepath` contained invalid UTF-8
 - `flags`: File open flags (int32)
+- `read`, `write`, `exec`: Access bits on resolved file opens (boolean)
+- `layer`: Overlay layer open (boolean); `dev`, `ino`: underlying device and inode;
+  `dev_maj_min`: underlying device as `major:minor`
+- `path_error`: Negative `bpf_d_path` error, if resolution failed
 - `window_expired`: Present when aggregation window expires (boolean, optional)
 - `reason`: Why aggregation was flushed (string, optional: "process_exit")
 
@@ -308,6 +365,23 @@ All events follow a common base schema with event-specific fields:
 - `data`: SSL traffic data (string, bounded by `MAX_BUF_SIZE`)
 - `data_len`: Length of data captured (uint32)
 - `truncated`: Whether data was truncated due to size limits (boolean)
+
+**Network SUMMARY fields (`--trace-net`):**
+- `type`: `NET_BIND`, `NET_LISTEN`, `NET_CONNECT`, or `NET_ACCEPT`
+- `detail`: Requested bind/connect address, successful listener's local endpoint, or accepted TCP peer endpoint
+- `local_endpoint`: Successful `NET_LISTEN` local endpoint (also present in `detail`), or the local endpoint of a `NET_ACCEPT` socket
+- `peer_endpoint`: `NET_ACCEPT` peer endpoint (also present in `detail`)
+- `address`: Local bound address on `NET_BIND`, `NET_LISTEN`, and `NET_ACCEPT`
+- `port`: Assigned local port on successful `NET_LISTEN` and datagram `NET_BIND`;
+  requested port on syscall-entry `NET_BIND`
+- `peer`: Remote address on `NET_ACCEPT`
+- `count`: Number of matching observations in the flush interval
+
+`NET_BIND` and `NET_CONNECT` describe syscall attempts; `NET_LISTEN` and
+`NET_ACCEPT` describe successful TCP operations. Accepted rows carry both socket
+endpoints. Listener and peer endpoints are process evidence. They do not imply
+a match to an SSL or HTTP connection.
+IPv6 endpoints use bracketed, uncompressed hexadecimal notation.
 
 ### Process Tracer JSON Events
 
@@ -342,7 +416,13 @@ All events follow a common base schema with event-specific fields:
   "pid": 1234,
   "count": 1,
   "filepath": "/etc/passwd",
-  "flags": 0
+  "flags": 0,
+  "read": true,
+  "write": false,
+  "exec": false,
+  "layer": false,
+  "dev": 2049,
+  "ino": 12345
 }
 
 {
@@ -385,12 +465,18 @@ Each SSL event is a single JSON line with the following schema:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `function` | string | `"READ/RECV"`, `"WRITE/SEND"`, or `"HANDSHAKE"` |
+| `function` | string | Record kind: `"READ/RECV"`, `"WRITE/SEND"`, `"HANDSHAKE"`, `"CLOSE"`, or `"CAPTURE_LOSS"` |
 | `timestamp_ns` | uint64 | Nanoseconds since system boot (`bpf_ktime_get_ns()`) |
+| `capture_seq` | uint64 | Monotonic order of JSONL records emitted by this `sslsniff` process; this is userspace output order, not kernel execution order |
 | `comm` | string | Thread name (max 16 chars), e.g. `"curl"`, `"HTTP Client"` |
 | `pid` | int32 | Process ID (tgid) |
 | `tid` | int32 | Thread ID |
 | `uid` | uint32 | User ID |
+| `transport_handle` | string | Opaque hexadecimal TLS connection/session handle. `"0x0"` means unavailable; consumers must not dereference it |
+| `process_start_ns` | uint64 | Process-instance discriminator from the thread-group leader. `0` means unavailable |
+| `tls_library` | string | `"openssl"`, `"gnutls"`, `"nss"`, `"rustls"`, `"boringssl"`, or `"unknown"` |
+| `ringbuf_reserve_failures` | uint64 | Cumulative count of failed ring-buffer reservations for this tracer run |
+| `connection_closed` | bool | `true` only for a `CLOSE` lifecycle record |
 | `len` | int32 | Total bytes returned by SSL_read/SSL_write |
 | `buf_size` | uint32 | Actual bytes copied into the event buffer (may be < `len`) |
 | `latency_ms` | float | Time between entry and exit of SSL_read/SSL_write, in milliseconds |
@@ -398,6 +484,34 @@ Each SSL event is a single JSON line with the following schema:
 | `data` | string\|null | Decrypted plaintext content (JSON-escaped), or `null` if no data |
 | `truncated` | bool | `true` if `buf_size < len` (data exceeded the configured event buffer) |
 | `bytes_lost` | int | Only present when `truncated` is `true`: `len - buf_size` |
+
+`READ/RECV`, `WRITE/SEND`, `HANDSHAKE`, and `CLOSE` records contain the full
+schema above. A `CLOSE` record identifies the released TLS handle and has no
+payload. Lifecycle hooks are best effort because not every target exports a
+supported close/free symbol.
+
+`ringbuf_reserve_failures` is separate from payload truncation. Truncation means
+one event was captured partially; a reservation failure means no payload event
+could be created at all. Successful events carry the latest cumulative failure
+count. On graceful `SIGINT` or `SIGTERM` shutdown, `sslsniff` reads the counter
+directly and emits a final minimal record if failures occurred after the last
+successful output:
+
+```json
+{
+  "function": "CAPTURE_LOSS",
+  "timestamp_ns": 242692599000000,
+  "capture_seq": 42,
+  "comm": "sslsniff",
+  "pid": 959023,
+  "ringbuf_reserve_failures": 7
+}
+```
+
+Fields not shown above do not apply to `CAPTURE_LOSS` and are omitted. The
+record reports a tracer-wide cumulative total, not a TLS-connection-specific
+loss count. Abrupt termination such as `SIGKILL`, a host crash, or loss of
+userspace execution cannot run this final reporting path.
 
 **SSL Read/Write Events:**
 ```json
@@ -469,10 +583,59 @@ Each SSL event is a single JSON line with the following schema:
 }
 ```
 
+**TLS connection close event** (when a supported lifecycle symbol is available):
+
+```json
+{
+  "function": "CLOSE",
+  "timestamp_ns": 242692598000000,
+  "capture_seq": 41,
+  "comm": "HTTP Client",
+  "pid": 959023,
+  "tid": 959035,
+  "uid": 1000,
+  "transport_handle": "0xffff1234",
+  "process_start_ns": 242690000000000,
+  "tls_library": "openssl",
+  "ringbuf_reserve_failures": 0,
+  "connection_closed": true,
+  "len": 0,
+  "buf_size": 0,
+  "latency_ms": 0,
+  "is_handshake": false,
+  "data": null,
+  "truncated": false
+}
+```
+
 **Notes:**
 - `comm` is the **thread name** from `bpf_get_current_comm()`, not the process name. For example, Claude Code's SSL traffic shows `"HTTP Client"`, not `"claude"`.
 - `data` contains the decrypted plaintext. Control characters are JSON-escaped (`\n`, `\r`, `\t`, `\uXXXX`). Valid UTF-8 sequences are passed through.
 - `len` is what SSL_read/SSL_write returned. `buf_size` is what was actually copied (capped at `MAX_BUF_SIZE`).
+
+#### Capture metadata on derived HTTP/SSE events
+
+When the analysis pipeline replaces raw SSL fragments with an HTTP or SSE
+event, it keeps a flat provenance summary instead of copying metadata from only
+the last fragment:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `transport_handle`, `process_start_ns`, `tls_library` | nullable | Retained only when the contributing fragments have a consistent known identity |
+| `capture_seq_start`, `capture_seq_end` | uint64\|null | Inclusive range of contributing raw output sequence numbers |
+| `capture_fragment_count` | uint64 | Number of contributing raw TLS fragments |
+| `capture_original_len`, `capture_captured_len` | uint64\|null | Sums of raw `len` and `buf_size`; null when the inputs are incomplete or overflow |
+| `capture_truncated` | bool\|null | `true` if any fragment was truncated, `false` if none were, null when unknown |
+| `capture_bytes_lost` | uint64\|null | Sum of per-fragment truncation loss; this does not include failed ring-buffer reservations |
+| `ringbuf_reserve_failures_start`, `ringbuf_reserve_failures_end`, `ringbuf_reserve_failures_delta` | uint64\|null | First/last cumulative loss snapshots and their saturating difference |
+| `capture_tids` | array of uint64 | Sorted contributing TIDs, capped at 64 entries |
+| `capture_tid_count` | uint64 | Reported number of distinct contributing TIDs |
+| `capture_tids_truncated` | bool | Whether `capture_tids` omits additional TIDs |
+| `capture_identity_consistent` | bool | `false` when fragments disagree on connection/process/library identity; identity fields are then null |
+| `capture_metadata_complete` | bool | `false` when legacy or incomplete inputs prevent a complete summary |
+
+These fields are additive. Consumers reading older events must accept their
+absence; consumers reading new events must accept null summary values.
 
 ### Common Usage Patterns
 
