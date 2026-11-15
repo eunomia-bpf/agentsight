@@ -42,7 +42,7 @@ use cli_db::{
 use cmd_bind::run_bind;
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
-use cmd_perf_live::{run_live_top_query, start_live_ebpf_capture};
+use cmd_perf_live::{run_live_top_query, start_live_capture};
 use cmd_perf_tui::run_live_top_tui;
 use cmd_trace::{TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled};
 use output::TopOptions;
@@ -454,14 +454,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            let capture = start_live_ebpf_capture(&options).await;
+            let capture = start_live_capture(&options).await;
             let count = if *once { Some(1) } else { *count };
             let result = if top_uses_tui(*plain, interactive_terminal_available()) {
                 run_live_top_tui(Some(&capture), *interval, *limit, count, &options)
             } else {
                 run_live_top_query(Some(&capture), *interval, *limit, count, &options)
             };
-            capture.stop();
+            capture.stop().await;
             result?;
         }
         _ => {

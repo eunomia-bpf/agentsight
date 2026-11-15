@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::cmd_perf_live::LiveEbpfCapture;
+use crate::cmd_perf_live::LiveCapture;
 use crate::cmd_tui_record::{
     TuiRecordStatus, TuiRecordTask, default_record_command_for_row, parse_tui_record_command,
 };
@@ -21,7 +21,7 @@ use std::io;
 use std::time::{Duration, Instant};
 
 pub(crate) fn run_live_top_tui(
-    capture: Option<&LiveEbpfCapture>,
+    capture: Option<&LiveCapture>,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
@@ -34,10 +34,10 @@ pub(crate) fn run_live_top_tui(
         count,
         options,
         |display_limit, options| {
-            let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
+            let capture_snapshot = capture.map(LiveCapture::snapshot);
             let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
-            if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
-                top.notes.push(note.to_string());
+            if let Some(note) = capture.and_then(LiveCapture::status_note) {
+                top.notes.push(note);
             }
             Ok(top)
         },
@@ -608,6 +608,7 @@ mod tests {
                 tokens: Some(15),
                 tools: 1,
                 execs: 0,
+                exits: 0,
                 failures: 0,
                 files: 0,
                 network: 0,
