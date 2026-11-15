@@ -186,9 +186,19 @@ impl ProcessTracker {
         event_timestamp: Option<i64>,
     ) -> u64 {
         if let Some(key) = record.unique_process_key
-            && let Some(id) = self.instances_by_key.get(&key)
+            && let Some(id) = self.instances_by_key.get(&key).copied()
         {
-            return *id;
+            if !self
+                .instances
+                .get(&id)
+                .is_some_and(|process| process.seen_exit)
+            {
+                return id;
+            }
+            // UniqueProcessKey identifies the current process object by kernel
+            // address. Retained exited instances can outlive that address, so
+            // a later Start with the same key is a new instance.
+            self.instances_by_key.remove(&key);
         }
 
         if let Some(existing) = self.live_pid_instance.get(&record.pid).copied() {
@@ -967,6 +977,47 @@ mod tests {
         // The old instance has exited, so the PID map no longer proves that
         // this is reuse. Do not claim stronger evidence than ETW provides.
         assert_eq!(tracker.pid_reuse_count, 0);
+    }
+
+    #[test]
+    fn reused_unique_process_key_after_exit_creates_a_new_instance() {
+        let mut tracker = ProcessTracker::new(100);
+        assert!(matches!(
+            tracker.ingest(
+                process_record(200, Some(100), Some(20)),
+                EtwProcessPhase::Start
+            ),
+            IngestOutcome::Accepted {
+                instance_id: first,
+                ..
+            } if first != tracker.root_instance
+        ));
+        let first = tracker.instances_by_key[&20];
+        assert!(matches!(
+            tracker.ingest(process_record(200, None, Some(20)), EtwProcessPhase::End),
+            IngestOutcome::Accepted {
+                instance_id,
+                ..
+            } if instance_id == first
+        ));
+        assert!(tracker.instances[&first].seen_exit);
+
+        let IngestOutcome::Accepted {
+            instance_id: second,
+            ..
+        } = tracker.ingest(
+            process_record(200, Some(100), Some(20)),
+            EtwProcessPhase::Start,
+        )
+        else {
+            panic!("expected a new instance when the exited key is reused");
+        };
+
+        assert_ne!(first, second);
+        assert_eq!(tracker.instances_by_key.get(&20), Some(&second));
+        assert_eq!(tracker.live_pid_instance.get(&200), Some(&second));
+        assert!(tracker.instances[&first].seen_exit);
+        assert!(!tracker.instances[&second].seen_exit);
     }
 
     #[test]

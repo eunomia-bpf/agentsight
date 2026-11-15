@@ -218,6 +218,14 @@ The tracker should maintain:
   processed;
 - bounded state with explicit eviction counters.
 
+The process provider's `UniqueProcessKey` is the address of the current kernel
+process object. It is useful for correlating records while that object is
+alive, but it is not the public Windows `ProcessStartKey` and is not a
+permanent identifier. Once an instance is observed exiting, a later `Start`
+with the same key must create a new capture-local instance rather than reviving
+the retained exited record. The emitted `process_instance_id` is tracker-owned,
+stable only within one capture, and may not be joined across captures.
+
 `DCStart` records seed the tree with already-running descendants. Overlapping
 live `Start` and rundown observations must be idempotent: the same process
 instance cannot be counted twice.
@@ -449,6 +457,7 @@ The following logic should be testable without starting ETW:
   exit at capture stop;
 - descendant membership and root binding;
 - PID and PPID reuse;
+- reuse of an exited ETW process-object key without reviving the old instance;
 - idempotent rundown/live overlap;
 - bounded queue loss accounting;
 - bounded provisional-exit retention, capacity loss, and tracker-eviction
