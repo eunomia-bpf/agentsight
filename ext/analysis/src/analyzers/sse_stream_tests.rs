@@ -276,3 +276,39 @@ fn total_retention_is_bounded_and_released_when_an_exchange_finishes() {
     assert_eq!(next[0].data["incomplete"], false);
     assert_eq!(next[0].data["event_count"], 1);
 }
+
+#[test]
+fn heartbeat_only_stream_is_not_an_llm_response() {
+    let mut processor = StreamingSSE::new(30_000, 2);
+    let output = processor.handle(chunk("hb", 10, b": keepalive\n\n", true));
+    assert_eq!(output.len(), 1);
+    assert_eq!(output[0].data["event_count"], 0);
+    assert_eq!(output[0].data["sse_events"], json!([]));
+
+    let mut view = crate::view::MaterializedView::new();
+    view.ingest_event(&output[0]).unwrap();
+    let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 0 });
+    assert_eq!(
+        snapshot.summary.llm_calls, 0,
+        "a stream of comments must not become an LLM call"
+    );
+}
+
+#[test]
+fn single_record_aggregate_is_timestamped_at_completion() {
+    let mut processor = StreamingSSE::new(30_000, 2);
+    let body = record(
+        "response.completed",
+        json!({"type": "response.completed", "response": {"id": "r1"}}),
+    );
+    let mut output = processor.handle(chunk("one", 10, body.as_bytes(), false));
+    output.extend(processor.handle(chunk("one", 30, b"", true)));
+    assert_eq!(output.len(), 1);
+    assert_eq!(output[0].data["event_count"], 1);
+    assert_eq!(output[0].data["start_time"], 10);
+    assert_eq!(output[0].data["end_time"], 30);
+    assert_eq!(
+        output[0].timestamp, 30,
+        "an aggregate stands for the whole exchange, so it ends when the exchange does"
+    );
+}
