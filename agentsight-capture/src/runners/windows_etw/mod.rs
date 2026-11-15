@@ -554,6 +554,7 @@ impl WindowsEtwEventStream {
     fn consumer_stopped_diagnostic(&mut self, status: WIN32_ERROR, stop_requested: bool) -> Event {
         let loss = self.runtime.loss_snapshot();
         self.last_loss = loss;
+        let tracker_stats = self.tracker.stats();
         let reason = if stop_requested {
             "stop_requested"
         } else {
@@ -572,11 +573,16 @@ impl WindowsEtwEventStream {
                 "stop_requested": stop_requested,
                 "queued_records_drained": self.queued_records_drained,
                 "pending_records": self.pending_events.len() + self.provisional_terminates.len(),
+                "pending_evicted": self.pending_evicted,
                 "provisional_terminates_held": self.provisional_terminates.len(),
                 "provisional_terminates_capacity_dropped":
                     self.provisional_terminates.capacity_dropped,
                 "provisional_terminates_tracker_evicted":
                     self.provisional_terminates.tracker_evicted,
+                "tracker_evicted_instances": tracker_stats.evicted_instance_count,
+                "tracker_evicted_ambiguous_parents": tracker_stats.evicted_ambiguous_parent_count,
+                "tracker_evicted_members_without_exit":
+                    tracker_stats.evicted_member_instance_count,
                 "queue_dropped_records": loss.application_queue_dropped_records,
                 "callback_errors": loss.callback_errors,
                 "stop_errors": loss.stop_errors,

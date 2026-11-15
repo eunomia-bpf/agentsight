@@ -380,15 +380,14 @@ impl ProcessTracker {
         let Some(process) = self.instances.get_mut(&id) else {
             return IngestOutcome::Filtered;
         };
-        let stale_keyless_exit = record.unique_process_key.is_none()
-            && matches!(phase, EtwProcessPhase::End | EtwProcessPhase::Terminate)
+        let stale_exit = matches!(phase, EtwProcessPhase::End | EtwProcessPhase::Terminate)
             && event_timestamp
                 .zip(process.generation_started_at)
                 .is_some_and(|(exit_at, started_at)| exit_at <= started_at);
-        if stale_keyless_exit {
-            // Terminate payloads on older providers have only a PID. An exit
-            // older than the current generation belongs to a prior process
-            // that reused the PID and must not close this instance.
+        if stale_exit {
+            // An exit older than the current generation belongs to a prior
+            // process that reused either the PID or the provider's process key
+            // and must not close this instance.
             return IngestOutcome::Duplicate;
         }
         let is_member = process.member;
@@ -1066,6 +1065,49 @@ mod tests {
             tracker.ingest_at(
                 process_record(200, None, None),
                 EtwProcessPhase::Terminate,
+                Some(150),
+            ),
+            IngestOutcome::Duplicate
+        ));
+        assert_eq!(tracker.live_pid_instance.get(&200), Some(&current));
+        assert!(!tracker.instances[&current].seen_exit);
+    }
+
+    #[test]
+    fn stale_keyed_end_does_not_close_a_reused_process_key_instance() {
+        let mut tracker = ProcessTracker::new(100);
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, Some(100), Some(20)),
+                EtwProcessPhase::Start,
+                Some(100),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, None, Some(20)),
+                EtwProcessPhase::End,
+                Some(150),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        let IngestOutcome::Accepted {
+            instance_id: current,
+            ..
+        } = tracker.ingest_at(
+            process_record(200, Some(100), Some(20)),
+            EtwProcessPhase::Start,
+            Some(250),
+        )
+        else {
+            panic!("expected a new instance after reusing the process key");
+        };
+
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, None, Some(20)),
+                EtwProcessPhase::End,
                 Some(150),
             ),
             IngestOutcome::Duplicate
