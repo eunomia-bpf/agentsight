@@ -469,7 +469,7 @@ static void print_test_summary(void)
  * survive. A sweep that deletes while walking therefore reports fewer entries
  * than it visited.
  */
-#define FAKE_MAX 6
+#define FAKE_MAX 160
 static struct agg_key fake_keys[FAKE_MAX];
 static struct agg_value fake_vals[FAKE_MAX];
 static int fake_live[FAKE_MAX];
@@ -604,6 +604,72 @@ static void test_flush_agg_map_reports_every_entry(void)
 	bpf_map_delete_elem_hook  = NULL;
 }
 
+/*
+ * The live map holds up to 16384 entries while one pass collects at most
+ * FLUSH_BATCH keys. More entries than one batch are therefore the case where
+ * a single pass reports an entry without deleting it, and the next flush
+ * prints its aggregate a second time.
+ */
+static void test_flush_agg_map_drains_more_than_one_batch(void)
+{
+	printf("\n" BLUE "Testing flush_agg_map() — more entries than one batch:" RESET "\n");
+
+	const int n = 150;
+	fake_count = n;
+	for (int i = 0; i < n; i++) {
+		memset(&fake_keys[i], 0, sizeof(fake_keys[i]));
+		memset(&fake_vals[i], 0, sizeof(fake_vals[i]));
+		fake_keys[i].pid = 200 + i;
+		fake_keys[i].event_type = EVENT_TYPE_DIR_CREATE;
+		snprintf(fake_keys[i].detail, DETAIL_LEN, "d%d", i);
+		fake_vals[i].count = 1;
+		fake_vals[i].last_ts = 1;
+		strncpy(fake_vals[i].comm, "t", TASK_COMM_LEN - 1);
+		fake_live[i] = 1;
+	}
+
+	bpf_map_get_next_key_hook = fake_next_key;
+	bpf_map_lookup_elem_hook  = fake_lookup;
+	bpf_map_delete_elem_hook  = fake_delete;
+
+	int pipefd[2];
+	test_assert(pipe(pipefd) == 0, "created capture pipe");
+	fflush(stdout);
+	int saved_stdout = dup(STDOUT_FILENO);
+	test_assert(saved_stdout >= 0, "duplicated stdout");
+	test_assert(dup2(pipefd[1], STDOUT_FILENO) >= 0, "redirected stdout");
+	close(pipefd[1]);
+
+	flush_agg_map(42);
+	fflush(stdout);
+
+	test_assert(dup2(saved_stdout, STDOUT_FILENO) >= 0, "restored stdout");
+	close(saved_stdout);
+
+	int lines = 0;
+	{
+		static char buf[1 << 20];
+		ssize_t got = read(pipefd[0], buf, sizeof(buf) - 1);
+		if (got > 0) {
+			buf[got] = '\0';
+			for (char *q = buf; (q = strstr(q, "\"event\":\"SUMMARY\"")); q++)
+				lines++;
+		}
+	}
+	close(pipefd[0]);
+
+	test_assert(lines == n, "flush_agg_map reports every entry across batches");
+
+	int remaining = 0;
+	for (int i = 0; i < n; i++)
+		remaining += fake_live[i];
+	test_assert(remaining == 0, "flush_agg_map empties the map across batches");
+
+	bpf_map_get_next_key_hook = NULL;
+	bpf_map_lookup_elem_hook  = NULL;
+	bpf_map_delete_elem_hook  = NULL;
+}
+
 int main(void)
 {
 	printf(BLUE "===== map_flush.h Test Suite =====" RESET "\n");
@@ -634,6 +700,7 @@ int main(void)
 
 	/* flush_agg_map */
 	test_flush_agg_map_reports_every_entry();
+	test_flush_agg_map_drains_more_than_one_batch();
 
 	print_test_summary();
 	return (tests_failed > 0) ? 1 : 0;
