@@ -145,6 +145,13 @@ root. In a normal terminal it will keep the existing snapshot and agent-native
 session view and report that ETW is inactive. The command will never request
 elevation.
 
+Activation checks `TokenElevation.TokenIsElevated` for the current process
+before reading the root identity or opening an ETW session. A false result or a
+token-query failure takes the same snapshot fallback and emits one explanatory
+note. The runner repeats the elevation guard so direct callers also fail closed
+before `StartTraceW`; membership in a privileged group without an elevated
+token is insufficient.
+
 This behavior is compile-time Windows-only. Non-Windows builds retain the
 existing eBPF and portable process paths.
 

@@ -380,6 +380,17 @@ impl ProcessTracker {
         let Some(process) = self.instances.get_mut(&id) else {
             return IngestOutcome::Filtered;
         };
+        let stale_keyless_exit = record.unique_process_key.is_none()
+            && matches!(phase, EtwProcessPhase::End | EtwProcessPhase::Terminate)
+            && event_timestamp
+                .zip(process.generation_started_at)
+                .is_some_and(|(exit_at, started_at)| exit_at <= started_at);
+        if stale_keyless_exit {
+            // Terminate payloads on older providers have only a PID. An exit
+            // older than the current generation belongs to a prior process
+            // that reused the PID and must not close this instance.
+            return IngestOutcome::Duplicate;
+        }
         let is_member = process.member;
         if phase == EtwProcessPhase::DCEnd {
             if !is_member {
@@ -1018,6 +1029,49 @@ mod tests {
         assert_eq!(tracker.live_pid_instance.get(&200), Some(&second));
         assert!(tracker.instances[&first].seen_exit);
         assert!(!tracker.instances[&second].seen_exit);
+    }
+
+    #[test]
+    fn stale_keyless_terminate_does_not_close_a_reused_pid_instance() {
+        let mut tracker = ProcessTracker::new(100);
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, Some(100), Some(20)),
+                EtwProcessPhase::Start,
+                Some(100),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, None, Some(20)),
+                EtwProcessPhase::End,
+                Some(110),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        let IngestOutcome::Accepted {
+            instance_id: current,
+            ..
+        } = tracker.ingest_at(
+            process_record(200, Some(100), Some(21)),
+            EtwProcessPhase::Start,
+            Some(200),
+        )
+        else {
+            panic!("expected the reused PID to start a new instance");
+        };
+
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, None, None),
+                EtwProcessPhase::Terminate,
+                Some(150),
+            ),
+            IngestOutcome::Duplicate
+        ));
+        assert_eq!(tracker.live_pid_instance.get(&200), Some(&current));
+        assert!(!tracker.instances[&current].seen_exit);
     }
 
     #[test]

@@ -32,4 +32,4 @@ pub use common::BinaryRunner;
 pub use fake::FakeRunner;
 pub use process::ProcessRunner;
 #[cfg(windows)]
-pub use windows_etw::WindowsEtwProcessRunner;
+pub use windows_etw::{WindowsEtwProcessRunner, current_process_token_is_elevated};

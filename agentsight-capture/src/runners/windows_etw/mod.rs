@@ -25,7 +25,12 @@ use tracker::{IngestOutcome, ProcessTracker};
 use windows_sys::Win32::Foundation::{
     CloseHandle, ERROR_ACCESS_DENIED, ERROR_CANCELLED, GetLastError, WIN32_ERROR,
 };
-use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
+use windows_sys::Win32::Security::{
+    GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation,
+};
+use windows_sys::Win32::System::Threading::{
+    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
+};
 
 mod payload;
 mod runtime;
@@ -78,6 +83,11 @@ impl WindowsEtwProcessRunner {
 impl Runner for WindowsEtwProcessRunner {
     async fn run(&mut self) -> Result<EventStream, RunnerError> {
         validate_target_pid(self.root_pid)?;
+        if !current_process_token_is_elevated()? {
+            return Err(
+                "Windows ETW process capture requires a process with an elevated token".into(),
+            );
+        }
         let (sender, receiver) = mpsc::channel(self.queue_capacity);
         let runtime = EtwRuntime::start(sender)?;
         let stream = WindowsEtwEventStream::new(
@@ -98,6 +108,48 @@ impl Runner for WindowsEtwProcessRunner {
         self.analyzers.push(analyzer);
         self
     }
+}
+
+/// Returns whether the current process token is elevated.
+///
+/// The Windows ETW SystemTraceProvider requires elevation. Callers should use
+/// this check before attempting to open a session so a normal terminal can
+/// stay on its existing snapshot path without an access-denied probe or UAC
+/// request.
+pub fn current_process_token_is_elevated() -> Result<bool, RunnerError> {
+    let mut token = std::ptr::null_mut();
+    if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {
+        let error = unsafe { GetLastError() };
+        return Err(win32_error("OpenProcessToken for current process", error));
+    }
+
+    let mut elevation = TOKEN_ELEVATION::default();
+    let mut returned_size = 0;
+    let status = unsafe {
+        GetTokenInformation(
+            token,
+            TokenElevation,
+            (&mut elevation as *mut TOKEN_ELEVATION).cast(),
+            std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+            &mut returned_size,
+        )
+    };
+    let query_error = (status == 0).then(|| unsafe { GetLastError() });
+    let close_error = (unsafe { CloseHandle(token) } == 0).then(|| unsafe { GetLastError() });
+
+    if let Some(error) = query_error {
+        return Err(win32_error(
+            "GetTokenInformation(TokenElevation) for current process",
+            error,
+        ));
+    }
+    if let Some(error) = close_error {
+        return Err(win32_error("CloseHandle for current process token", error));
+    }
+    if returned_size < std::mem::size_of::<TOKEN_ELEVATION>() as u32 {
+        return Err("GetTokenInformation(TokenElevation) returned a short payload".into());
+    }
+    Ok(elevation.TokenIsElevated != 0)
 }
 
 fn validate_target_pid(pid: u32) -> Result<(), RunnerError> {
@@ -649,6 +701,11 @@ mod tests {
     #[test]
     fn target_zero_is_rejected_before_starting_etw() {
         assert!(validate_target_pid(0).is_err());
+    }
+
+    #[test]
+    fn current_token_elevation_can_be_queried_without_starting_etw() {
+        assert!(current_process_token_is_elevated().is_ok());
     }
 
     #[test]
