@@ -264,6 +264,11 @@ static void print_event(const struct stdiocap_event_t *event)
 	fflush(stdout);
 }
 
+/* Readiness marker for callers that start a capture and then act. Matches the
+ * SSL probe's AGENTSIGHT_SSL_READY convention: a stderr line, so it never
+ * appears in the JSON event stream on stdout. */
+#define AGENTSIGHT_STDIOCAP_READY "AGENTSIGHT_STDIOCAP_READY"
+
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	const struct stdiocap_event_t *event = data;
@@ -333,6 +338,18 @@ int main(int argc, char **argv)
 		warn("failed to open ring buffer: %d\n", err);
 		goto cleanup;
 	}
+
+	/*
+	 * Callers that capture this process's stdout, including the runtime
+	 * test, have no other way to know when the probes are attached and the
+	 * ring buffer is being drained. Without this marker they can only
+	 * guess, and a target that writes just after the capture starts loses
+	 * that event to the attach window. Written to stderr, like the SSL
+	 * probe's readiness marker, so it stays out of the JSON event stream
+	 * the stdout reader parses.
+	 */
+	warn("%s\n", AGENTSIGHT_STDIOCAP_READY);
+	fflush(stderr);
 
 	if (signal(SIGINT, sig_int) == SIG_ERR || signal(SIGTERM, sig_int) == SIG_ERR) {
 		err = 1;
