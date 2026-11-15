@@ -10,6 +10,12 @@ use sysinfo::{Pid, Process, ProcessRefreshKind, ProcessesToUpdate, System, Updat
 
 #[cfg(target_os = "linux")]
 use std::fs;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::{CloseHandle, FILETIME};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::Threading::{
+    GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+};
 
 pub use agent_session::{ProcessKey, ProcessTree};
 
@@ -305,6 +311,33 @@ pub fn process_starttime_ticks(pid: u32) -> Option<u64> {
     })
 }
 
+/// Returns the strongest per-PID creation identity available on this platform.
+///
+/// On Windows, sysinfo's process start time is second-granular. Use the
+/// FILETIME returned by GetProcessTimes instead so PID reuse within one second
+/// cannot be mistaken for the same process instance.
+#[cfg(target_os = "windows")]
+pub fn process_start_identity(pid: u32) -> Option<u64> {
+    let process = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+    if process.is_null() {
+        return None;
+    }
+    let mut creation = FILETIME::default();
+    let mut exit = FILETIME::default();
+    let mut kernel = FILETIME::default();
+    let mut user = FILETIME::default();
+    let succeeded =
+        unsafe { GetProcessTimes(process, &mut creation, &mut exit, &mut kernel, &mut user) } != 0;
+    let _ = unsafe { CloseHandle(process) };
+    succeeded
+        .then(|| (u64::from(creation.dwHighDateTime) << 32) | u64::from(creation.dwLowDateTime))
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn process_start_identity(pid: u32) -> Option<u64> {
+    process_starttime_ticks(pid)
+}
+
 pub fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
     let mut out = BTreeSet::new();
     scan_proc_fd_paths_into(pid, &mut out);
@@ -484,6 +517,14 @@ mod tests {
 
         assert_eq!(starttime_ticks_from_epoch(125, 100), 25 * ticks);
         assert_eq!(starttime_ticks_from_epoch(25, 100), 25 * ticks);
+    }
+
+    #[test]
+    fn current_process_has_a_stable_start_identity() {
+        let first = process_start_identity(std::process::id()).unwrap();
+        let second = process_start_identity(std::process::id()).unwrap();
+        assert!(first > 0);
+        assert_eq!(first, second);
     }
 
     #[cfg(target_os = "linux")]
