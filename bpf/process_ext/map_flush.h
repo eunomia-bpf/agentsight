@@ -162,12 +162,11 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 	printf("}\n");
 }
 
+#define FLUSH_BATCH 64
+
 static inline void flush_agg_map(int map_fd)
 {
-	struct agg_key key = {}, next_key;
-	struct agg_value val;
-	struct agg_key deleted[64];
-	size_t deleted_len = 0;
+	struct agg_key deleted[FLUSH_BATCH];
 
 	/*
 	 * Deleting the entry that produced the next-key cursor invalidates that
@@ -176,17 +175,34 @@ static inline void flush_agg_map(int map_fd)
 	 * print only the first few buckets and silently drop the rest. Collect
 	 * the keys on this pass and delete them afterwards, as
 	 * flush_pid_from_agg_map already does.
+	 *
+	 * One pass collects at most FLUSH_BATCH keys, and the map holds up to
+	 * 16384 entries, so repeat the pass until it collects nothing: an entry
+	 * that is printed but not deleted here would be printed again by the
+	 * next flush with the same aggregate still attached to it.
 	 */
-	while (bpf_map_get_next_key(map_fd, &key, &next_key) == 0) {
-		if (bpf_map_lookup_elem(map_fd, &next_key, &val) == 0 && val.count > 0) {
-			print_summary_json(&next_key, &val);
-			if (deleted_len < sizeof(deleted) / sizeof(deleted[0]))
+	for (;;) {
+		struct agg_key key = {}, next_key;
+		struct agg_value val;
+		size_t deleted_len = 0;
+
+		while (bpf_map_get_next_key(map_fd, &key, &next_key) == 0) {
+			if (bpf_map_lookup_elem(map_fd, &next_key, &val) == 0 && val.count > 0) {
+				print_summary_json(&next_key, &val);
 				deleted[deleted_len++] = next_key;
+				/* The batch is full: stop walking, delete, and
+				 * restart from the first key so the entries that
+				 * remain are visited in the next pass. */
+				if (deleted_len == FLUSH_BATCH)
+					break;
+			}
+			key = next_key;
 		}
-		key = next_key;
+		for (size_t i = 0; i < deleted_len; i++)
+			bpf_map_delete_elem(map_fd, &deleted[i]);
+		if (deleted_len < FLUSH_BATCH)
+			break;
 	}
-	for (size_t i = 0; i < deleted_len; i++)
-		bpf_map_delete_elem(map_fd, &deleted[i]);
 	fflush(stdout);
 }
 
