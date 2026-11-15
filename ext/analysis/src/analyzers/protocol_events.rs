@@ -110,6 +110,12 @@ pub struct HTTPEvent {
     /// Body bytes actually retained when `body_truncated` is set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_captured_bytes: Option<usize>,
+    /// Set when the framing says this message carries no body at all: a HEAD
+    /// request, or a 1xx/204/304 response. Such a message may still carry a
+    /// `Content-Length`; that is what the peer would have sent, so a reader
+    /// must not read the absent body as a truncated one.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bodyless: bool,
 }
 
 impl HTTPEvent {
