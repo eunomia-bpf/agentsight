@@ -187,6 +187,11 @@ pub struct HTTPMessage {
     pub body: Option<String>,
     pub raw_data: String,
     body_bytes: Option<Vec<u8>>,
+    /// Set when the framing says this message carries no body at all: a HEAD
+    /// request, or a 1xx/204/304 response. A `Content-Length` on such a
+    /// message is what the peer would have sent, not bytes to wait for, so a
+    /// reader must not read an absent body as a truncated one.
+    pub bodyless: bool,
     // Request-specific fields
     pub method: Option<String>,
     pub path: Option<String>,
@@ -333,6 +338,7 @@ impl HTTPParser {
             body,
             raw_data: data.to_string(),
             body_bytes: None,
+            bodyless: false,
             method,
             path,
             protocol,
@@ -438,6 +444,7 @@ impl HTTPParser {
             original_source: "ssl".to_string(),
             raw_data: include_raw_data.then_some(parsed_message.raw_data),
             body_truncated: truncation.is_some(),
+            bodyless: parsed_message.bodyless,
             body_truncation_reason: truncation.map(|t| t.reason.to_string()),
             body_captured_bytes: truncation.map(|t| t.body_captured_bytes),
         }
@@ -1158,6 +1165,9 @@ fn scan_http1_message(buf: &[u8], head_request: bool, flush_unframed: bool) -> H
     };
     message.body = body_string(&body);
     message.body_bytes = (!body.is_empty()).then_some(body);
+    // `no_body` is what the framing decided, before any body was looked for.
+    // A HEAD request declares no body either, on the request side.
+    message.bodyless = no_body || message.method.as_deref() == Some("HEAD");
     if chunked {
         // The HTTP parser has already removed transfer framing. Downstream
         // decompressors/SSE parsers must not dechunk the body a second time.
@@ -1656,6 +1666,7 @@ fn create_websocket_request_event(
         raw_data: include_raw_data.then(|| body.clone()),
         body: Some(body),
         body_truncated: false,
+        bodyless: false,
         body_truncation_reason: None,
         body_captured_bytes: None,
     }
@@ -2297,6 +2308,7 @@ fn create_http2_request_event(
         raw_data: include_raw_data
             .then(|| String::from_utf8_lossy(&state.request_body).to_string()),
         body_truncated: false,
+        bodyless: false,
         body_truncation_reason: None,
         body_captured_bytes: None,
     }
@@ -2359,6 +2371,7 @@ fn create_http2_response_event(
         raw_data: include_raw_data
             .then(|| String::from_utf8_lossy(&state.response_body).to_string()),
         body_truncated: false,
+        bodyless: false,
         body_truncation_reason: None,
         body_captured_bytes: None,
     }
@@ -3175,6 +3188,19 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
             output[4].data["http_exchange_id"]
         );
         assert_eq!(output[3].data["has_body"], false);
+        // `bodyless` says the framing declared no body, so a reader need not
+        // infer it from a zero length or mistake it for a truncated capture.
+        assert_eq!(
+            output[0].data["bodyless"], true,
+            "HEAD request declares no body"
+        );
+        assert!(
+            output[1].data.get("bodyless").is_none(),
+            "an ordinary GET carries no such flag"
+        );
+        assert_eq!(output[2].data["bodyless"], true, "1xx");
+        assert_eq!(output[3].data["bodyless"], true, "response to a HEAD");
+        assert_eq!(output[4].data["bodyless"], true, "204");
     }
 
     #[tokio::test]
