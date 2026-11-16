@@ -54,7 +54,7 @@ mkdir -p .locks
 
 ### Step 2: Create Multi-Agent Simulator
 
-```bash
+~~~bash
 cat > multi_agent_system.py << 'EOF'
 import asyncio
 import json
@@ -192,14 +192,14 @@ class ArchitectAgent(AgentBase):
 - DELETE /tasks/:id - Delete task
 
 ## Data Model
-\`\`\`json
+```json
 {{
   "id": "uuid",
   "title": "string",
   "status": "pending|completed",
   "created_at": "timestamp"
 }}
-\`\`\`
+```
 
 Designed by {self.agent_id} at {datetime.now()}
 """
@@ -488,7 +488,7 @@ if __name__ == "__main__":
     coordinator = MultiAgentCoordinator()
     asyncio.run(coordinator.run_collaboration())
 EOF
-```
+~~~
 
 ### Step 3: Start AgentSight Monitoring
 
