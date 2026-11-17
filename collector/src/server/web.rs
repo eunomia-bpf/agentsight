@@ -805,7 +805,6 @@ where
     }
 }
 
-#[cfg(test)]
 fn snapshot_from_sources(
     view: &SharedMaterializedView,
     agent_native_sessions: &Arc<Mutex<SessionCache>>,
@@ -1126,6 +1125,8 @@ mod tests {
                     target: Some("src/a.rs".into()),
                     status: Some("observed".into()),
                     summary: None,
+                    view_source: "view".into(),
+                    confidence: None,
                     details: serde_json::json!({}),
                 },
                 AuditEventRow {
@@ -1139,6 +1140,8 @@ mod tests {
                     target: Some("/bin/true".into()),
                     status: Some("observed".into()),
                     summary: None,
+                    view_source: "view".into(),
+                    confidence: None,
                     details: serde_json::json!({}),
                 },
                 AuditEventRow {
@@ -1152,6 +1155,8 @@ mod tests {
                     target: Some("src/b.rs".into()),
                     status: Some("observed".into()),
                     summary: None,
+                    view_source: "view".into(),
+                    confidence: None,
                     details: serde_json::json!({}),
                 },
             ],
