@@ -78,6 +78,7 @@ def test_session_captures_child_stdout():
         stderr=subprocess.PIPE,
         text=True,
     )
+    target_sid = os.getsid(target.pid)
     try:
         wait_for_ready(cap)
         with open(go_marker, "w", encoding="utf-8"):
@@ -95,7 +96,17 @@ def test_session_captures_child_stdout():
 
     assert target.returncode == 0, target_err
     assert "agentsight-stdio-session" in target_out
-    assert "agentsight-stdio-session" in cap_out, cap_err
+    # A capture that missed the write and one that saw no event at all are
+    # different bugs, so report what stdiocap emitted: the event count
+    # separates "the probe is not firing for this session" from "the write
+    # was traced but carried no payload", and the session id proves the
+    # target's session is the one stdiocap was asked to follow.
+    events = [line for line in cap_out.splitlines() if line.startswith("{")]
+    assert "agentsight-stdio-session" in cap_out, (
+        f"stdiocap emitted {len(events)} event(s) for session {target_sid} "
+        f"(target pid {target.pid}, session asked for {target.pid})\n"
+        f"stdout={cap_out!r}\nstderr={cap_err!r}"
+    )
 
 
 def main():
