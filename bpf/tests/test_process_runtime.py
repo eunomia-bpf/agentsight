@@ -59,11 +59,42 @@ class TracerSession:
         )
         self.stdout.close()
         self.stderr.close()
-        time.sleep(wait_attach)
+        self.wait_ready(wait_attach)
+
+    def wait_ready(self, timeout):
+        # The tracer prints a CLOCK_SYNC "start" anchor only after the BPF
+        # programs are attached and the ring buffer exists, so seeing it is a
+        # real readiness barrier. A fixed sleep made the first activity race
+        # the attach, which shows up as missing SUMMARY types on a loaded
+        # runner (#257).
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeErrorWithContext(
+                    f"process tracer exited early with {self.proc.returncode}: {self.stderr_text()}"
+                )
+            try:
+                with open(self.stdout.name, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            record = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if record.get("event") == "CLOCK_SYNC" and record.get("phase") == "start":
+                            return
+            except OSError:
+                pass
+            time.sleep(0.02)
         if self.proc.poll() is not None:
             raise RuntimeErrorWithContext(
                 f"process tracer exited early with {self.proc.returncode}: {self.stderr_text()}"
             )
+        raise RuntimeErrorWithContext(
+            f"process tracer printed no attach anchor within {timeout}s: {self.stderr_text()}"
+        )
 
     def stop(self):
         if self.proc.poll() is None:
@@ -263,9 +294,16 @@ def test_trace_fs_summary_events():
         os.chdir(old_cwd)
         time.sleep(0.5)
         sess.stop()
-        types = summary_types(sess.events())
+        events = sess.events()
+        types = summary_types(events)
         required = {"DIR_CREATE", "WRITE", "FILE_RENAME", "FILE_DELETE"}
-        assert_true(required.issubset(types), f"missing fs SUMMARY types: {sorted(required - types)}")
+        assert_true(
+            required.issubset(types),
+            f"missing fs SUMMARY types: {sorted(required - types)}; "
+            f"observed SUMMARY types: {sorted(types)}; "
+            f"event names: {sorted({e.get('event') for e in events})}; "
+            f"stderr: {sess.stderr_text()[-2000:]}"
+        )
     finally:
         os.chdir(old_cwd)
         sess.cleanup()
