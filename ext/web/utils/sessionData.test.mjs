@@ -144,6 +144,8 @@ test('live session evidence uses the current captured PID incarnation', () => {
   ];
   const live = {
     pid: 10,
+    session_id: 'raw-one',
+    last_message_at: new Date().toISOString(),
     process_details: [{
       pid: 10, ppid: 0, start_timestamp_ms: 200, comm: 'codex', command: 'codex',
     }],
@@ -174,6 +176,8 @@ test('live session evidence retains completed captured subprocesses', () => {
   ];
   const live = {
     pid: 10,
+    session_id: 'raw-one',
+    last_message_at: new Date().toISOString(),
     process_details: [{
       pid: 10, ppid: 0, start_timestamp_ms: 100, comm: 'codex', command: 'codex',
     }],
@@ -199,6 +203,8 @@ test('live and captured views do not duplicate the same running subprocess', () 
   ];
   const live = {
     pid: 10,
+    session_id: 'raw-one',
+    last_message_at: new Date().toISOString(),
     process_details: [
       { pid: 10, ppid: 0, start_timestamp_ms: 100, comm: 'codex', command: 'codex' },
       { pid: 11, ppid: 10, start_timestamp_ms: 120, comm: 'tool', command: 'tool' },
@@ -224,6 +230,8 @@ test('live process start time rejects an old captured root when no open row exis
   ];
   const live = {
     pid: 10,
+    session_id: 'raw-one',
+    last_message_at: new Date().toISOString(),
     process_details: [{
       pid: 10, ppid: 0, start_timestamp_ms: 200, comm: 'codex', command: 'codex',
     }],
@@ -250,6 +258,8 @@ test('a child that predates the current parent incarnation is not attached by ov
   ];
   const live = {
     pid: 10,
+    session_id: 'raw-one',
+    last_message_at: new Date().toISOString(),
     process_details: [{
       pid: 10, ppid: 0, start_timestamp_ms: 200, comm: 'codex', command: 'codex',
     }],
