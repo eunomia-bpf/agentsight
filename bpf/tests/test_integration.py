@@ -32,7 +32,7 @@ class TracerSession:
         self.proc = subprocess.Popen(
             [PROCESS] + list(extra_args),
             stdout=self.outfile,
-            stderr=subprocess.DEVNULL,
+            stderr=None,  # TEMPORARY probe (patrol): keep diagnostics in the job log
         )
         time.sleep(wait_attach)  # wait for BPF load
 

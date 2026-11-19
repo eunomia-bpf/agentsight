@@ -1211,23 +1211,25 @@ int main(int argc, char **argv)
 	 * tracefs events exist on this kernel. */
 	{
 		const char *names[] = { "unlinkat", "unlink", "renameat2",
-					"renameat", "rename", "mkdirat", "mkdir" };
+					"renameat", "rename", "mkdirat", "mkdir",
+					"ftruncate", "chdir" };
 		struct bpf_link **links[] = {
 			&skel->links.trace_unlinkat, &skel->links.trace_unlink,
 			&skel->links.trace_renameat2, &skel->links.trace_renameat,
 			&skel->links.trace_rename, &skel->links.trace_mkdirat,
-			&skel->links.trace_mkdir };
-		for (int i = 0; i < 7; i++) {
+			&skel->links.trace_mkdir, &skel->links.trace_ftruncate,
+			&skel->links.trace_chdir };
+		for (int i = 0; i < 9; i++) {
 			char path[256];
 			struct stat st;
 			snprintf(path, sizeof(path),
 				 "/sys/kernel/tracing/events/syscalls/sys_enter_%s/id",
 				 names[i]);
 			int have = stat(path, &st) == 0;
-			printf("AGG_LINK %s link=%s tracefs=%s\n", names[i],
-			       *links[i] ? "yes" : "NO", have ? "yes" : "NO");
+			fprintf(stderr, "AGG_LINK %s link=%s tracefs=%s\n", names[i],
+				*links[i] ? "yes" : "NO", have ? "yes" : "NO");
 		}
-		fflush(stdout);
+		fflush(stderr);
 	}
 
 	/* Set up ring buffer polling with pid_tracker as context */
