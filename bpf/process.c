@@ -4,7 +4,6 @@
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
-#include <sys/stat.h>
 #include <sys/sysmacros.h>
 #include <sys/resource.h>
 #include <unistd.h>
@@ -1205,29 +1204,6 @@ int main(int argc, char **argv)
 	if (err) {
 		fprintf(stderr, "Failed to attach BPF skeleton\n");
 		goto cleanup;
-	}
-
-	/* TEMPORARY probe (patrol): which fs hooks got a link, and which
-	 * tracefs events exist on this kernel. */
-	{
-		const char *names[] = { "unlinkat", "unlink", "renameat2",
-					"renameat", "rename", "mkdirat", "mkdir" };
-		struct bpf_link **links[] = {
-			&skel->links.trace_unlinkat, &skel->links.trace_unlink,
-			&skel->links.trace_renameat2, &skel->links.trace_renameat,
-			&skel->links.trace_rename, &skel->links.trace_mkdirat,
-			&skel->links.trace_mkdir };
-		for (int i = 0; i < 7; i++) {
-			char path[256];
-			struct stat st;
-			snprintf(path, sizeof(path),
-				 "/sys/kernel/tracing/events/syscalls/sys_enter_%s/id",
-				 names[i]);
-			int have = stat(path, &st) == 0;
-			printf("AGG_LINK %s link=%s tracefs=%s\n", names[i],
-			       *links[i] ? "yes" : "NO", have ? "yes" : "NO");
-		}
-		fflush(stdout);
 	}
 
 	/* Set up ring buffer polling with pid_tracker as context */
