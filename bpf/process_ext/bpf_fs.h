@@ -181,19 +181,9 @@ int trace_rename(struct trace_event_raw_sys_enter *ctx)
 
 /* --- mkdir / mkdirat → DIR_CREATE --- */
 
-/* TEMPORARY probe (patrol): count hook entries and tracked entries in the
- * existing per-cpu overflow map, which costs no stack, so check_overflow
- * prints them as AGG_MAP_OVERFLOW. Removed before this leaves draft. */
 SEC("tp/syscalls/sys_enter_mkdirat")
 int trace_mkdirat(struct trace_event_raw_sys_enter *ctx)
 {
-	u32 zero = 0;
-	u64 *probe = bpf_map_lookup_elem(&agg_overflow_count, &zero);
-	if (probe) {
-		__sync_fetch_and_add(probe, 1000);
-		if (is_event_tracked())
-			__sync_fetch_and_add(probe, 1);
-	}
 	return agg_path_event((const char *)ctx->args[1], EVENT_TYPE_DIR_CREATE);
 }
 
