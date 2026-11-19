@@ -182,11 +182,6 @@ int trace_rename(struct trace_event_raw_sys_enter *ctx)
 SEC("tp/syscalls/sys_enter_mkdirat")
 int trace_mkdirat(struct trace_event_raw_sys_enter *ctx)
 {
-	struct agg_key probe_key = {};
-	probe_key.pid = bpf_get_current_pid_tgid() >> 32;
-	probe_key.event_type = EVENT_TYPE_DIR_CREATE;
-	copy_str_to(probe_key.detail, sizeof(probe_key.detail), "/probe");
-	update_agg_map(&probe_key, 1, 0);
 	return agg_path_event((const char *)ctx->args[1], EVENT_TYPE_DIR_CREATE);
 }
 
