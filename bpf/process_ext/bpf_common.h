@@ -81,12 +81,6 @@ static __always_inline u64 current_process_start_ns(void)
 
 static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 bytes)
 {
-	{	/* TEMPORARY probe (patrol): bit 5 = fd path entered. */
-		u32 zero = 0;
-		u64 *pc = bpf_map_lookup_elem(&agg_overflow_count, &zero);
-		if (pc)
-			__sync_fetch_and_or(pc, 32);
-	}
 	key->process_start_ns = current_process_start_ns();
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, key);
 	if (val) {
