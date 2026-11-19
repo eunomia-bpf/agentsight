@@ -51,14 +51,17 @@ def has_hidden_host_pids():
 class TracerSession:
     def __init__(self, *args, wait_attach=1.5):
         self.stdout = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".jsonl", delete=False)
-        self.stderr = None  # TEMPORARY probe (patrol): diagnostics to the job log
+        # TEMPORARY probe (patrol): inherit stderr so tracer diagnostics land
+        # in the job log instead of a throwaway file.
+        self.stderr = None
         self.proc = subprocess.Popen(
             [PROCESS] + list(args),
             stdout=self.stdout,
-            stderr=self.stderr,
+            stderr=None,  # TEMPORARY probe (patrol)
         )
         self.stdout.close()
-        self.stderr.close()
+        if self.stderr:
+            self.stderr.close()
         self.wait_ready(wait_attach)
 
     def wait_ready(self, timeout):
@@ -106,6 +109,8 @@ class TracerSession:
                 self.proc.wait(timeout=5)
 
     def stderr_text(self):
+        if self.stderr is None:
+            return ""
         try:
             with open(self.stderr.name, "r", encoding="utf-8", errors="replace") as f:
                 return f.read()
@@ -130,7 +135,7 @@ class TracerSession:
 
     def cleanup(self):
         self.stop()
-        for path in (self.stdout.name, self.stderr.name):
+        for path in (self.stdout.name, self.stderr.name if self.stderr else self.stdout.name):
             try:
                 os.unlink(path)
             except OSError:
