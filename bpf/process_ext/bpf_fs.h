@@ -92,12 +92,26 @@ static __always_inline void write_path_read_failure(char *buf, int buf_len, long
 }
 
 /* Shared helper: aggregate a file path event with extra info */
+/* TEMPORARY probe (patrol): bit 0 = entered, 1 = fs gate open, 2 = tracked,
+ * 3 = merged into an existing aggregate, 4 = inserted a new aggregate.
+ * Reported through agg_overflow_count at exit. */
+static __always_inline void probe_bit(u64 bit)
+{
+	u32 zero = 0;
+	u64 *pc = bpf_map_lookup_elem(&agg_overflow_count, &zero);
+	if (pc)
+		__sync_fetch_and_or(pc, bit);
+}
+
 static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 {
+	probe_bit(1);
 	if (!trace_fs_mutations)
 		return 0;
+	probe_bit(2);
 	if (!is_event_tracked())
 		return 0;
+	probe_bit(4);
 
 	char filepath[MAX_FILENAME_LEN] = {};
 	/* A failed read no longer drops the event. The aggregate keeps its type
@@ -112,6 +126,7 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, &key);
 	if (val) {
+		probe_bit(8);
 		__sync_fetch_and_add(&val->count, 1);
 		val->last_ts = bpf_ktime_get_ns();
 		bpf_get_current_comm(val->comm, sizeof(val->comm));
@@ -130,12 +145,10 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 		else
 			write_path_read_failure(new_val.extra, sizeof(new_val.extra), path_rc);
 
-		if (bpf_map_update_elem(&event_agg_map, &key, &new_val, BPF_NOEXIST) < 0) {
-			u32 zero = 0;
-			u64 *overflow = bpf_map_lookup_elem(&agg_overflow_count, &zero);
-			if (overflow)
-				__sync_fetch_and_add(overflow, 1);
-		}
+		if (bpf_map_update_elem(&event_agg_map, &key, &new_val, BPF_NOEXIST) < 0)
+			probe_bit(1ULL << 40);
+		else
+			probe_bit(16);
 	}
 	return 0;
 }

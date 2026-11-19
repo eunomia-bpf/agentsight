@@ -1263,6 +1263,20 @@ int main(int argc, char **argv)
 
 	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
+	/* TEMPORARY probe (patrol): dump the per-cpu counters raw. */
+	if (g_overflow_fd >= 0) {
+		int ncpu = libbpf_num_possible_cpus();
+		if (ncpu > 0) {
+			uint64_t *raw = calloc(ncpu, sizeof(uint64_t));
+			uint32_t zero = 0;
+			if (raw && bpf_map_lookup_elem(g_overflow_fd, &zero, raw) == 0)
+				for (int i = 0; i < ncpu; i++)
+					if (raw[i])
+						printf("AGG_PROBE c%d=%llu\n", i,
+						       (unsigned long long)raw[i]);
+			free(raw);
+		}
+	}
 	report_file_open_drops();
 	print_clock_sync_anchor("end");
 
