@@ -108,9 +108,7 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 	key.pid = bpf_get_current_pid_tgid() >> 32;
 	key.event_type = event_type;
 	key.process_start_ns = current_process_start_ns();
-	/* TEMPORARY probe: fixed detail, no new locals, to tell 'hook not
-	 * entered' from 'path read fails'. Reverted before this leaves draft. */
-	copy_str_to(key.detail, sizeof(key.detail), "/probe");
+	extract_dir_prefix(filepath, key.detail, sizeof(key.detail));
 
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, &key);
 	if (val) {
