@@ -457,7 +457,19 @@ def test_probe_heartbeat():
     wall_start = time.time_ns()
     sess = TracerSession("-m", "0", "--heartbeat", "1")
     try:
-        time.sleep(1.2)
+        # The loop emits the tick only after ring_buffer__poll returns, and a
+        # poll with no events blocks for its whole 1000 ms timeout. A fixed
+        # 1.2 s sleep leaves 200 ms of slack over that cycle, which a loaded
+        # runner exhausts; wait for the record itself instead.
+        deadline = time.time() + 10.0
+        while time.time() < deadline:
+            records = [e for e in sess.events() if e.get("event") == "PROBE_LIVENESS"]
+            if any(e.get("kind") == "alive" for e in records[1:]):
+                break
+            assert_true(sess.proc.poll() is None,
+                        f"process tracer exited before an alive tick: "
+                        f"{sess.proc.returncode}; {sess.stderr_text()[-2000:]}")
+            time.sleep(0.05)
         sess.stop()
         records = [e for e in sess.events() if e.get("event") == "PROBE_LIVENESS"]
         assert_true(len(records) >= 2 and records[0].get("kind") == "start" and

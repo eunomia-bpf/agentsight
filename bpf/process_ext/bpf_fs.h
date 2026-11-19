@@ -50,6 +50,46 @@ static __always_inline void copy_str_to(char *dst, int dst_len, const char *src)
 	if (dst_len > 0)
 		dst[dst_len - 1] = '\0';
 }
+/* Spell out a failed bpf_probe_read_user_str() in the aggregate, so a URL/pipe
+ * style path that cannot be read still shows up as its event type instead of
+ * disappearing: without this the hook returned 0 and the whole event was
+ * dropped, which reads downstream as "the hook never fired".
+ */
+static __always_inline void write_path_read_failure(char *buf, int buf_len, long rc)
+{
+	static const char prefix[] = "<user path unreadable: ";
+	int pos = 0;
+
+	#pragma unroll
+	for (int i = 0; i < sizeof(prefix) - 1 && pos < buf_len - 1; i++)
+		buf[pos++] = prefix[i];
+	if (rc < 0 && pos < buf_len - 1) {
+		buf[pos++] = '-';
+		rc = -rc;
+	}
+
+	/* An errno fits in five digits (ERFKILL is 132), and every byte here
+	 * competes with the caller's aggregate buffers under the 512-byte BPF
+	 * stack limit. */
+	char digits[5];
+	int dlen = 0;
+	/* A bounded loop here is not unrolled by the optimizer, and the verifier
+	 * then sees a back edge in every fs hook; spell the five digits out. */
+	#pragma unroll
+	for (int i = 0; i < 5; i++) {
+		digits[dlen++] = '0' + (int)(rc % 10);
+		rc /= 10;
+		if (rc == 0)
+			break;
+	}
+	#pragma unroll
+	for (int i = 0; i < 5; i++) {
+		if (i >= dlen || pos >= buf_len - 1)
+			break;
+		buf[pos++] = digits[dlen - 1 - i];
+	}
+	buf[pos] = '\0';
+}
 
 /* Shared helper: aggregate a file path event with extra info */
 static __always_inline int agg_path_event(const char *user_path, u32 event_type)
@@ -59,9 +99,10 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 	if (!is_event_tracked())
 		return 0;
 
-	char filepath[MAX_FILENAME_LEN];
-	if (bpf_probe_read_user_str(filepath, sizeof(filepath), user_path) < 0)
-		return 0;
+	char filepath[MAX_FILENAME_LEN] = {};
+	/* A failed read no longer drops the event. The aggregate keeps its type
+	 * and pid, detail stays empty, and extra says why the path is missing. */
+	long path_rc = bpf_probe_read_user_str(filepath, sizeof(filepath), user_path);
 
 	struct agg_key key = {};
 	key.pid = bpf_get_current_pid_tgid() >> 32;
@@ -74,14 +115,20 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 		__sync_fetch_and_add(&val->count, 1);
 		val->last_ts = bpf_ktime_get_ns();
 		bpf_get_current_comm(val->comm, sizeof(val->comm));
-		copy_str_to(val->extra, sizeof(val->extra), filepath);
+		if (path_rc >= 0)
+			copy_str_to(val->extra, sizeof(val->extra), filepath);
+		else
+			write_path_read_failure(val->extra, sizeof(val->extra), path_rc);
 	} else {
 		struct agg_value new_val = {};
 		new_val.count = 1;
 		new_val.first_ts = bpf_ktime_get_ns();
 		new_val.last_ts = new_val.first_ts;
 		bpf_get_current_comm(new_val.comm, sizeof(new_val.comm));
-		copy_str_to(new_val.extra, sizeof(new_val.extra), filepath);
+		if (path_rc >= 0)
+			copy_str_to(new_val.extra, sizeof(new_val.extra), filepath);
+		else
+			write_path_read_failure(new_val.extra, sizeof(new_val.extra), path_rc);
 
 		if (bpf_map_update_elem(&event_agg_map, &key, &new_val, BPF_NOEXIST) < 0) {
 			u32 zero = 0;
