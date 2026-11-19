@@ -51,7 +51,7 @@ def has_hidden_host_pids():
 class TracerSession:
     def __init__(self, *args, wait_attach=1.5):
         self.stdout = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".jsonl", delete=False)
-        self.stderr = None  # TEMPORARY probe (patrol): diagnostics to the job log
+        self.stderr = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".stderr", delete=False)
         self.proc = subprocess.Popen(
             [PROCESS] + list(args),
             stdout=self.stdout,
