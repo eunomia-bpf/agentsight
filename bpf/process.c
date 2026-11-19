@@ -1263,9 +1263,6 @@ int main(int argc, char **argv)
 
 	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
-	/* TEMPORARY probe (patrol): report the counter at exit too. */
-	if (g_overflow_fd >= 0)
-		check_overflow(g_overflow_fd);
 	report_file_open_drops();
 	print_clock_sync_anchor("end");
 
