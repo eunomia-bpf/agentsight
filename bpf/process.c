@@ -1207,8 +1207,8 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 
-	/* TEMPORARY probe (patrol): one line, all nine fs hooks, plus why a
-	 * link may be missing (autoload / autoattach). */
+	/* TEMPORARY probe (patrol): which fs hooks got a link, and which
+	 * tracefs events exist on this kernel. */
 	{
 		const char *names[] = { "unlinkat", "unlink", "renameat2",
 					"renameat", "rename", "mkdirat", "mkdir",
@@ -1219,22 +1219,16 @@ int main(int argc, char **argv)
 			&skel->links.trace_rename, &skel->links.trace_mkdirat,
 			&skel->links.trace_mkdir, &skel->links.trace_ftruncate,
 			&skel->links.trace_chdir };
-		struct bpf_program *progs[] = {
-			skel->progs.trace_unlinkat, skel->progs.trace_unlink,
-			skel->progs.trace_renameat2, skel->progs.trace_renameat,
-			skel->progs.trace_rename, skel->progs.trace_mkdirat,
-			skel->progs.trace_mkdir, skel->progs.trace_ftruncate,
-			skel->progs.trace_chdir };
-		fprintf(stderr, "AGG_LINKS");
 		for (int i = 0; i < 9; i++) {
-			fprintf(stderr, " %s=%s%d%d", names[i],
-				*links[i] ? "L" : "-",
-				bpf_program__autoload(progs[i]),
-				bpf_program__autoattach(progs[i]));
+			char path[256];
+			struct stat st;
+			snprintf(path, sizeof(path),
+				 "/sys/kernel/tracing/events/syscalls/sys_enter_%s/id",
+				 names[i]);
+			int have = stat(path, &st) == 0;
+			fprintf(stderr, "AGG_LINK %s link=%s tracefs=%s\n", names[i],
+				*links[i] ? "yes" : "NO", have ? "yes" : "NO");
 		}
-		fprintf(stderr, " tracefs=%d\n",
-			access("/sys/kernel/tracing/events/syscalls/sys_enter_mkdir/id",
-			       F_OK) == 0);
 		fflush(stderr);
 	}
 
