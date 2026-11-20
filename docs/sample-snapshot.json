@@ -3,15 +3,15 @@
   "generated_at": "2026-08-22T03:55:00Z",
   "summary": {
     "source": "demo",
-    "view_events": 56,
-    "llm_calls": 6,
+    "view_events": 200,
+    "llm_calls": 45,
     "token_usage_rows": 2,
-    "audit_events": 18,
-    "sessions": 2,
-    "input_tokens": 5840,
-    "output_tokens": 1760,
-    "total_tokens": 7600,
-    "start_timestamp_ms": 1787370180000,
+    "audit_events": 62,
+    "sessions": 3,
+    "input_tokens": 2511505,
+    "output_tokens": 9905,
+    "total_tokens": 2521410,
+    "start_timestamp_ms": 1787369400000,
     "end_timestamp_ms": 1787370900000
   },
   "token_summary": [
@@ -21,7 +21,7 @@
       "output_tokens": 1200,
       "cache_read_tokens": 1800,
       "total_tokens": 5400,
-      "calls": 4
+      "calls": 5
     },
     {
       "group": "claude / sonnet",
@@ -30,6 +30,14 @@
       "cache_read_tokens": 320,
       "total_tokens": 2200,
       "calls": 2
+    },
+    {
+      "group": "codex / gpt-5.6-sol",
+      "input_tokens": 2505665,
+      "output_tokens": 8145,
+      "cache_read_tokens": 2312192,
+      "total_tokens": 2513810,
+      "calls": 38
     }
   ],
   "sessions": [
@@ -114,6 +122,44 @@
             "resets_at": 1787385600
           }
         }
+      }
+    },
+    {
+      "id": "session-codex-review",
+      "agent_type": "codex",
+      "start_timestamp_ms": 1787369400000,
+      "end_timestamp_ms": 1787370003735,
+      "status": "stopped",
+      "model": "gpt-5.6-sol",
+      "input_tokens": 2505665,
+      "output_tokens": 8145,
+      "total_tokens": 2513810,
+      "attributes": {
+        "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+        "display_id": "codex:review-7ecbdf01",
+        "cwd": "/workspace/agentsight",
+        "prompt_preview": "Review the code changes introduced by commit 7ecbdf01",
+        "last_message_at": "2026-08-22T03:40:03Z",
+        "usage": {
+          "input_tokens": 2505665,
+          "output_tokens": 8145,
+          "cache_read_tokens": 2312192,
+          "total_tokens": 2513810
+        },
+        "plan": [
+          {
+            "step": "Inspect commit diff and applicable repository instructions",
+            "status": "in_progress"
+          },
+          {
+            "step": "Trace affected code paths and run focused tests",
+            "status": "pending"
+          },
+          {
+            "step": "Validate and prioritize actionable findings",
+            "status": "pending"
+          }
+        ]
       }
     }
   ],
@@ -243,13 +289,406 @@
       "related_pid": 4242
     },
     {
+      "id": "tool-claude-grep",
+      "session_id": "claude-demo-review",
+      "timestamp_ms": 1787370250000,
+      "start_timestamp_ms": 1787370250000,
+      "end_timestamp_ms": 1787370250300,
+      "duration_ms": 300,
+      "tool_name": "Grep",
+      "status": "success",
+      "input": { "pattern": "process_details" },
+      "related_pid": 5100
+    },
+    {
+      "id": "tool-claude-read-fixture",
+      "session_id": "claude-demo-review",
+      "timestamp_ms": 1787370262000,
+      "start_timestamp_ms": 1787370262000,
+      "end_timestamp_ms": 1787370262040,
+      "duration_ms": 40,
+      "tool_name": "Read",
+      "status": "success",
+      "input": { "file_path": "docs/sample-snapshot.json" },
+      "related_pid": 5100
+    },
+    {
+      "id": "tool-claude-lint",
+      "session_id": "claude-demo-review",
+      "timestamp_ms": 1787370300000,
+      "start_timestamp_ms": 1787370300000,
+      "end_timestamp_ms": 1787370312000,
+      "duration_ms": 12000,
+      "tool_name": "Bash",
+      "status": "success",
+      "input": { "command": "npm run lint" },
+      "output": { "exit_code": 0 },
+      "related_pid": 5100
+    },
+    {
+      "id": "tool-claude-e2e",
+      "session_id": "claude-demo-review",
+      "timestamp_ms": 1787370330000,
+      "start_timestamp_ms": 1787370330000,
+      "end_timestamp_ms": 1787370368000,
+      "duration_ms": 38000,
+      "tool_name": "Bash",
+      "status": "failed",
+      "input": { "command": "npx playwright test e2e/demo.spec.ts" },
+      "output": { "exit_code": 1, "stderr": "expected the overview row for the running session" },
+      "related_pid": 5100
+    },
+    {
       "id": "tool-claude-review",
       "session_id": "claude-demo-review",
       "timestamp_ms": 1787370420000,
+      "start_timestamp_ms": 1787370420000,
+      "end_timestamp_ms": 1787370420150,
+      "duration_ms": 150,
       "tool_name": "read_file",
       "status": "success",
       "input": { "path": "ext/web/components/NodeOverview.tsx" },
       "related_pid": 5100
+    },
+    {
+      "id": "tool-review-1",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369422462,
+      "start_timestamp_ms": 1787369422462,
+      "end_timestamp_ms": 1787369432331,
+      "duration_ms": 9869,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "git show --no-ext-diff --pretty=fuller --stat --summary 7ecbdf01e96c"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-2",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369437473,
+      "start_timestamp_ms": 1787369437473,
+      "end_timestamp_ms": 1787369438198,
+      "duration_ms": 725,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "git show --no-ext-diff --find-renames --find-copies --format=medium --unified=80 7ecbdf01e96c -- controller/sr…"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-3",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369453713,
+      "start_timestamp_ms": 1787369453713,
+      "end_timestamp_ms": 1787369455295,
+      "duration_ms": 1582,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "git status --short --branch"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-4",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369463672,
+      "start_timestamp_ms": 1787369463672,
+      "end_timestamp_ms": 1787369571474,
+      "duration_ms": 107802,
+      "tool_name": "shell_command",
+      "status": "failed",
+      "input": {
+        "command": "wrangler deploy --dry-run --config wrangler.jsonc"
+      },
+      "output": {
+        "exit_code": 1
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-5",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369590591,
+      "start_timestamp_ms": 1787369590591,
+      "end_timestamp_ms": 1787369591669,
+      "duration_ms": 1078,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "git status --short"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-6",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369601195,
+      "start_timestamp_ms": 1787369601195,
+      "end_timestamp_ms": 1787369606210,
+      "duration_ms": 5015,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "wrangler types --help | Select-Object -First 160"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-7",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369611715,
+      "start_timestamp_ms": 1787369611715,
+      "end_timestamp_ms": 1787369676099,
+      "duration_ms": 64384,
+      "tool_name": "shell_command",
+      "status": "failed",
+      "input": {
+        "command": "wrangler types \"/tmp/agentsight-preview-env.d.ts\" --env preview --config wrangler.jsonc"
+      },
+      "output": {
+        "exit_code": 124
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-8",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369681250,
+      "start_timestamp_ms": 1787369681250,
+      "end_timestamp_ms": 1787369687242,
+      "duration_ms": 5992,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "npm --prefix controller test"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-9",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369700306,
+      "start_timestamp_ms": 1787369700306,
+      "end_timestamp_ms": 1787369713558,
+      "duration_ms": 13252,
+      "tool_name": "shell_command",
+      "status": "failed",
+      "input": {
+        "command": "npm --prefix frontend run build"
+      },
+      "output": {
+        "exit_code": 1
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-10",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369723248,
+      "start_timestamp_ms": 1787369723248,
+      "end_timestamp_ms": 1787369724536,
+      "duration_ms": 1288,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "git grep -n -I \"controllerClient\" -- frontend/src | Select-Object -First 100"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-11",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369731877,
+      "start_timestamp_ms": 1787369731877,
+      "end_timestamp_ms": 1787369734446,
+      "duration_ms": 2569,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "npm --prefix frontend exec -- tsc --noEmit"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-12",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369737554,
+      "start_timestamp_ms": 1787369737554,
+      "end_timestamp_ms": 1787369767496,
+      "duration_ms": 29942,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "npx tsc --noEmit"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-13",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369774619,
+      "start_timestamp_ms": 1787369774619,
+      "end_timestamp_ms": 1787369935573,
+      "duration_ms": 160954,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "npx next build"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-14",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369940893,
+      "start_timestamp_ms": 1787369940893,
+      "end_timestamp_ms": 1787369943908,
+      "duration_ms": 3015,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "git restore -- frontend/tsconfig.tsbuildinfo"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-15",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369950630,
+      "start_timestamp_ms": 1787369950630,
+      "end_timestamp_ms": 1787369951359,
+      "duration_ms": 729,
+      "tool_name": "shell_command",
+      "status": "failed",
+      "input": {
+        "command": "python - (inline script)"
+      },
+      "output": {
+        "exit_code": 1
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-16",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369957038,
+      "start_timestamp_ms": 1787369957038,
+      "end_timestamp_ms": 1787369957955,
+      "duration_ms": 917,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "Get-ChildItem frontend/dist/_next/static/chunks -Filter *.js | ForEach-Object { $s=[IO.File]::ReadAllText($_.F…"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-17",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369971446,
+      "start_timestamp_ms": 1787369971446,
+      "end_timestamp_ms": 1787369972557,
+      "duration_ms": 1111,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "Select-String -Path controller/node_modules/wrangler/config-schema.json -Pattern '\"migrations\"|\"env\"|Environme…"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-18",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369977277,
+      "start_timestamp_ms": 1787369977277,
+      "end_timestamp_ms": 1787369979248,
+      "duration_ms": 1971,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "Get-Content controller/node_modules/wrangler/package.json -TotalCount 200"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-19",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369982241,
+      "start_timestamp_ms": 1787369982241,
+      "end_timestamp_ms": 1787369982925,
+      "duration_ms": 684,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "Select-String -Path controller/node_modules/wrangler/wrangler-dist/cli.d.ts -Pattern '^export|unstable|readCon…"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
+    },
+    {
+      "id": "tool-review-20",
+      "session_id": "019ff93e-bb03-71f0-a881-48e0e932f58e",
+      "timestamp_ms": 1787369988875,
+      "start_timestamp_ms": 1787369988875,
+      "end_timestamp_ms": 1787369991815,
+      "duration_ms": 2940,
+      "tool_name": "shell_command",
+      "status": "success",
+      "input": {
+        "command": "node --input-type=module (inline script)"
+      },
+      "output": {
+        "exit_code": 0
+      },
+      "related_pid": 21472
     }
   ],
   "process_nodes": [
@@ -445,12 +884,357 @@
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
       "status": "success"
+    },
+    {
+      "id": "process-claude-rg",
+      "pid": 5104,
+      "ppid": 5100,
+      "root_pid": 5100,
+      "start_timestamp_ms": 1787370250000,
+      "end_timestamp_ms": 1787370250300,
+      "comm": "rg",
+      "command": "rg -n process_details ext/web",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-claude-cat",
+      "pid": 5106,
+      "ppid": 5100,
+      "root_pid": 5100,
+      "start_timestamp_ms": 1787370262000,
+      "end_timestamp_ms": 1787370262040,
+      "comm": "cat",
+      "command": "cat docs/sample-snapshot.json",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-claude-git",
+      "pid": 5108,
+      "ppid": 5100,
+      "root_pid": 5100,
+      "start_timestamp_ms": 1787370270000,
+      "end_timestamp_ms": 1787370270120,
+      "comm": "git",
+      "command": "git log --oneline -20",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-claude-lint",
+      "pid": 5111,
+      "ppid": 5100,
+      "root_pid": 5100,
+      "start_timestamp_ms": 1787370300000,
+      "end_timestamp_ms": 1787370312000,
+      "comm": "npm",
+      "command": "npm run lint",
+      "cwd": "/workspace/agentsight/frontend",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-claude-e2e",
+      "pid": 5115,
+      "ppid": 5100,
+      "root_pid": 5100,
+      "start_timestamp_ms": 1787370330000,
+      "end_timestamp_ms": 1787370368000,
+      "comm": "node",
+      "command": "npx playwright test e2e/demo.spec.ts",
+      "cwd": "/workspace/agentsight/frontend",
+      "exit_code": 1,
+      "status": "failed"
+    },
+    {
+      "id": "process-review-codex",
+      "pid": 21472,
+      "ppid": 1,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369400000,
+      "end_timestamp_ms": 1787370003735,
+      "comm": "codex",
+      "command": "codex exec review",
+      "argv": [
+        "codex",
+        "exec",
+        "review"
+      ],
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-1",
+      "pid": 21499,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369422612,
+      "end_timestamp_ms": 1787369432112,
+      "comm": "powershell",
+      "command": "git show --no-ext-diff --pretty=fuller --stat --summary 7ecbdf01e96c",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-2",
+      "pid": 21503,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369437623,
+      "end_timestamp_ms": 1787369438023,
+      "comm": "powershell",
+      "command": "git show --no-ext-diff --find-renames --find-copies --format=medium --unified=80 7ecbdf01e96c -- controller/sr…",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-3",
+      "pid": 21508,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369453863,
+      "end_timestamp_ms": 1787369455063,
+      "comm": "powershell",
+      "command": "git status --short --branch",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-4",
+      "pid": 21514,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369463822,
+      "end_timestamp_ms": 1787369571322,
+      "comm": "powershell",
+      "command": "wrangler deploy --dry-run --config wrangler.jsonc",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 1,
+      "status": "failed"
+    },
+    {
+      "id": "process-review-5",
+      "pid": 21517,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369590741,
+      "end_timestamp_ms": 1787369591541,
+      "comm": "powershell",
+      "command": "git status --short",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-6",
+      "pid": 21521,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369601345,
+      "end_timestamp_ms": 1787369606045,
+      "comm": "powershell",
+      "command": "wrangler types --help | Select-Object -First 160",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-7",
+      "pid": 21526,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369611865,
+      "end_timestamp_ms": 1787369675964,
+      "comm": "powershell",
+      "command": "wrangler types \"/tmp/agentsight-preview-env.d.ts\" --env preview --config wrangler.jsonc",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 124,
+      "status": "failed"
+    },
+    {
+      "id": "process-review-8",
+      "pid": 21532,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369681400,
+      "end_timestamp_ms": 1787369687100,
+      "comm": "powershell",
+      "command": "npm --prefix controller test",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-9",
+      "pid": 21535,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369700456,
+      "end_timestamp_ms": 1787369711756,
+      "comm": "powershell",
+      "command": "npm --prefix frontend run build",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 1,
+      "status": "failed"
+    },
+    {
+      "id": "process-review-10",
+      "pid": 21539,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369723398,
+      "end_timestamp_ms": 1787369724398,
+      "comm": "powershell",
+      "command": "git grep -n -I \"controllerClient\" -- frontend/src | Select-Object -First 100",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-11",
+      "pid": 21544,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369732027,
+      "end_timestamp_ms": 1787369734227,
+      "comm": "powershell",
+      "command": "npm --prefix frontend exec -- tsc --noEmit",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-12",
+      "pid": 21550,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369737704,
+      "end_timestamp_ms": 1787369767204,
+      "comm": "powershell",
+      "command": "npx tsc --noEmit",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-13",
+      "pid": 21553,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369774769,
+      "end_timestamp_ms": 1787369935369,
+      "comm": "powershell",
+      "command": "npx next build",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-14",
+      "pid": 21557,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369941043,
+      "end_timestamp_ms": 1787369943743,
+      "comm": "powershell",
+      "command": "git restore -- frontend/tsconfig.tsbuildinfo",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-15",
+      "pid": 21562,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369950780,
+      "end_timestamp_ms": 1787369951380,
+      "comm": "powershell",
+      "command": "python - (inline script)",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 1,
+      "status": "failed"
+    },
+    {
+      "id": "process-review-16",
+      "pid": 21568,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369957188,
+      "end_timestamp_ms": 1787369957788,
+      "comm": "powershell",
+      "command": "Get-ChildItem frontend/dist/_next/static/chunks -Filter *.js | ForEach-Object { $s=[IO.File]::ReadAllText($_.F…",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-17",
+      "pid": 21571,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369971596,
+      "end_timestamp_ms": 1787369972396,
+      "comm": "powershell",
+      "command": "Select-String -Path controller/node_modules/wrangler/config-schema.json -Pattern '\"migrations\"|\"env\"|Environme…",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-18",
+      "pid": 21575,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369977427,
+      "end_timestamp_ms": 1787369979027,
+      "comm": "powershell",
+      "command": "Get-Content controller/node_modules/wrangler/package.json -TotalCount 200",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-19",
+      "pid": 21580,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369982391,
+      "end_timestamp_ms": 1787369982891,
+      "comm": "powershell",
+      "command": "Select-String -Path controller/node_modules/wrangler/wrangler-dist/cli.d.ts -Pattern '^export|unstable|readCon…",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
+    },
+    {
+      "id": "process-review-20",
+      "pid": 21586,
+      "ppid": 21472,
+      "root_pid": 21472,
+      "start_timestamp_ms": 1787369989025,
+      "end_timestamp_ms": 1787369991825,
+      "comm": "powershell",
+      "command": "node --input-type=module (inline script)",
+      "cwd": "/workspace/agentsight",
+      "exit_code": 0,
+      "status": "success"
     }
   ],
   "resource_samples": [
     { "timestamp_ms": 1787370360000, "pid": 4242, "comm": "codex", "cpu_percent": 6.4, "rss_mb": 218 },
     { "timestamp_ms": 1787370600000, "pid": 4242, "comm": "codex", "cpu_percent": 11.8, "rss_mb": 246 },
     { "timestamp_ms": 1787370840000, "pid": 4242, "comm": "codex", "cpu_percent": 18.6, "rss_mb": 284 },
+    { "timestamp_ms": 1787370300000, "pid": 5100, "comm": "claude", "cpu_percent": 9.1, "rss_mb": 141 },
+    { "timestamp_ms": 1787370340000, "pid": 5100, "comm": "claude", "cpu_percent": 22.5, "rss_mb": 176 },
     { "timestamp_ms": 1787370420000, "pid": 5100, "comm": "claude", "cpu_percent": 4.2, "rss_mb": 132 }
   ],
   "network_targets": [
@@ -459,8 +1243,8 @@
       "comm": "codex",
       "host": "api.openai.com",
       "path": "/v1/responses",
-      "count": 4,
-      "error_count": 0,
+      "count": 5,
+      "error_count": 1,
       "first_timestamp_ms": 1787370320000,
       "last_timestamp_ms": 1787370755000
     },
@@ -473,6 +1257,16 @@
       "error_count": 0,
       "first_timestamp_ms": 1787370481000,
       "last_timestamp_ms": 1787370536000
+    },
+    {
+      "pid": 4257,
+      "comm": "npm",
+      "host": "playwright.download.prss.microsoft.com",
+      "path": "/dbazure/download/playwright/builds/chromium",
+      "count": 3,
+      "error_count": 1,
+      "first_timestamp_ms": 1787370522000,
+      "last_timestamp_ms": 1787370534000
     },
     {
       "pid": 4242,
@@ -493,6 +1287,16 @@
       "error_count": 0,
       "first_timestamp_ms": 1787370210000,
       "last_timestamp_ms": 1787370460000
+    },
+    {
+      "pid": 21472,
+      "comm": "codex",
+      "host": "chatgpt.com",
+      "path": "/backend-api/codex/responses",
+      "count": 38,
+      "error_count": 0,
+      "first_timestamp_ms": 1787369401276,
+      "last_timestamp_ms": 1787370003735
     }
   ],
   "audit_events": [
@@ -589,6 +1393,30 @@
       "summary": "connect registry.npmjs.org:443"
     },
     {
+      "id": "audit-codex-prompt-rate-limited",
+      "timestamp_ms": 1787370576000,
+      "audit_type": "llm",
+      "pid": 4242,
+      "comm": "codex",
+      "subject": "gpt-5",
+      "action": "request",
+      "status": "success",
+      "summary": "Keep the demo representative of a real coding session",
+      "details": { "text_content": "Keep the demo representative of a real coding session and make every existing view contain useful data." }
+    },
+    {
+      "id": "audit-codex-response-rate-limited",
+      "timestamp_ms": 1787370577200,
+      "audit_type": "llm",
+      "pid": 4242,
+      "comm": "codex",
+      "subject": "gpt-5",
+      "action": "response",
+      "status": "failed",
+      "summary": "HTTP 429 Too Many Requests",
+      "details": { "text_content": "Rate limited by the model API; retrying in 3s.", "status_code": 429 }
+    },
+    {
       "id": "audit-codex-prompt-2",
       "timestamp_ms": 1787370580000,
       "audit_type": "llm",
@@ -681,6 +1509,17 @@
       "summary": "removed trailing whitespace and reran checks"
     },
     {
+      "id": "audit-claude-connect",
+      "timestamp_ms": 1787370215000,
+      "audit_type": "network",
+      "pid": 5100,
+      "comm": "claude",
+      "action": "connect",
+      "target": "api.anthropic.com:443",
+      "status": "success",
+      "summary": "connect api.anthropic.com:443"
+    },
+    {
       "id": "audit-claude-prompt",
       "timestamp_ms": 1787370220000,
       "audit_type": "llm",
@@ -693,6 +1532,30 @@
       "details": { "text_content": "Review the AgentSight demo and identify observability views that are empty or misleading." }
     },
     {
+      "id": "audit-claude-response-scan",
+      "timestamp_ms": 1787370238000,
+      "audit_type": "llm",
+      "pid": 5100,
+      "comm": "claude",
+      "subject": "claude-sonnet",
+      "action": "response",
+      "status": "success",
+      "summary": "Reading the overview and the demo fixture first",
+      "details": { "text_content": "I will read the overview components and the demo fixture, then run lint and the demo browser test to see which views come up empty." }
+    },
+    {
+      "id": "audit-claude-prompt-2",
+      "timestamp_ms": 1787370440000,
+      "audit_type": "llm",
+      "pid": 5100,
+      "comm": "claude",
+      "subject": "claude-sonnet",
+      "action": "request",
+      "status": "success",
+      "summary": "Summarize the missing evidence",
+      "details": { "text_content": "The browser test failed on the demo overview. Summarize which evidence the demo is missing." }
+    },
+    {
       "id": "audit-claude-response",
       "timestamp_ms": 1787370460000,
       "audit_type": "llm",
@@ -703,6 +1566,590 @@
       "status": "success",
       "summary": "The live overview path is missing from recorded demo mode",
       "details": { "text_content": "The snapshot has historical evidence, but the demo does not populate the live overview model, leaving running state, CPU, RSS and live process information unavailable." }
+    },
+    {
+      "id": "audit-review-prompt",
+      "timestamp_ms": 1787369401276,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "request",
+      "status": "success",
+      "summary": "Review the code changes introduced by commit 7ecbdf01",
+      "details": {
+        "text_content": "Review the code changes introduced by commit 7ecbdf01e96cb58eddcddbd762a2598e69c570c5. Provide prioritized, actionable findings."
+      }
+    },
+    {
+      "id": "audit-review-turn-1-response",
+      "timestamp_ms": 1787369401276,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command",
+      "details": {
+        "duration_ms": 8610,
+        "text_content": "Run a shell command"
+      }
+    },
+    {
+      "id": "audit-review-turn-2-response",
+      "timestamp_ms": 1787369412564,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: git show --no-ext-diff --pretty=fuller --stat --summary 7ecbdf01e96c",
+      "details": {
+        "duration_ms": 9898,
+        "text_content": "Run `git show --no-ext-diff --pretty=fuller --stat --summary 7ecbdf01e96c`"
+      }
+    },
+    {
+      "id": "audit-review-turn-3-response",
+      "timestamp_ms": 1787369432331,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: git show --no-ext-diff --find-renames --find-copies --format=medium --unified=80 7ecbdf01e96c -- controller/sr…",
+      "details": {
+        "duration_ms": 5142,
+        "text_content": "Run `git show --no-ext-diff --find-renames --find-copies --format=medium --unified=80 7ecbdf01e96c -- controller/sr…`"
+      }
+    },
+    {
+      "id": "audit-review-turn-4-response",
+      "timestamp_ms": 1787369438198,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: git status --short --branch",
+      "details": {
+        "duration_ms": 15515,
+        "text_content": "Run `git status --short --branch`"
+      }
+    },
+    {
+      "id": "audit-review-turn-5-response",
+      "timestamp_ms": 1787369455295,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: wrangler deploy --dry-run --config wrangler.jsonc",
+      "details": {
+        "duration_ms": 8377,
+        "text_content": "Run `wrangler deploy --dry-run --config wrangler.jsonc`"
+      }
+    },
+    {
+      "id": "audit-review-turn-6-response",
+      "timestamp_ms": 1787369474778,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 3035,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-7-response",
+      "timestamp_ms": 1787369478831,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 3855,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-8-response",
+      "timestamp_ms": 1787369493693,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 1631,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-9-response",
+      "timestamp_ms": 1787369516343,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2724,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-10-response",
+      "timestamp_ms": 1787369540072,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2560,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-11-response",
+      "timestamp_ms": 1787369571474,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command",
+      "details": {
+        "duration_ms": 12998,
+        "text_content": "Run a shell command"
+      }
+    },
+    {
+      "id": "audit-review-turn-12-response",
+      "timestamp_ms": 1787369586521,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: git status --short",
+      "details": {
+        "duration_ms": 4070,
+        "text_content": "Run `git status --short`"
+      }
+    },
+    {
+      "id": "audit-review-turn-13-response",
+      "timestamp_ms": 1787369591669,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: wrangler types --help | Select-Object -First 160",
+      "details": {
+        "duration_ms": 9526,
+        "text_content": "Run `wrangler types --help | Select-Object -First 160`"
+      }
+    },
+    {
+      "id": "audit-review-turn-14-response",
+      "timestamp_ms": 1787369606210,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: wrangler types \"/tmp/agentsight-preview-env.d.ts\" --env preview --config wrangler.jsonc",
+      "details": {
+        "duration_ms": 5505,
+        "text_content": "Run `wrangler types \"/tmp/agentsight-preview-env.d.ts\" --env preview --config wrangler.jsonc`"
+      }
+    },
+    {
+      "id": "audit-review-turn-15-response",
+      "timestamp_ms": 1787369623021,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 3878,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-16-response",
+      "timestamp_ms": 1787369647914,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 3383,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-17-response",
+      "timestamp_ms": 1787369676099,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: npm --prefix controller test",
+      "details": {
+        "duration_ms": 5151,
+        "text_content": "Run `npm --prefix controller test`"
+      }
+    },
+    {
+      "id": "audit-review-turn-18-response",
+      "timestamp_ms": 1787369687242,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: npm --prefix frontend run build",
+      "details": {
+        "duration_ms": 13064,
+        "text_content": "Run `npm --prefix frontend run build`"
+      }
+    },
+    {
+      "id": "audit-review-turn-19-response",
+      "timestamp_ms": 1787369711386,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2159,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-20-response",
+      "timestamp_ms": 1787369713558,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: git grep -n -I \"controllerClient\" -- frontend/src | Select-Object -First 100",
+      "details": {
+        "duration_ms": 9690,
+        "text_content": "Run `git grep -n -I \"controllerClient\" -- frontend/src | Select-Object -First 100`"
+      }
+    },
+    {
+      "id": "audit-review-turn-21-response",
+      "timestamp_ms": 1787369724536,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: npm --prefix frontend exec -- tsc --noEmit",
+      "details": {
+        "duration_ms": 7341,
+        "text_content": "Run `npm --prefix frontend exec -- tsc --noEmit`"
+      }
+    },
+    {
+      "id": "audit-review-turn-22-response",
+      "timestamp_ms": 1787369734446,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: npx tsc --noEmit",
+      "details": {
+        "duration_ms": 3108,
+        "text_content": "Run `npx tsc --noEmit`"
+      }
+    },
+    {
+      "id": "audit-review-turn-23-response",
+      "timestamp_ms": 1787369748621,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2274,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-24-response",
+      "timestamp_ms": 1787369767496,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: npx next build",
+      "details": {
+        "duration_ms": 7123,
+        "text_content": "Run `npx next build`"
+      }
+    },
+    {
+      "id": "audit-review-turn-25-response",
+      "timestamp_ms": 1787369785925,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2734,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-26-response",
+      "timestamp_ms": 1787369819676,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2979,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-27-response",
+      "timestamp_ms": 1787369853662,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 2016,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-28-response",
+      "timestamp_ms": 1787369886684,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 1922,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-29-response",
+      "timestamp_ms": 1787369919616,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ wait for the running command",
+      "details": {
+        "duration_ms": 1817,
+        "text_content": "Wait for the running command"
+      }
+    },
+    {
+      "id": "audit-review-turn-30-response",
+      "timestamp_ms": 1787369935573,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: git restore -- frontend/tsconfig.tsbuildinfo",
+      "details": {
+        "duration_ms": 5320,
+        "text_content": "Run `git restore -- frontend/tsconfig.tsbuildinfo`"
+      }
+    },
+    {
+      "id": "audit-review-turn-31-response",
+      "timestamp_ms": 1787369943908,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: python - (inline script)",
+      "details": {
+        "duration_ms": 6722,
+        "text_content": "Run `python - (inline script)`"
+      }
+    },
+    {
+      "id": "audit-review-turn-32-response",
+      "timestamp_ms": 1787369951359,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: Get-ChildItem frontend/dist/_next/static/chunks -Filter *.js | ForEach-Object { $s=[IO.File]::ReadAllText($_.F…",
+      "details": {
+        "duration_ms": 5679,
+        "text_content": "Run `Get-ChildItem frontend/dist/_next/static/chunks -Filter *.js | ForEach-Object { $s=[IO.File]::ReadAllText($_.F…`"
+      }
+    },
+    {
+      "id": "audit-review-turn-33-response",
+      "timestamp_ms": 1787369957955,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: Select-String -Path controller/node_modules/wrangler/config-schema.json -Pattern '\"migrations\"|\"env\"|Environme…",
+      "details": {
+        "duration_ms": 13491,
+        "text_content": "Run `Select-String -Path controller/node_modules/wrangler/config-schema.json -Pattern '\"migrations\"|\"env\"|Environme…`"
+      }
+    },
+    {
+      "id": "audit-review-turn-34-response",
+      "timestamp_ms": 1787369972557,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: Get-Content controller/node_modules/wrangler/package.json -TotalCount 200",
+      "details": {
+        "duration_ms": 4720,
+        "text_content": "Run `Get-Content controller/node_modules/wrangler/package.json -TotalCount 200`"
+      }
+    },
+    {
+      "id": "audit-review-turn-35-response",
+      "timestamp_ms": 1787369979248,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: Select-String -Path controller/node_modules/wrangler/wrangler-dist/cli.d.ts -Pattern '^export|unstable|readCon…",
+      "details": {
+        "duration_ms": 2993,
+        "text_content": "Run `Select-String -Path controller/node_modules/wrangler/wrangler-dist/cli.d.ts -Pattern '^export|unstable|readCon…`"
+      }
+    },
+    {
+      "id": "audit-review-turn-36-response",
+      "timestamp_ms": 1787369982925,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command: node --input-type=module (inline script)",
+      "details": {
+        "duration_ms": 5950,
+        "text_content": "Run `node --input-type=module (inline script)`"
+      }
+    },
+    {
+      "id": "audit-review-turn-37-response",
+      "timestamp_ms": 1787369991815,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ shell_command",
+      "details": {
+        "duration_ms": 11404,
+        "text_content": "Run a shell command"
+      }
+    },
+    {
+      "id": "audit-review-turn-38-response",
+      "timestamp_ms": 1787370003595,
+      "audit_type": "llm",
+      "pid": 21472,
+      "comm": "codex",
+      "subject": "gpt-5.6-sol",
+      "action": "response",
+      "status": "success",
+      "summary": "→ message",
+      "details": {
+        "duration_ms": 140,
+        "text_content": "Reply to the user"
+      }
     }
   ]
 }
