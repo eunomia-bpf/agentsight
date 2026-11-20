@@ -167,6 +167,9 @@ export interface SnapshotToolCall {
   session_id?: string | null;
   timestamp_ms: number;
   tool_name?: string | null;
+  start_timestamp_ms?: number | null;
+  end_timestamp_ms?: number | null;
+  duration_ms?: number | null;
   status?: string | null;
   input?: unknown;
   output?: unknown;

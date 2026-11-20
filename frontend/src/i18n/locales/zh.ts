@@ -161,6 +161,32 @@ export const zh: Record<TranslationKey, string> = {
   'sessionDetail.views': '会话视图',
   'sessionDetail.recordedCapture': '已录制数据',
 
+  // 会话事件
+  'events.title': '事件时间线',
+  'events.hint': '每条命令何时执行、跑了多久、是否成功，以及同一时段的模型调用、网络端点和工具调用。',
+  'events.kind.exec': '命令',
+  'events.kind.llm': '模型调用',
+  'events.kind.network': '网络',
+  'events.kind.tool': '工具调用',
+  'events.failedCount': '{count} 个失败',
+  'events.failuresOnly': '只看失败',
+  'events.range': '共 {duration}',
+  'events.empty': '这个会话没有记录到带时间的事件。',
+  'events.noMatch': '当前筛选下没有事件。',
+  'events.table': '事件列表',
+  'events.column.kind': '类型',
+  'events.column.event': '事件',
+  'events.column.start': '开始',
+  'events.column.duration': '耗时',
+  'events.column.status': '状态',
+  'events.column.pid': 'PID',
+  'events.status.success': '成功',
+  'events.status.failed': '失败',
+  'events.status.running': '运行中',
+  'events.status.unknown': '未知',
+  'events.open': '最后一次采集时仍在运行',
+  'events.showAll': '显示全部 {count} 条',
+
   // 会话分析
   'analysis.duration': '持续时间',
   'analysis.llmTurns': '已加载 LLM 轮次',
@@ -188,31 +214,6 @@ export const zh: Record<TranslationKey, string> = {
   'analysis.samples': '采样数',
   'analysis.attention': '有 {count} 个已捕获问题需要处理。',
   'analysis.healthy': '该会话没有捕获到失败。',
-
-  // Modal
-  'modal.eventDetails': '事件详情',
-  'modal.id': 'ID',
-  'modal.source': '来源',
-  'modal.process': '进程',
-  'modal.pid': 'PID',
-  'modal.time': '时间',
-  'modal.timestamp': '时间戳',
-  'modal.unixTimestamp': 'Unix 时间戳',
-  'modal.decodedStdio': '解码后的标准 I/O',
-  'modal.direction': '方向',
-  'modal.fdRole': 'FD 角色',
-  'modal.kind': '类型',
-  'modal.messageId': '消息 ID',
-  'modal.method': '方法',
-  'modal.tool': '工具',
-  'modal.rawData': '原始数据',
-
-  // Filters
-  'filter.searchEvents': '搜索事件...',
-  'filter.allSources': '全部来源',
-  'filter.allProcesses': '全部进程',
-  'filter.allPids': '全部 PID',
-  'filter.pid': 'PID {pid}',
 
   // Process Tree
   'processTree.title': '进程树 & AI 提示',
@@ -253,29 +254,5 @@ export const zh: Record<TranslationKey, string> = {
   'tag.aiResponse': 'AI 响应',
   'tag.ssl': 'SSL',
   'tag.stdio': '标准 I/O',
-
-  // Timeline
-  'timeline.title': '时间线视图',
-  'timeline.durationInfo': '持续时间：{duration} · {count} 个事件',
-  'timeline.zoomHelp': '使用鼠标滚轮 + Ctrl/Cmd 缩放，或使用 Ctrl/Cmd + +/- 键。按 Ctrl/Cmd + 0 重置。',
-  'timeline.scrollHelp': '缩放后可使用鼠标滚轮或方向键滚动。',
-  'timeline.noEvents': '暂无事件可显示',
-  'timeline.eventDetails': '时间线事件详情',
-
-  // Zoom Controls
-  'timeline.zoomOut': '缩小',
-  'timeline.zoomIn': '放大',
-  'timeline.resetZoom': '重置缩放',
-  'timeline.reset': '重置',
-  'timeline.scrollLeft': '向左滚动',
-  'timeline.scroll': '滚动',
-  'timeline.scrollRight': '向右滚动',
-
-  // Timeline Minimap
-  'timeline.overview': '时间线概览',
-  'timeline.scrolled': '已滚动 {percent}%',
-
-  // Timeline ScrollBar
-  'timeline.scrollPosition': '滚动位置',
 
 };

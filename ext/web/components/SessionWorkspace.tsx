@@ -10,7 +10,6 @@ import { State } from '@/components/NodeOverview';
 import { type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, SnapshotSession } from '@/types/event';
-import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 import {
   displaySessionId,
   isRunningSession,
@@ -141,7 +140,6 @@ export function SessionWorkspace({
     () => sessionSnapshot(snapshot, session, live, detail, overview),
     [detail, live, overview, session, snapshot],
   );
-  const events = useMemo(() => tab === 'analysis' ? displayEventsFromSnapshot(scopedSnapshot) : [], [scopedSnapshot, tab]);
   const plan = sessionPlan(session, detail, live);
   const currentPlan = plan.find((step) => step.status === 'in_progress');
   const peakCpu = (scopedSnapshot.resource_samples ?? [])
@@ -229,7 +227,8 @@ export function SessionWorkspace({
         ) : tab === 'process' ? (
           <ProcessTreeView snapshot={scopedSnapshot} />
         ) : (
-          <SessionAnalysis snapshot={scopedSnapshot} session={session} detail={detail} events={events} />
+          <SessionAnalysis snapshot={scopedSnapshot} session={session} detail={detail}
+            captureEnd={snapshot.summary?.end_timestamp_ms} />
         )}
       </div>
     </div>

@@ -3,11 +3,11 @@
 
 'use client';
 
-import { Timeline } from '@/components/timeline/Timeline';
+import { SessionEvents } from '@/components/SessionEvents';
 import type { SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot, SnapshotSession } from '@/types/event';
-import { type DisplayEvent, formatDuration } from '@/utils/eventProcessing';
+import { formatDuration } from '@/utils/eventProcessing';
 import { sessionToolCallCount, sessionUsage } from '@/utils/sessionData';
 
 function compact(value: number | null | undefined): string {
@@ -18,11 +18,11 @@ function compact(value: number | null | undefined): string {
   return Math.round(number).toLocaleString();
 }
 
-export function SessionAnalysis({ snapshot, session, detail, events }: {
+export function SessionAnalysis({ snapshot, session, detail, captureEnd }: {
   snapshot: AgentSightSnapshot;
   session: SnapshotSession;
   detail: SessionDetail | null;
-  events: DisplayEvent[];
+  captureEnd?: number | null;
 }) {
   const { t } = useTranslation();
   const usage = detail?.usage ?? sessionUsage(session);
@@ -56,7 +56,7 @@ export function SessionAnalysis({ snapshot, session, detail, events }: {
   const peakCpu = samples.reduce((peak, sample) => Math.max(peak, sample.cpu_percent ?? 0), 0);
   const peakRss = samples.reduce((peak, sample) => Math.max(peak, sample.rss_mb ?? 0), 0);
   const duration = detail?.duration_ms || Math.max(0,
-    (session.end_timestamp_ms ?? Date.now()) - session.start_timestamp_ms);
+    (session.end_timestamp_ms ?? captureEnd ?? Date.now()) - session.start_timestamp_ms);
   const failures = toolFailures + processFailures + networkErrors;
   const llmTurns = detail?.events?.llm_responses?.length
     || (snapshot.audit_events ?? []).filter((event) => event.audit_type === 'llm' && event.action === 'response').length;
@@ -134,7 +134,7 @@ export function SessionAnalysis({ snapshot, session, detail, events }: {
         </Panel>
       </div>
 
-      <Timeline events={events} />
+      <SessionEvents snapshot={snapshot} captureEnd={captureEnd} />
     </div>
   );
 }
