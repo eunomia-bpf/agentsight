@@ -281,6 +281,29 @@ def test_trace_fs_summary_events():
     tempdir = tempfile.TemporaryDirectory(prefix="agentsight-runtime-fs-")
     old_cwd = os.getcwd()
     try:
+        # TEMPORARY probe (#257): issue the mutations through the raw
+        # syscalls as well, so python's/glibc's choice of plain vs *at
+        # wrappers is out of the equation, and record the environment.
+        import ctypes
+
+        libc = ctypes.CDLL(None, use_errno=True)
+        syscall = libc.syscall
+        direct_dir = os.path.join(tempdir.name, "direct")
+        rc_mkdir = syscall(83, direct_dir.encode(), 0o755)  # SYS_mkdir
+        err_mkdir = ctypes.get_errno()
+        rc_mkdirat = syscall(258, -100, (direct_dir + "at").encode(), 0o755)  # SYS_mkdirat
+        err_mkdirat = ctypes.get_errno()
+        try:
+            glibc = libc.gnu_get_libc_version().decode()
+        except AttributeError:
+            glibc = "?"
+        print(
+            f"PROBE_ENV kernel={os.uname().release} glibc={glibc} "
+            f"mkdir=({rc_mkdir}, {err_mkdir}) mkdirat=({rc_mkdirat}, {err_mkdirat})",
+        )
+    except OSError:
+        pass
+    try:
         subdir = os.path.join(tempdir.name, "dir")
         os.mkdir(subdir)
         path = os.path.join(subdir, 'file "quote" \\ slash.txt')

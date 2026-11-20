@@ -52,6 +52,15 @@ static __always_inline int trace_write_exit_common(long ret)
 SEC("tp/syscalls/sys_enter_write")
 int trace_write_enter(struct trace_event_raw_sys_enter *ctx)
 {
+	/* TEMPORARY probe (#257): 1e5-band entry counter, distinct from
+	 * mkdir's 1e9/1e6/1e3 bands so one overflow_sum separates the two
+	 * hooks' invocation counts on the same run. */
+	{
+		u32 pz = 0;
+		u64 *pc = bpf_map_lookup_elem(&agg_overflow_count, &pz);
+		if (pc)
+			__sync_fetch_and_add(pc, 100000);
+	}
 	return trace_write_enter_common((int)ctx->args[0]);
 }
 
