@@ -26,6 +26,14 @@ test('recorded demo exposes overview, conversation, process, and analysis data',
   await expect(page.getByRole('heading', { name: 'Process Tree & AI Prompts' })).toBeVisible();
   await expect(page.getByText('codex', { exact: true }).first()).toBeVisible();
 
+  await page.getByRole('tab', { name: 'Events' }).click();
+  await expect(page.getByRole('heading', { name: 'Events timeline' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'npm run build · Failed', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'npm run build · Succeeded', exact: true })).toBeVisible();
+  await page.getByLabel('Failures only').check();
+  await expect(page.getByRole('button', { name: 'git status --short · Succeeded', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'git diff --check · Failed', exact: true })).toBeVisible();
+
   await page.getByRole('tab', { name: 'Analysis' }).click();
   await expect(page.getByRole('heading', { name: 'Token usage' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Execution' })).toBeVisible();
