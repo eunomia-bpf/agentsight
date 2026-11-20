@@ -1235,20 +1235,35 @@ int main(int argc, char **argv)
 				bpf_link__fd(fs_links[i].link) : -1;
 
 			if (lfd >= 0 && bpf_obj_get_info_by_fd(lfd, &info, &len) == 0) {
+				char dbg = '?', trc = '?';
+				/* libbpf prefers /sys/kernel/debug/tracing when
+				 * debugfs is mounted; read both instances'
+				 * enable flags so the line says which one the
+				 * attach actually enabled. */
 				snprintf(path, sizeof(path),
-					 "/sys/kernel/tracing/events/syscalls/%s/enable",
+					 "/sys/kernel/debug/tracing/events/syscalls/%s/enable",
 					 fs_links[i].tp);
 				int efd = open(path, O_RDONLY);
 				if (efd >= 0) {
 					n = read(efd, buf, sizeof(buf) - 1);
+					dbg = n > 0 ? buf[0] : '?';
+					close(efd);
+				}
+				snprintf(path, sizeof(path),
+					 "/sys/kernel/tracing/events/syscalls/%s/enable",
+					 fs_links[i].tp);
+				efd = open(path, O_RDONLY);
+				if (efd >= 0) {
+					n = read(efd, buf, sizeof(buf) - 1);
+					trc = n > 0 ? buf[0] : '?';
 					close(efd);
 				}
 				/* print only the flag digit; the file's newline
 				 * would break the JSON line */
 				printf("{\"event\":\"FS_LINK_INFO\",\"hook\":\"%s\",\"link_id\":%u,"
-				       "\"prog_id\":%u,\"tp_enable\":\"%c\",\"phase\":\"%s\"}\n",
+				       "\"prog_id\":%u,\"dbg_enable\":\"%c\",\"tp_enable\":\"%c\",\"phase\":\"%s\"}\n",
 				       fs_links[i].name, info.id, info.prog_id,
-				       n > 0 ? buf[0] : '?', phase);
+				       dbg, trc, phase);
 			}
 		}
 		fflush(stdout);
