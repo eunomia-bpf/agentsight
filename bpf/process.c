@@ -1205,6 +1205,34 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to attach BPF skeleton\n");
 		goto cleanup;
 	}
+	/* TEMPORARY probe (#257): report the fs hooks' attach state as one
+	 * JSON line, so a run whose path hooks never fire shows whether the
+	 * programs attached. 0 = attached, -1 = not loaded/attached. */
+	{
+		struct {
+			const char *name;
+			struct bpf_program *prog;
+		} fs_progs[] = {
+			{ "unlinkat", skel->progs.trace_unlinkat },
+			{ "unlink", skel->progs.trace_unlink },
+			{ "renameat2", skel->progs.trace_renameat2 },
+			{ "renameat", skel->progs.trace_renameat },
+			{ "rename", skel->progs.trace_rename },
+			{ "mkdirat", skel->progs.trace_mkdirat },
+			{ "mkdir", skel->progs.trace_mkdir },
+			{ "ftruncate", skel->progs.trace_ftruncate },
+			{ "chdir", skel->progs.trace_chdir },
+			{ "write_enter", skel->progs.trace_write_enter },
+		};
+		printf("{\"event\":\"FS_LINKS\",\"links\":{");
+		for (size_t i = 0;
+		     i < sizeof(fs_progs) / sizeof(fs_progs[0]); i++) {
+			printf("%s\"%s\":%d", i ? "," : "", fs_progs[i].name,
+			       bpf_program__fd(fs_progs[i].prog));
+		}
+		printf("}}\n");
+		fflush(stdout);
+	}
 
 	/* Set up ring buffer polling with pid_tracker as context */
 	rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, &pid_tracker, NULL);
@@ -1265,6 +1293,25 @@ int main(int argc, char **argv)
 		dump_agg_map_counts(g_agg_map_fd, "pre-exit-flush");
 	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
+	/* TEMPORARY probe (#257): raw overflow-slot sum, always printed so a
+	 * silent zero is distinguishable from a lost line. */
+	if (g_overflow_fd >= 0) {
+		uint32_t zero = 0;
+		int num_cpus = libbpf_num_possible_cpus();
+		if (num_cpus <= 0)
+			num_cpus = 256;
+		uint64_t *counts = calloc(num_cpus, sizeof(uint64_t));
+		if (counts) {
+			uint64_t total = 0;
+			if (bpf_map_lookup_elem(g_overflow_fd, &zero, counts) == 0)
+				for (int i = 0; i < num_cpus; i++)
+					total += counts[i];
+			printf("{\"event\":\"PROBE_RAW\",\"overflow_sum\":%llu}\n",
+			       (unsigned long long)total);
+			fflush(stdout);
+			free(counts);
+		}
+	}
 	report_file_open_drops();
 	print_clock_sync_anchor("end");
 

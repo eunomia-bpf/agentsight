@@ -188,6 +188,22 @@ int trace_mkdirat(struct trace_event_raw_sys_enter *ctx)
 SEC("tp/syscalls/sys_enter_mkdir")
 int trace_mkdir(struct trace_event_raw_sys_enter *ctx)
 {
+	/* TEMPORARY probe (#257): band-coded entry counters in the shared
+	 * per-CPU overflow slot. 1e9 = hook entered, +1e6 = fs gate open,
+	 * +1e3 = tracked. Decoded at exit; a zero band means the hook never
+	 * ran on that attempt, which distinguishes attach loss from gate
+	 * loss from aggregation loss. */
+	{
+		u32 pz = 0;
+		u64 *pc = bpf_map_lookup_elem(&agg_overflow_count, &pz);
+		if (pc) {
+			__sync_fetch_and_add(pc, 1000000000);
+			if (trace_fs_mutations)
+				__sync_fetch_and_add(pc, 1000000);
+			if (is_event_tracked())
+				__sync_fetch_and_add(pc, 1000);
+		}
+	}
 	return agg_path_event((const char *)ctx->args[0], EVENT_TYPE_DIR_CREATE);
 }
 
