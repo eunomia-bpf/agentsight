@@ -297,14 +297,16 @@ def test_trace_fs_summary_events():
         events = sess.events()
         types = summary_types(events)
         required = {"DIR_CREATE", "WRITE", "FILE_RENAME", "FILE_DELETE"}
-        agg_counts = [
-            e for e in events if e.get("event") == "AGG_MAP_COUNTS"
+        probes = [
+            json.dumps(e, sort_keys=True)
+            for e in events
+            if e.get("event") in ("AGG_MAP_COUNTS", "FS_LINKS", "PROBE_RAW")
         ]
         assert_true(
             required.issubset(types),
             f"missing fs SUMMARY types: {sorted(required - types)}; "
             f"observed SUMMARY types: {sorted(types)}; "
-            f"agg map counts at exit: {agg_counts}; "
+            f"probes: {probes}; "
             f"stderr: {sess.stderr_text()[-2000:]}"
         )
     finally:
