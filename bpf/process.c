@@ -1205,32 +1205,49 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to attach BPF skeleton\n");
 		goto cleanup;
 	}
-	/* TEMPORARY probe (#257): report the fs hooks' attach state as one
-	 * JSON line, so a run whose path hooks never fire shows whether the
-	 * programs attached. 0 = attached, -1 = not loaded/attached. */
-	{
+	/* TEMPORARY probe (#257): per-hook link ids plus the tracepoints'
+	 * enable flags, read from the kernel side at attach time and again at
+	 * exit, so a run whose hooks stop firing shows whether the link or
+	 * the tracepoint enable changed under it. */
+	for (const char *phase = "start"; phase; phase = phase[0] == 's' ? "exit" : NULL) {
 		struct {
 			const char *name;
-			struct bpf_program *prog;
-		} fs_progs[] = {
-			{ "unlinkat", skel->progs.trace_unlinkat },
-			{ "unlink", skel->progs.trace_unlink },
-			{ "renameat2", skel->progs.trace_renameat2 },
-			{ "renameat", skel->progs.trace_renameat },
-			{ "rename", skel->progs.trace_rename },
-			{ "mkdirat", skel->progs.trace_mkdirat },
-			{ "mkdir", skel->progs.trace_mkdir },
-			{ "ftruncate", skel->progs.trace_ftruncate },
-			{ "chdir", skel->progs.trace_chdir },
-			{ "write_enter", skel->progs.trace_write_enter },
+			struct bpf_link *link;
+			const char *tp;
+		} fs_links[] = {
+			{ "unlinkat", skel->links.trace_unlinkat, "sys_enter_unlinkat" },
+			{ "unlink", skel->links.trace_unlink, "sys_enter_unlink" },
+			{ "renameat2", skel->links.trace_renameat2, "sys_enter_renameat2" },
+			{ "renameat", skel->links.trace_renameat, "sys_enter_renameat" },
+			{ "rename", skel->links.trace_rename, "sys_enter_rename" },
+			{ "mkdirat", skel->links.trace_mkdirat, "sys_enter_mkdirat" },
+			{ "mkdir", skel->links.trace_mkdir, "sys_enter_mkdir" },
+			{ "ftruncate", skel->links.trace_ftruncate, "sys_enter_ftruncate" },
+			{ "chdir", skel->links.trace_chdir, "sys_enter_chdir" },
+			{ "write_enter", skel->links.trace_write_enter, "sys_enter_write" },
 		};
-		printf("{\"event\":\"FS_LINKS\",\"links\":{");
-		for (size_t i = 0;
-		     i < sizeof(fs_progs) / sizeof(fs_progs[0]); i++) {
-			printf("%s\"%s\":%d", i ? "," : "", fs_progs[i].name,
-			       bpf_program__fd(fs_progs[i].prog));
+		for (size_t i = 0; i < sizeof(fs_links) / sizeof(fs_links[0]); i++) {
+			struct bpf_link_info info = {};
+			__u32 len = sizeof(info);
+			int lfd = bpf_link__fd(fs_links[i].link);
+			char path[128], buf[8] = { 0 };
+			ssize_t n = 0;
+
+			if (lfd >= 0 && bpf_obj_get_info_by_fd(lfd, &info, &len) == 0) {
+				snprintf(path, sizeof(path),
+					 "/sys/kernel/tracing/events/syscalls/%s/enable",
+					 fs_links[i].tp);
+				int efd = open(path, O_RDONLY);
+				if (efd >= 0) {
+					n = read(efd, buf, sizeof(buf) - 1);
+					close(efd);
+				}
+				printf("{\"event\":\"FS_LINK_INFO\",\"hook\":\"%s\",\"link_id\":%u,"
+				       "\"prog_id\":%u,\"tp_enable\":\"%.*s\",\"phase\":\"%s\"}\n",
+				       fs_links[i].name, info.id, info.prog_id,
+				       (int)(n > 0 ? n : 0), buf, phase);
+			}
 		}
-		printf("}}\n");
 		fflush(stdout);
 	}
 
