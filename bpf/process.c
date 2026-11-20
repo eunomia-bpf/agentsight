@@ -1229,9 +1229,10 @@ int main(int argc, char **argv)
 		for (size_t i = 0; i < sizeof(fs_links) / sizeof(fs_links[0]); i++) {
 			struct bpf_link_info info = {};
 			__u32 len = sizeof(info);
-			int lfd = bpf_link__fd(fs_links[i].link);
 			char path[128], buf[8] = { 0 };
 			ssize_t n = 0;
+			int lfd = fs_links[i].link ?
+				bpf_link__fd(fs_links[i].link) : -1;
 
 			if (lfd >= 0 && bpf_obj_get_info_by_fd(lfd, &info, &len) == 0) {
 				snprintf(path, sizeof(path),
@@ -1242,10 +1243,12 @@ int main(int argc, char **argv)
 					n = read(efd, buf, sizeof(buf) - 1);
 					close(efd);
 				}
+				/* print only the flag digit; the file's newline
+				 * would break the JSON line */
 				printf("{\"event\":\"FS_LINK_INFO\",\"hook\":\"%s\",\"link_id\":%u,"
-				       "\"prog_id\":%u,\"tp_enable\":\"%.*s\",\"phase\":\"%s\"}\n",
+				       "\"prog_id\":%u,\"tp_enable\":\"%c\",\"phase\":\"%s\"}\n",
 				       fs_links[i].name, info.id, info.prog_id,
-				       (int)(n > 0 ? n : 0), buf, phase);
+				       n > 0 ? buf[0] : '?', phase);
 			}
 		}
 		fflush(stdout);
