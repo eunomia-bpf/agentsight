@@ -80,7 +80,7 @@ def test_session_captures_child_stdout():
     )
     target_sid = os.getsid(target.pid)
     try:
-        wait_for_ready(cap)
+        ready_lines = wait_for_ready(cap)
         with open(go_marker, "w", encoding="utf-8"):
             pass
         target_out, target_err = target.communicate(timeout=15)
@@ -88,6 +88,10 @@ def test_session_captures_child_stdout():
         time.sleep(0.4)
         cap.send_signal(signal.SIGTERM)
         cap_out, cap_err = cap.communicate(timeout=10)
+        # wait_for_ready stops at the marker, so the filter summary stdiocap
+        # prints just after it is still unread in the pipe here. Drain it so
+        # a failed capture reports what the filter held.
+        cap_err = "".join(ready_lines) + "\n" + (cap_err or "")
     finally:
         for proc in (target, cap):
             if proc.poll() is None:
