@@ -323,7 +323,7 @@ def test_trace_fs_summary_events():
         probes = [
             json.dumps(e, sort_keys=True)
             for e in events
-            if e.get("event") in ("AGG_MAP_COUNTS", "FS_LINKS", "PROBE_RAW")
+            if e.get("event") in ("AGG_MAP_COUNTS", "FS_LINKS", "FS_LINK_INFO", "PROBE_RAW")
         ]
         assert_true(
             required.issubset(types),
