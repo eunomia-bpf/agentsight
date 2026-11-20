@@ -50,6 +50,28 @@ def has_hidden_host_pids():
 
 class TracerSession:
     def __init__(self, *args, wait_attach=1.5):
+        # TEMPORARY probe (#257): list other processes' open perf events
+        # before this session opens its own. A leftover event from an
+        # earlier session in the same job would show as a foreign pid
+        # holding anon_inode:[perf_event] fds.
+        try:
+            import glob
+
+            holders = {}
+            for fdlink in glob.glob("/proc/[0-9]*/fd/*"):
+                try:
+                    target = os.readlink(fdlink)
+                except OSError:
+                    continue
+                if target.startswith("anon_inode:[perf_event"):
+                    pid = int(fdlink.split("/")[2])
+                    holders.setdefault(pid, 0)
+                    holders[pid] += 1
+            foreign = {p: c for p, c in holders.items() if p != os.getpid()}
+            if foreign:
+                print(f"PROBE_PERF_HOLDERS {sorted(foreign.items())}", flush=True)
+        except Exception:
+            pass
         self.stdout = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".jsonl", delete=False)
         self.stderr = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".stderr", delete=False)
         self.proc = subprocess.Popen(
