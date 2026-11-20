@@ -151,53 +151,60 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 SEC("tp/raw_syscalls/sys_enter")
 int trace_raw_path(struct trace_event_raw_sys_enter *ctx)
 {
+	/* Read the arguments at constant offsets: the verifier only allows
+	 * constant offsets off a context pointer, so selecting the index
+	 * first and dereferencing afterwards is rejected with "dereference of
+	 * modified ctx ptr". */
+	const char *a0 = (const char *)ctx->args[0];
+	const char *a1 = (const char *)ctx->args[1];
+	const char *a3 = (const char *)ctx->args[3];
 	const char *path;
 	u32 event_type;
 
 	switch (ctx->id) {
 #ifdef __TARGET_ARCH_x86
 	case 258:  /* __NR_mkdirat(dirfd, path, mode) */
-		path = (const char *)ctx->args[1];
+		path = a1;
 		event_type = EVENT_TYPE_DIR_CREATE;
 		break;
-	case 263:  /* __NR_unlinkat(dirfd, path, mode) */
-		path = (const char *)ctx->args[1];
+	case 263:  /* __NR_unlinkat(dirfd, path, flags) */
+		path = a1;
 		event_type = EVENT_TYPE_FILE_DELETE;
 		break;
 	case 264:  /* __NR_renameat(olddirfd, oldpath, newdirfd, newpath) */
 	case 316:  /* __NR_renameat2(..., flags) */
 		/* newpath is args[3] */
-		path = (const char *)ctx->args[3];
+		path = a3;
 		event_type = EVENT_TYPE_FILE_RENAME;
 		break;
 	/* The plain variants exist only in the x86 table. */
 	case 83:  /* __NR_mkdir(path, mode) */
-		path = (const char *)ctx->args[0];
+		path = a0;
 		event_type = EVENT_TYPE_DIR_CREATE;
 		break;
 	case 87:  /* __NR_unlink(path) */
-		path = (const char *)ctx->args[0];
+		path = a0;
 		event_type = EVENT_TYPE_FILE_DELETE;
 		break;
 	case 82:  /* __NR_rename(oldpath, newpath) */
-		path = (const char *)ctx->args[1];
+		path = a1;
 		event_type = EVENT_TYPE_FILE_RENAME;
 		break;
 #elif defined(__TARGET_ARCH_arm64)
 	/* The generic table that arm64 uses; there is no plain mkdir/unlink
 	 * there, only the *at forms. */
 	case 34:  /* __NR_mkdirat(dirfd, path, mode) */
-		path = (const char *)ctx->args[1];
+		path = a1;
 		event_type = EVENT_TYPE_DIR_CREATE;
 		break;
 	case 35:  /* __NR_unlinkat(dirfd, path, flags) */
-		path = (const char *)ctx->args[1];
+		path = a1;
 		event_type = EVENT_TYPE_FILE_DELETE;
 		break;
 	case 38:   /* __NR_renameat(olddirfd, oldpath, newdirfd, newpath) */
 	case 276:  /* __NR_renameat2(..., flags) */
 		/* newpath is args[3] */
-		path = (const char *)ctx->args[3];
+		path = a3;
 		event_type = EVENT_TYPE_FILE_RENAME;
 		break;
 #endif
