@@ -27,28 +27,35 @@ export interface EventSpan {
   pid: number | null;
 }
 
+export interface EventSpanOptions {
+  /**
+   * Latest moment the capture covers. Spans the capture never saw finish end
+   * here; it defaults to the latest timestamp in the snapshot itself.
+   */
+  captureEnd?: number | null;
+}
+
 /**
  * Turn one snapshot into timed spans: commands from process lifetimes, model
  * calls from request/response pairs, network endpoints from their first and
  * last request, and tool calls from their reported start and end.
- *
- * Spans the capture never saw finish end at the latest timestamp in the
- * snapshot, so a recorded session keeps its own time range.
  */
-export function eventSpans(snapshot: AgentSightSnapshot): EventSpan[] {
-  const captureEnd = latestTimestamp(snapshot);
+export function eventSpans(snapshot: AgentSightSnapshot, options: EventSpanOptions = {}): EventSpan[] {
+  const captureEnd = Math.max(latestTimestamp(snapshot), options.captureEnd ?? 0);
+  const audit = snapshot.audit_events ?? [];
   return [
     ...(snapshot.process_nodes ?? []).flatMap((process) => processSpan(process, captureEnd)),
-    ...llmSpans(snapshot.audit_events ?? []),
+    ...llmSpans(audit),
     ...(snapshot.network_targets ?? []).flatMap(networkSpan),
-    ...(snapshot.audit_events ?? []).filter((event) => event.audit_type === 'network').map(connectSpan),
+    ...audit.filter((event) => event.audit_type === 'network').map(connectSpan),
     ...(snapshot.tool_calls ?? []).map((tool) => toolSpan(tool, captureEnd)),
+    ...audit.filter(isTranscriptTool).map(transcriptToolSpan),
   ].sort((left, right) => left.start - right.start || left.end - right.end || left.id.localeCompare(right.id));
 }
 
-/** Greedily pack spans into rows so that no two spans in a row overlap. */
-export function packSpans(spans: EventSpan[], minGap = 0): EventSpan[][] {
-  const rows: { end: number; spans: EventSpan[] }[] = [];
+/** Greedily pack intervals into rows so that no two intervals in a row overlap. */
+export function packSpans<T extends { start: number; end: number }>(spans: T[], minGap = 0): T[][] {
+  const rows: { end: number; spans: T[] }[] = [];
   const ordered = [...spans].sort((left, right) => left.start - right.start || right.end - left.end);
   for (const span of ordered) {
     const row = rows.find((candidate) => candidate.end + minGap <= span.start);
@@ -88,11 +95,14 @@ export function tickStep(rangeMs: number, maxTicks = 6): number {
 function processSpan(process: SnapshotProcessNode, captureEnd: number): EventSpan[] {
   const start = process.start_timestamp_ms ?? process.end_timestamp_ms;
   if (start == null) return [];
+  // No end timestamp means the capture never saw the process exit, whatever
+  // its status says (the capture reports a plain exec as "observed").
   const open = process.end_timestamp_ms == null;
   const end = Math.max(start, open ? captureEnd : process.end_timestamp_ms!);
+  const reported = textStatus(process.status);
   const status: EventSpanStatus = process.exit_code != null
     ? (process.exit_code === 0 ? 'success' : 'failed')
-    : textStatus(process.status) ?? (open ? 'running' : 'unknown');
+    : reported && reported !== 'unknown' ? reported : open ? 'running' : 'unknown';
   return [{
     id: `exec:${process.id}`,
     kind: 'exec',
@@ -104,41 +114,57 @@ function processSpan(process: SnapshotProcessNode, captureEnd: number): EventSpa
     ].filter(Boolean).join(' · '),
     start,
     end,
-    open: open && status === 'running',
+    open,
     status,
     pid: process.pid,
   }];
 }
 
-function llmSpans(events: SnapshotAuditEvent[]): EventSpan[] {
-  const byProcess = new Map<string, SnapshotAuditEvent[]>();
-  for (const event of events) {
-    if (event.audit_type !== 'llm') continue;
-    const key = `${event.pid ?? ''}:${event.comm ?? ''}`;
-    const rows = byProcess.get(key);
-    if (rows) rows.push(event);
-    else byProcess.set(key, [event]);
-  }
+// Captured rows carry their call identity: `audit-<call>-request` belongs to
+// the `audit-<call>-call` (or `-response`) row of the same call.
+const CALL_ROW = /^audit-(.+)-(request|response|call)$/;
 
+function llmSpans(events: SnapshotAuditEvent[]): EventSpan[] {
+  const rows = events
+    .filter((event) => event.audit_type === 'llm')
+    .sort((left, right) => left.timestamp_ms - right.timestamp_ms);
   const spans: EventSpan[] = [];
-  for (const rows of byProcess.values()) {
+  const requests = new Map<string, SnapshotAuditEvent>();
+  const byProcess = new Map<string, SnapshotAuditEvent[]>();
+  for (const event of rows) {
+    const call = CALL_ROW.exec(event.id);
+    if (call?.[2] === 'request') {
+      requests.set(call[1], event);
+    } else if (call) {
+      const request = requests.get(call[1]);
+      requests.delete(call[1]);
+      spans.push(request ? llmSpan(request, event) : llmSpan(event, null));
+    } else {
+      const key = `${event.pid ?? ''}:${event.comm ?? ''}`;
+      const sameProcess = byProcess.get(key);
+      if (sameProcess) sameProcess.push(event);
+      else byProcess.set(key, [event]);
+    }
+  }
+  for (const request of requests.values()) spans.push(llmSpan(request, null));
+
+  // Rows without a call identity, such as agent-native transcript rows, pair
+  // each request with the next response from the same process.
+  for (const sameProcess of byProcess.values()) {
     const pending: SnapshotAuditEvent[] = [];
-    for (const event of [...rows].sort((left, right) => left.timestamp_ms - right.timestamp_ms)) {
+    for (const event of sameProcess) {
       if (event.action === 'request') {
         pending.push(event);
         continue;
       }
-      if (event.action === 'response') {
-        const index = pending.findIndex((request) => (
-          !request.subject || !event.subject || request.subject === event.subject
-        ));
-        if (index >= 0) {
-          const [request] = pending.splice(index, 1);
-          spans.push(llmSpan(request, event));
-          continue;
-        }
+      const index = pending.findIndex((request) => (
+        !request.subject || !event.subject || request.subject === event.subject
+      ));
+      if ((event.action === 'response' || event.action === 'call') && index >= 0) {
+        spans.push(llmSpan(pending.splice(index, 1)[0], event));
+      } else {
+        spans.push(llmSpan(event, null));
       }
-      spans.push(llmSpan(event, null));
     }
     for (const request of pending) spans.push(llmSpan(request, null));
   }
@@ -147,7 +173,7 @@ function llmSpans(events: SnapshotAuditEvent[]): EventSpan[] {
   // once as an agent-native transcript row. Keep one span per call.
   const unique = new Map<string, EventSpan>();
   for (const span of spans) {
-    const key = `${span.start}|${span.end}|${span.label}`;
+    const key = `${span.pid ?? ''}|${span.start}|${span.end}|${span.label}`;
     const current = unique.get(key);
     if (!current || (current.status === 'unknown' && span.status !== 'unknown')) unique.set(key, span);
   }
@@ -193,7 +219,8 @@ function networkSpan(target: SnapshotNetworkTarget, index: number): EventSpan[] 
     start,
     end: Math.max(start, target.last_timestamp_ms ?? start),
     open: false,
-    status: errors ? 'failed' : 'success',
+    // The window aggregates many requests; it failed only when every request did.
+    status: requests > 0 && errors >= requests ? 'failed' : 'success',
     pid: target.pid ?? null,
   }];
 }
@@ -231,6 +258,27 @@ function toolSpan(tool: SnapshotToolCall, captureEnd: number): EventSpan {
     open,
     status,
     pid: tool.related_pid ?? null,
+  };
+}
+
+// Agent-native session detail turns its tool calls into `system` audit rows
+// that carry the tool name and a time, without a duration.
+function isTranscriptTool(event: SnapshotAuditEvent): boolean {
+  return event.audit_type === 'system' && isRecord(event.details) && typeof event.details.tool_name === 'string';
+}
+
+function transcriptToolSpan(event: SnapshotAuditEvent): EventSpan {
+  const details = event.details as Record<string, unknown>;
+  return {
+    id: `tool:${event.id}`,
+    kind: 'tool',
+    label: [String(details.tool_name), toolArgument(details)].filter(Boolean).join(' · '),
+    detail: event.pid != null ? `pid ${event.pid}` : '',
+    start: event.timestamp_ms,
+    end: event.timestamp_ms,
+    open: false,
+    status: textStatus(event.status) ?? 'unknown',
+    pid: event.pid ?? null,
   };
 }
 

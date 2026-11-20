@@ -17,6 +17,7 @@ const snapshot = {
   ],
   network_targets: [
     { pid: 12, comm: 'npm', host: 'registry.npmjs.org', path: '/', count: 40, error_count: 2, first_timestamp_ms: 3_100, last_timestamp_ms: 8_000 },
+    { pid: 12, comm: 'npm', host: 'mirror.example', path: '/', count: 2, error_count: 2, first_timestamp_ms: 3_200, last_timestamp_ms: 3_900 },
   ],
   tool_calls: [
     { id: 'tool', timestamp_ms: 2_900, start_timestamp_ms: 3_000, duration_ms: 6_000, tool_name: 'exec', status: 'failed', input: { command: ['npm', 'run', 'build'] }, output: { exit_code: 2 }, related_pid: 10 },
@@ -75,13 +76,66 @@ test('a call seen both as traffic and as a transcript row appears once', () => {
   assert.deepEqual(nativeOnly.map((span) => [span.start, span.end, span.status]), [[1_200, 1_900, 'success']]);
 });
 
+test('captured calls pair by call identity, even when calls overlap', () => {
+  const captured = (id, timestamp_ms, status = 'observed') => ({
+    id, timestamp_ms, audit_type: 'llm', action: id.split('-').pop(), status,
+    pid: 10, comm: 'codex', subject: 'gpt-5', summary: id,
+  });
+  const spans = eventSpans({
+    summary: {},
+    audit_events: [
+      captured('audit-llm-a-request', 1_000),
+      captured('audit-llm-b-request', 1_100),
+      captured('audit-llm-b-call', 1_500, 'success'),
+      captured('audit-llm-a-call', 2_500, 'failure'),
+    ],
+  });
+  assert.deepEqual(
+    spans.map((span) => [span.label, span.start, span.end, span.status]),
+    [['audit-llm-a-request', 1_000, 2_500, 'failed'], ['audit-llm-b-request', 1_100, 1_500, 'success']],
+  );
+});
+
+test('identical calls from different processes stay separate', () => {
+  const pair = (pid) => [
+    { id: `req-${pid}`, timestamp_ms: 1_000, audit_type: 'llm', action: 'request', pid, comm: 'agent', summary: 'same' },
+    { id: `res-${pid}`, timestamp_ms: 2_000, audit_type: 'llm', action: 'response', pid, comm: 'agent' },
+  ];
+  const spans = eventSpans({ summary: {}, audit_events: [...pair(10), ...pair(11)] });
+  assert.deepEqual(spans.map((span) => span.pid), [10, 11]);
+});
+
+test('agent-native tool rows become tool spans', () => {
+  const [tool] = eventSpans({
+    summary: {},
+    audit_events: [{
+      id: 'native-tool-0', timestamp_ms: 5_000, audit_type: 'system', action: 'call', pid: 10,
+      status: 'completed', details: { tool_name: 'shell', command: 'pytest -q' },
+    }],
+  });
+  assert.equal(tool.kind, 'tool');
+  assert.equal(tool.label, 'shell · pytest -q');
+  assert.equal(tool.status, 'success');
+});
+
+test('an unfinished observed process stays open until the capture end passed in', () => {
+  const [span] = eventSpans(
+    { summary: {}, process_nodes: [{ id: 'p', pid: 3, start_timestamp_ms: 1_000, end_timestamp_ms: null, status: 'observed' }] },
+    { captureEnd: 20_000 },
+  );
+  assert.equal(span.open, true);
+  assert.equal(span.status, 'running');
+  assert.equal(span.end, 20_000);
+});
+
 test('network endpoints span their first and last request and report errors', () => {
   const spans = eventSpans(snapshot);
   const endpoint = spans.find((span) => span.label === 'registry.npmjs.org/');
   assert.equal(endpoint.start, 3_100);
   assert.equal(endpoint.end, 8_000);
-  assert.equal(endpoint.status, 'failed');
+  assert.equal(endpoint.status, 'success');
   assert.equal(endpoint.detail, '40 requests · 2 errors · npm · pid 12');
+  assert.equal(spans.find((span) => span.label === 'mirror.example/').status, 'failed');
   assert.equal(byId(spans, 'network:connect').label, 'connect api.openai.com:443');
 });
 

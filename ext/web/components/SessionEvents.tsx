@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot } from '@/types/event';
 import { formatDuration } from '@/utils/eventProcessing';
@@ -35,9 +35,13 @@ const BADGE_TONES: Record<EventSpanStatus, string> = {
 const TABLE_LIMIT = 300;
 const MIN_BAR_PERCENT = 0.4;
 
-export function SessionEvents({ snapshot }: { snapshot: AgentSightSnapshot }) {
+export function SessionEvents({ snapshot, captureEnd }: {
+  snapshot: AgentSightSnapshot;
+  /** Latest moment of the whole capture, which a session-scoped snapshot may not carry. */
+  captureEnd?: number | null;
+}) {
   const { t } = useTranslation();
-  const spans = useMemo(() => eventSpans(snapshot), [snapshot]);
+  const spans = useMemo(() => eventSpans(snapshot, { captureEnd }), [captureEnd, snapshot]);
   const rowIds = useMemo(() => new Map(spans.map((span, index) => [span.id, `event-row-${index}`])), [spans]);
   const [hidden, setHidden] = useState<EventSpanKind[]>([]);
   const [failuresOnly, setFailuresOnly] = useState(false);
@@ -53,17 +57,31 @@ export function SessionEvents({ snapshot }: { snapshot: AgentSightSnapshot }) {
   const visible = spans.filter((span) => (
     !hidden.includes(span.kind) && (!failuresOnly || span.status === 'failed')
   ));
+  // Pack bars by the box they are drawn in: short spans get a minimum width
+  // and spans at the right edge are pulled left, so pack those bounds.
+  const minWidth = range.length * MIN_BAR_PERCENT / 100;
+  const latestStart = range.start + range.length - minWidth;
   const groups = EVENT_SPAN_KINDS
-    .map((kind) => ({ kind, rows: packSpans(visible.filter((span) => span.kind === kind), range.length * 0.006) }))
+    .map((kind) => ({
+      kind,
+      rows: packSpans(visible.filter((span) => span.kind === kind).map((span) => {
+        const start = Math.min(span.start, latestStart);
+        return { span, start, end: Math.max(span.end, start + minWidth) };
+      }), range.length * 0.002),
+    }))
     .filter((group) => group.rows.length > 0);
   const step = tickStep(range.length);
   const ticks = Array.from({ length: Math.floor(range.length / step) + 1 }, (_, index) => index * step);
-  const position = (value: number) => (value - range.start) / range.length * 100;
+  const percent = (value: number) => value / range.length * 100;
   const tableRows = showAll ? visible : visible.slice(0, TABLE_LIMIT);
+
+  useEffect(() => {
+    if (selected) document.getElementById(rowIds.get(selected) ?? '')?.scrollIntoView({ block: 'nearest' });
+  }, [rowIds, selected, showAll]);
 
   const select = (span: EventSpan) => {
     setSelected(span.id);
-    document.getElementById(rowIds.get(span.id) ?? '')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (visible.indexOf(span) >= TABLE_LIMIT) setShowAll(true);
   };
   const toggleKind = (kind: EventSpanKind) => setHidden((current) => (
     current.includes(kind) ? current.filter((item) => item !== kind) : [...current, kind]
@@ -129,7 +147,7 @@ export function SessionEvents({ snapshot }: { snapshot: AgentSightSnapshot }) {
                 <div className="relative h-5 flex-1 border-b border-slate-200">
                   {ticks.map((tick) => (
                     <span key={tick} className="absolute bottom-1 -translate-x-1/2 text-[10px] tabular-nums text-slate-400"
-                      style={{ left: `${tick / range.length * 100}%` }}>
+                      style={{ left: `${percent(tick)}%` }}>
                       {formatOffset(tick)}
                     </span>
                   ))}
@@ -143,26 +161,20 @@ export function SessionEvents({ snapshot }: { snapshot: AgentSightSnapshot }) {
                   <div className="relative flex-1">
                     {ticks.map((tick) => (
                       <span key={tick} aria-hidden className="absolute inset-y-0 w-px bg-slate-100"
-                        style={{ left: `${tick / range.length * 100}%` }} />
+                        style={{ left: `${percent(tick)}%` }} />
                     ))}
                     {group.rows.map((row, rowIndex) => (
                       <div key={rowIndex} className="relative h-5">
-                        {row.map((span) => {
-                          const left = Math.min(position(span.start), 100 - MIN_BAR_PERCENT);
-                          const width = Math.min(
-                            Math.max(MIN_BAR_PERCENT, (span.end - span.start) / range.length * 100),
-                            100 - left,
-                          );
-                          return (
-                            <button key={span.id} type="button" onClick={() => select(span)}
-                              aria-label={`${span.label} · ${t(`events.status.${span.status}`)}`}
-                              title={spanTitle(span, range.start, t(`events.status.${span.status}`), t('events.open'))}
-                              className={`absolute top-1 h-3 rounded-sm ${BAR_TONES[span.status]} ${
-                                span.open ? 'opacity-60' : ''
-                              } ${selected === span.id ? 'ring-2 ring-slate-900 ring-offset-1' : 'hover:brightness-110'}`}
-                              style={{ left: `${left}%`, width: `${width}%` }} />
-                          );
-                        })}
+                        {row.map(({ span, start, end }) => (
+                          <button key={span.id} type="button" onClick={() => select(span)}
+                            aria-pressed={selected === span.id}
+                            aria-label={`${span.label} · ${t(`events.status.${span.status}`)}`}
+                            title={spanTitle(span, range.start, t(`events.status.${span.status}`), t('events.open'))}
+                            className={`absolute top-1 h-3 rounded-sm ${BAR_TONES[span.status]} ${
+                              span.open ? 'opacity-60' : ''
+                            } ${selected === span.id ? 'ring-2 ring-slate-900 ring-offset-1' : 'hover:brightness-110'}`}
+                            style={{ left: `${percent(start - range.start)}%`, width: `${percent(end - start)}%` }} />
+                        ))}
                       </div>
                     ))}
                   </div>
@@ -189,8 +201,14 @@ export function SessionEvents({ snapshot }: { snapshot: AgentSightSnapshot }) {
             </thead>
             <tbody>
               {tableRows.map((span) => (
-                <tr key={span.id} id={rowIds.get(span.id)} onClick={() => setSelected(span.id)}
-                  className={`cursor-pointer border-t border-slate-100 ${
+                <tr key={span.id} id={rowIds.get(span.id)} tabIndex={0} aria-selected={selected === span.id}
+                  onClick={() => setSelected(span.id)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    setSelected(span.id);
+                  }}
+                  className={`cursor-pointer border-t border-slate-100 focus:outline-none focus-visible:bg-slate-50 ${
                     selected === span.id ? 'bg-blue-50' : 'hover:bg-slate-50'
                   }`}>
                   <td className="whitespace-nowrap px-5 py-2 text-slate-500">{t(`events.kind.${span.kind}`)}</td>
