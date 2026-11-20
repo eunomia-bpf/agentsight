@@ -1262,6 +1262,8 @@ int main(int argc, char **argv)
 	}
 
 	if (g_agg_map_fd >= 0)
+		dump_agg_map_counts(g_agg_map_fd, "pre-exit-flush");
+	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
 	report_file_open_drops();
 	print_clock_sync_anchor("end");
