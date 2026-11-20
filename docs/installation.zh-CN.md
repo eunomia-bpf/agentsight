@@ -219,6 +219,41 @@ try {
 }
 ```
 
+### 让计划任务自我恢复
+
+在已观察到的故障情形中，长驻任务在运行中被终止后（例如
+`LastTaskResult = 0xC000013A`）回到 `Ready` 状态，而上文的重启设置未能在下次登录前
+重新启动它。可以注册第三个用户级看护任务覆盖这种状态：它在登录后和
+固定的重复间隔上运行，只在 Monitor 或 Bind 对应进程确实缺失时启动该任务，在进程
+命令行可见时不会干扰健康的手动实例，既不需要提权，也不读取保存的凭据。
+
+下载看护脚本并注册：
+
+```powershell
+$installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
+$script = Join-Path $installDir 'agentsight-watchdog.ps1'
+Invoke-WebRequest -UseBasicParsing `
+  'https://raw.githubusercontent.com/eunomia-bpf/agentsight/master/scripts/agentsight-watchdog.ps1' `
+  -OutFile $script
+powershell -NoProfile -ExecutionPolicy Bypass -File $script `
+  -Mode Register -IntervalMinutes 5
+Start-ScheduledTask -TaskName 'AgentSight Health'
+```
+
+如果是从源码构建的 AgentSight，直接使用仓库中的
+`scripts/agentsight-watchdog.ps1` 即可，无需下载；之后如果移动了脚本位置，需要
+重新注册。`-IntervalMinutes` 取值范围为 1 到 60 分钟，默认 5 分钟。
+
+只读检查看护任务健康状态：
+
+```powershell
+Get-ScheduledTask -TaskName 'AgentSight Health' | Select-Object TaskName,State
+(Get-ScheduledTaskInfo -TaskName 'AgentSight Health').LastTaskResult
+```
+
+看护任务最近的决策和错误会追加写入
+`%LOCALAPPDATA%\AgentSight\watchdog.log`。
+
 ## 升级或删除自动启动
 
 替换安装的二进制后，使用
@@ -237,9 +272,14 @@ systemctl --user daemon-reload
 删除 Windows 计划任务：
 
 ```powershell
+Unregister-ScheduledTask -TaskName 'AgentSight Health' -Confirm:$false
 Unregister-ScheduledTask -TaskName 'AgentSight Monitor' -Confirm:$false
 Unregister-ScheduledTask -TaskName 'AgentSight Bind' -Confirm:$false
 ```
+
+建议先删除 `AgentSight Health`，避免清理过程中它重新启动其他任务；运行看护脚本
+并指定 `-Mode Unregister` 也可以删除它。`%LOCALAPPDATA%\Programs\AgentSight`
+下的脚本和 `%LOCALAPPDATA%\AgentSight\watchdog.log` 日志可在不再需要时单独删除。
 
 删除 unit 或计划任务不会删除 `~/.agentsight/monitor` 下的采集数据，也不会删除本地保存的 Bind
 access key。只有确认这些数据不再需要时，才单独删除。
