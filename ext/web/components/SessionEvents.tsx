@@ -1,0 +1,236 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 eunomia-bpf org.
+
+'use client';
+
+import { useMemo, useState } from 'react';
+import { useTranslation } from '@/i18n';
+import type { AgentSightSnapshot } from '@/types/event';
+import { formatDuration } from '@/utils/eventProcessing';
+import {
+  EVENT_SPAN_KINDS,
+  type EventSpan,
+  type EventSpanKind,
+  type EventSpanStatus,
+  eventSpans,
+  formatOffset,
+  packSpans,
+  tickStep,
+} from '@/utils/eventSpans';
+
+const BAR_TONES: Record<EventSpanStatus, string> = {
+  success: 'bg-emerald-500',
+  failed: 'bg-red-500',
+  running: 'bg-blue-500',
+  unknown: 'bg-slate-400',
+};
+
+const BADGE_TONES: Record<EventSpanStatus, string> = {
+  success: 'bg-emerald-50 text-emerald-700',
+  failed: 'bg-red-50 text-red-700',
+  running: 'bg-blue-50 text-blue-700',
+  unknown: 'bg-slate-100 text-slate-600',
+};
+
+const TABLE_LIMIT = 300;
+const MIN_BAR_PERCENT = 0.4;
+
+export function SessionEvents({ snapshot }: { snapshot: AgentSightSnapshot }) {
+  const { t } = useTranslation();
+  const spans = useMemo(() => eventSpans(snapshot), [snapshot]);
+  const rowIds = useMemo(() => new Map(spans.map((span, index) => [span.id, `event-row-${index}`])), [spans]);
+  const [hidden, setHidden] = useState<EventSpanKind[]>([]);
+  const [failuresOnly, setFailuresOnly] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+
+  const range = useMemo(() => {
+    const start = spans.reduce((value, span) => Math.min(value, span.start), Number.POSITIVE_INFINITY);
+    const end = spans.reduce((value, span) => Math.max(value, span.end), Number.NEGATIVE_INFINITY);
+    return Number.isFinite(start) ? { start, length: Math.max(1, end - start) } : { start: 0, length: 1 };
+  }, [spans]);
+
+  const visible = spans.filter((span) => (
+    !hidden.includes(span.kind) && (!failuresOnly || span.status === 'failed')
+  ));
+  const groups = EVENT_SPAN_KINDS
+    .map((kind) => ({ kind, rows: packSpans(visible.filter((span) => span.kind === kind), range.length * 0.006) }))
+    .filter((group) => group.rows.length > 0);
+  const step = tickStep(range.length);
+  const ticks = Array.from({ length: Math.floor(range.length / step) + 1 }, (_, index) => index * step);
+  const position = (value: number) => (value - range.start) / range.length * 100;
+  const tableRows = showAll ? visible : visible.slice(0, TABLE_LIMIT);
+
+  const select = (span: EventSpan) => {
+    setSelected(span.id);
+    document.getElementById(rowIds.get(span.id) ?? '')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  const toggleKind = (kind: EventSpanKind) => setHidden((current) => (
+    current.includes(kind) ? current.filter((item) => item !== kind) : [...current, kind]
+  ));
+
+  if (!spans.length) {
+    return (
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">{t('events.empty')}</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {EVENT_SPAN_KINDS.map((kind) => {
+          const ofKind = spans.filter((span) => span.kind === kind);
+          const failed = ofKind.filter((span) => span.status === 'failed').length;
+          const active = !hidden.includes(kind);
+          return (
+            <button key={kind} type="button" aria-pressed={active} onClick={() => toggleKind(kind)}
+              className={`rounded-xl border px-4 py-3 text-left shadow-sm transition ${
+                active ? 'border-slate-200 bg-white' : 'border-dashed border-slate-200 bg-slate-50 opacity-60'
+              }`}>
+              <div className="text-xs font-medium text-slate-500">{t(`events.kind.${kind}`)}</div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-semibold tabular-nums text-slate-950">{ofKind.length}</span>
+                {failed > 0 && (
+                  <span className="text-xs font-medium text-red-700">{t('events.failedCount', { count: failed })}</span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-950">{t('events.title')}</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{t('events.hint')}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3 text-xs">
+            <span className="tabular-nums text-slate-500">
+              {t('events.range', { duration: formatDuration(Math.round(range.length)) })}
+            </span>
+            <label className="flex cursor-pointer items-center gap-1.5 text-slate-700">
+              <input type="checkbox" checked={failuresOnly} onChange={(event) => setFailuresOnly(event.target.checked)}
+                className="h-3.5 w-3.5 rounded border-slate-300" />
+              {t('events.failuresOnly')}
+            </label>
+          </div>
+        </div>
+
+        {groups.length === 0 ? (
+          <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-500">{t('events.noMatch')}</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div className="flex">
+                <div className="w-28 shrink-0" />
+                <div className="relative h-5 flex-1 border-b border-slate-200">
+                  {ticks.map((tick) => (
+                    <span key={tick} className="absolute bottom-1 -translate-x-1/2 text-[10px] tabular-nums text-slate-400"
+                      style={{ left: `${tick / range.length * 100}%` }}>
+                      {formatOffset(tick)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {groups.map((group) => (
+                <div key={group.kind} className="flex border-b border-slate-100 py-2 last:border-b-0">
+                  <div className="w-28 shrink-0 pr-3 pt-0.5 text-xs font-medium text-slate-600">
+                    {t(`events.kind.${group.kind}`)}
+                  </div>
+                  <div className="relative flex-1">
+                    {ticks.map((tick) => (
+                      <span key={tick} aria-hidden className="absolute inset-y-0 w-px bg-slate-100"
+                        style={{ left: `${tick / range.length * 100}%` }} />
+                    ))}
+                    {group.rows.map((row, rowIndex) => (
+                      <div key={rowIndex} className="relative h-5">
+                        {row.map((span) => {
+                          const left = Math.min(position(span.start), 100 - MIN_BAR_PERCENT);
+                          const width = Math.min(
+                            Math.max(MIN_BAR_PERCENT, (span.end - span.start) / range.length * 100),
+                            100 - left,
+                          );
+                          return (
+                            <button key={span.id} type="button" onClick={() => select(span)}
+                              aria-label={`${span.label} · ${t(`events.status.${span.status}`)}`}
+                              title={spanTitle(span, range.start, t(`events.status.${span.status}`), t('events.open'))}
+                              className={`absolute top-1 h-3 rounded-sm ${BAR_TONES[span.status]} ${
+                                span.open ? 'opacity-60' : ''
+                              } ${selected === span.id ? 'ring-2 ring-slate-900 ring-offset-1' : 'hover:brightness-110'}`}
+                              style={{ left: `${left}%`, width: `${width}%` }} />
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <h2 className="border-b border-slate-100 px-5 py-3 font-semibold text-slate-950">{t('events.table')}</h2>
+        <div className="max-h-[480px] overflow-auto">
+          <table className="w-full min-w-[720px] text-left text-xs">
+            <thead className="sticky top-0 bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-5 py-2 font-medium">{t('events.column.kind')}</th>
+                <th className="px-3 py-2 font-medium">{t('events.column.event')}</th>
+                <th className="px-3 py-2 text-right font-medium">{t('events.column.start')}</th>
+                <th className="px-3 py-2 text-right font-medium">{t('events.column.duration')}</th>
+                <th className="px-3 py-2 font-medium">{t('events.column.status')}</th>
+                <th className="px-5 py-2 text-right font-medium">{t('events.column.pid')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((span) => (
+                <tr key={span.id} id={rowIds.get(span.id)} onClick={() => setSelected(span.id)}
+                  className={`cursor-pointer border-t border-slate-100 ${
+                    selected === span.id ? 'bg-blue-50' : 'hover:bg-slate-50'
+                  }`}>
+                  <td className="whitespace-nowrap px-5 py-2 text-slate-500">{t(`events.kind.${span.kind}`)}</td>
+                  <td className="max-w-md px-3 py-2">
+                    <div className="truncate font-medium text-slate-900" title={span.label}>{span.label}</div>
+                    {span.detail && <div className="truncate text-[11px] text-slate-400">{span.detail}</div>}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-600">
+                    {formatOffset(span.start - range.start)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-900">
+                    {span.end > span.start ? `${formatDuration(Math.round(span.end - span.start))}${span.open ? '+' : ''}` : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${BADGE_TONES[span.status]}`}>
+                      {t(`events.status.${span.status}`)}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-2 text-right tabular-nums text-slate-500">{span.pid ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!showAll && visible.length > TABLE_LIMIT && (
+          <button type="button" onClick={() => setShowAll(true)}
+            className="w-full border-t border-slate-100 py-2 text-xs font-medium text-blue-600 hover:bg-slate-50">
+            {t('events.showAll', { count: visible.length })}
+          </button>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function spanTitle(span: EventSpan, origin: number, status: string, openLabel: string): string {
+  const duration = span.end > span.start ? formatDuration(Math.round(span.end - span.start)) : '—';
+  return [
+    span.label,
+    `${formatOffset(span.start - origin)} · ${duration} · ${status}${span.open ? ` (${openLabel})` : ''}`,
+    span.detail,
+  ].filter(Boolean).join('\n');
+}
