@@ -158,7 +158,6 @@ export const zh: Record<TranslationKey, string> = {
   'sessionDetail.conversation': '对话记录',
   'sessionDetail.process': '进程树 & AI 提示',
   'sessionDetail.analysis': '分析',
-  'sessionDetail.events': '事件',
   'sessionDetail.views': '会话视图',
   'sessionDetail.recordedCapture': '已录制数据',
 
@@ -216,31 +215,6 @@ export const zh: Record<TranslationKey, string> = {
   'analysis.attention': '有 {count} 个已捕获问题需要处理。',
   'analysis.healthy': '该会话没有捕获到失败。',
 
-  // Modal
-  'modal.eventDetails': '事件详情',
-  'modal.id': 'ID',
-  'modal.source': '来源',
-  'modal.process': '进程',
-  'modal.pid': 'PID',
-  'modal.time': '时间',
-  'modal.timestamp': '时间戳',
-  'modal.unixTimestamp': 'Unix 时间戳',
-  'modal.decodedStdio': '解码后的标准 I/O',
-  'modal.direction': '方向',
-  'modal.fdRole': 'FD 角色',
-  'modal.kind': '类型',
-  'modal.messageId': '消息 ID',
-  'modal.method': '方法',
-  'modal.tool': '工具',
-  'modal.rawData': '原始数据',
-
-  // Filters
-  'filter.searchEvents': '搜索事件...',
-  'filter.allSources': '全部来源',
-  'filter.allProcesses': '全部进程',
-  'filter.allPids': '全部 PID',
-  'filter.pid': 'PID {pid}',
-
   // Process Tree
   'processTree.title': '进程树 & AI 提示',
   'processTree.subtitle': '以层级视图展示进程及其 AI 提示和 API 调用',
@@ -280,29 +254,5 @@ export const zh: Record<TranslationKey, string> = {
   'tag.aiResponse': 'AI 响应',
   'tag.ssl': 'SSL',
   'tag.stdio': '标准 I/O',
-
-  // Timeline
-  'timeline.title': '时间线视图',
-  'timeline.durationInfo': '持续时间：{duration} · {count} 个事件',
-  'timeline.zoomHelp': '使用鼠标滚轮 + Ctrl/Cmd 缩放，或使用 Ctrl/Cmd + +/- 键。按 Ctrl/Cmd + 0 重置。',
-  'timeline.scrollHelp': '缩放后可使用鼠标滚轮或方向键滚动。',
-  'timeline.noEvents': '暂无事件可显示',
-  'timeline.eventDetails': '时间线事件详情',
-
-  // Zoom Controls
-  'timeline.zoomOut': '缩小',
-  'timeline.zoomIn': '放大',
-  'timeline.resetZoom': '重置缩放',
-  'timeline.reset': '重置',
-  'timeline.scrollLeft': '向左滚动',
-  'timeline.scroll': '滚动',
-  'timeline.scrollRight': '向右滚动',
-
-  // Timeline Minimap
-  'timeline.overview': '时间线概览',
-  'timeline.scrolled': '已滚动 {percent}%',
-
-  // Timeline ScrollBar
-  'timeline.scrollPosition': '滚动位置',
 
 };

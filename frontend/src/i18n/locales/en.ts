@@ -154,7 +154,6 @@ export const en = {
   'sessionDetail.conversation': 'Conversation',
   'sessionDetail.process': 'Process tree & AI prompts',
   'sessionDetail.analysis': 'Analysis',
-  'sessionDetail.events': 'Events',
   'sessionDetail.views': 'Session views',
   'sessionDetail.recordedCapture': 'Recorded capture',
 
@@ -212,31 +211,6 @@ export const en = {
   'analysis.attention': '{count} captured issue(s) need attention.',
   'analysis.healthy': 'No captured failures in this session.',
 
-  // Modal (EventModal.tsx)
-  'modal.eventDetails': 'Event Details',
-  'modal.id': 'ID',
-  'modal.source': 'Source',
-  'modal.process': 'Process',
-  'modal.pid': 'PID',
-  'modal.time': 'Time',
-  'modal.timestamp': 'Timestamp',
-  'modal.unixTimestamp': 'Unix Timestamp',
-  'modal.decodedStdio': 'Decoded Stdio',
-  'modal.direction': 'Direction',
-  'modal.fdRole': 'FD Role',
-  'modal.kind': 'Kind',
-  'modal.messageId': 'Message ID',
-  'modal.method': 'Method',
-  'modal.tool': 'Tool',
-  'modal.rawData': 'Raw Data',
-
-  // Filters (EventFilters.tsx)
-  'filter.searchEvents': 'Search events...',
-  'filter.allSources': 'All Sources',
-  'filter.allProcesses': 'All Processes',
-  'filter.allPids': 'All PIDs',
-  'filter.pid': 'PID {pid}',
-
   // Process Tree (ProcessTreeView.tsx)
   'processTree.title': 'Process Tree & AI Prompts',
   'processTree.subtitle': 'Hierarchical view of processes with their AI prompts and API calls',
@@ -276,29 +250,5 @@ export const en = {
   'tag.aiResponse': 'AI RESPONSE',
   'tag.ssl': 'SSL',
   'tag.stdio': 'STDIO',
-
-  // Timeline (Timeline.tsx)
-  'timeline.title': 'Timeline View',
-  'timeline.durationInfo': 'Duration: {duration} \u2022 {count} events',
-  'timeline.zoomHelp': 'Use mouse wheel + Ctrl/Cmd to zoom, or Ctrl/Cmd + +/- keys. Press Ctrl/Cmd + 0 to reset.',
-  'timeline.scrollHelp': 'Scroll with mouse wheel or arrow keys when zoomed.',
-  'timeline.noEvents': 'No events to display',
-  'timeline.eventDetails': 'Timeline Event Details',
-
-  // Zoom Controls (ZoomControls.tsx)
-  'timeline.zoomOut': 'Zoom Out',
-  'timeline.zoomIn': 'Zoom In',
-  'timeline.resetZoom': 'Reset Zoom',
-  'timeline.reset': 'Reset',
-  'timeline.scrollLeft': 'Scroll Left',
-  'timeline.scroll': 'Scroll',
-  'timeline.scrollRight': 'Scroll Right',
-
-  // Timeline Minimap (TimelineMinimap.tsx)
-  'timeline.overview': 'Timeline Overview',
-  'timeline.scrolled': '{percent}% scrolled',
-
-  // Timeline ScrollBar (TimelineScrollBar.tsx)
-  'timeline.scrollPosition': 'Scroll Position',
 
 } as const;
