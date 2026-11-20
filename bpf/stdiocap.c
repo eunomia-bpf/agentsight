@@ -319,15 +319,14 @@ int main(int argc, char **argv)
 	}
 
 	tracked_pids_fd = bpf_map__fd(obj->maps.tracked_pids);
+	int session_pid_count = 0;
+
 	if (env.session_id != INVALID_PID) {
-		err = refresh_session_pids(tracked_pids_fd, env.session_id);
-		if (err < 0)
-			warn("warning: failed to scan initial session PIDs: %s\n", strerror(-err));
-		/* A session capture that emits nothing is otherwise
-		 * indistinguishable from one whose probes never fired, so report
-		 * what the filter holds and how the answers would be built. */
-		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
-		     (int)env.session_id, err, (int)!env.all_fds, (unsigned)env.max_bytes);
+		session_pid_count = refresh_session_pids(tracked_pids_fd,
+							 env.session_id);
+		if (session_pid_count < 0)
+			warn("warning: failed to scan initial session PIDs: %s\n",
+			     strerror(-session_pid_count));
 	}
 
 	event_buf = malloc(MAX_BUF_SIZE + 1);
@@ -354,6 +353,17 @@ int main(int argc, char **argv)
 	 * the stdout reader parses.
 	 */
 	warn("%s\n", AGENTSIGHT_STDIOCAP_READY);
+	/* A session capture that emits nothing is otherwise
+	 * indistinguishable from one whose probes never fired, so report what
+	 * the filter holds and how the events would be built. Printed after
+	 * the readiness marker: callers stop reading stderr once they see it,
+	 * so anything before it is discarded on the success path. */
+	if (env.session_id != INVALID_PID) {
+		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
+		     (int)env.session_id, session_pid_count, (int)!env.all_fds,
+		     (unsigned)env.max_bytes);
+		fflush(stderr);
+	}
 	fflush(stderr);
 
 	if (signal(SIGINT, sig_int) == SIG_ERR || signal(SIGTERM, sig_int) == SIG_ERR) {
