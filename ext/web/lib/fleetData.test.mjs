@@ -16,7 +16,7 @@ test('fleet totals aggregate only reachable Node overviews', () => {
   const totals = fleetTotals([
     sample('a', 'online', {
       total_tokens: 100, rows: [
-        { pid: 10, processes: 2, cpu_percent: 3.5, rss_mb: 40 },
+        { pid: 10, session_id: 'live', processes: 2, cpu_percent: 3.5, rss_mb: 40 },
         { pid: null, processes: 0, cpu_percent: 0, rss_mb: 0, session_id: 'stopped' },
       ],
     }),
@@ -44,7 +44,7 @@ test('fleet subscription capacity uses the newest source observation across Node
 
 test('fleet filters separate running, idle, and unreachable machines', () => {
   const samples = [
-    sample('running', 'online', { total_tokens: 0, rows: [{ pid: 10, processes: 0 }] }),
+    sample('running', 'online', { total_tokens: 0, rows: [{ pid: 10, session_id: 'live', processes: 0 }] }),
     sample('idle', 'online', { total_tokens: 0, rows: [
       { pid: 0, processes: 1 }, { pid: null, processes: 0, session_id: 'history' },
     ] }),
@@ -54,4 +54,20 @@ test('fleet filters separate running, idle, and unreachable machines', () => {
   assert.deepEqual(filterFleetNodes(samples, 'running').map((item) => item.node.id), ['running']);
   assert.deepEqual(filterFleetNodes(samples, 'idle').map((item) => item.node.id), ['idle']);
   assert.deepEqual(filterFleetNodes(samples, 'unreachable').map((item) => item.node.id), ['offline']);
+});
+
+test('helper processes are counted as processes, not running sessions', () => {
+  const totals = fleetTotals([sample('host', 'online', {
+    total_tokens: 0, rows: [
+      { pid: 4242, session_id: 'current', processes: 2, cpu_percent: 5, rss_mb: 100 },
+      { pid: 4243, session_id: null, processes: 1, cpu_percent: 2, rss_mb: 30 },
+      { pid: 4244, session_id: null, processes: 1, cpu_percent: 1, rss_mb: 20 },
+    ],
+  })]);
+
+  assert.equal(totals.running, 1);
+  assert.equal(totals.stopped, 0);
+  assert.equal(totals.processes, 4);
+  assert.equal(totals.cpu, 8);
+  assert.equal(totals.rss, 150);
 });
