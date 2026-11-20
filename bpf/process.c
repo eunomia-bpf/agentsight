@@ -454,13 +454,7 @@ static void report_file_open_drops(void)
 
 static void configure_optional_programs(struct process_bpf *skel)
 {
-	SET_AUTOLOAD(trace_unlinkat, env.trace_fs);
-	SET_AUTOLOAD(trace_unlink, env.trace_fs);
-	SET_AUTOLOAD(trace_renameat2, env.trace_fs);
-	SET_AUTOLOAD(trace_renameat, env.trace_fs);
-	SET_AUTOLOAD(trace_rename, env.trace_fs);
-	SET_AUTOLOAD(trace_mkdirat, env.trace_fs);
-	SET_AUTOLOAD(trace_mkdir, env.trace_fs);
+	SET_AUTOLOAD(trace_raw_path, env.trace_fs);
 	SET_AUTOLOAD(trace_ftruncate, env.trace_fs);
 	SET_AUTOLOAD(trace_chdir, env.trace_fs);
 	SET_AUTOLOAD(trace_write_enter, env.trace_fs);
@@ -1215,16 +1209,10 @@ int main(int argc, char **argv)
 			struct bpf_link *link;
 			const char *tp;
 		} fs_links[] = {
-			{ "unlinkat", skel->links.trace_unlinkat, "sys_enter_unlinkat" },
-			{ "unlink", skel->links.trace_unlink, "sys_enter_unlink" },
-			{ "renameat2", skel->links.trace_renameat2, "sys_enter_renameat2" },
-			{ "renameat", skel->links.trace_renameat, "sys_enter_renameat" },
-			{ "rename", skel->links.trace_rename, "sys_enter_rename" },
-			{ "mkdirat", skel->links.trace_mkdirat, "sys_enter_mkdirat" },
-			{ "mkdir", skel->links.trace_mkdir, "sys_enter_mkdir" },
-			{ "ftruncate", skel->links.trace_ftruncate, "sys_enter_ftruncate" },
-			{ "chdir", skel->links.trace_chdir, "sys_enter_chdir" },
-			{ "write_enter", skel->links.trace_write_enter, "sys_enter_write" },
+			{ "raw_path", skel->links.trace_raw_path, "raw_syscalls/sys_enter" },
+			{ "ftruncate", skel->links.trace_ftruncate, "syscalls/sys_enter_ftruncate" },
+			{ "chdir", skel->links.trace_chdir, "syscalls/sys_enter_chdir" },
+			{ "write_enter", skel->links.trace_write_enter, "syscalls/sys_enter_write" },
 		};
 		for (size_t i = 0; i < sizeof(fs_links) / sizeof(fs_links[0]); i++) {
 			struct bpf_link_info info = {};
@@ -1241,7 +1229,7 @@ int main(int argc, char **argv)
 				 * enable flags so the line says which one the
 				 * attach actually enabled. */
 				snprintf(path, sizeof(path),
-					 "/sys/kernel/debug/tracing/events/syscalls/%s/enable",
+					 "/sys/kernel/debug/tracing/events/%s/enable",
 					 fs_links[i].tp);
 				int efd = open(path, O_RDONLY);
 				if (efd >= 0) {
@@ -1250,7 +1238,7 @@ int main(int argc, char **argv)
 					close(efd);
 				}
 				snprintf(path, sizeof(path),
-					 "/sys/kernel/tracing/events/syscalls/%s/enable",
+					 "/sys/kernel/tracing/events/%s/enable",
 					 fs_links[i].tp);
 				efd = open(path, O_RDONLY);
 				if (efd >= 0) {

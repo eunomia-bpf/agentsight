@@ -140,71 +140,72 @@ static __always_inline int agg_path_event(const char *user_path, u32 event_type)
 	return 0;
 }
 
-/* --- unlink / unlinkat → FILE_DELETE --- */
+/* --- path family: delete / rename / mkdir --- */
 
-SEC("tp/syscalls/sys_enter_unlinkat")
-int trace_unlinkat(struct trace_event_raw_sys_enter *ctx)
+/* The per-syscall `tp/syscalls/sys_enter_*` hooks never fired on the CI
+ * kernel: all eight path hooks were entered zero times while the fd-based
+ * hooks (write, ftruncate) aggregated normally. `raw_syscalls:sys_enter`
+ * carries the syscall id and all six raw arguments and copies no user string
+ * into the event, so one program covers the whole family.
+ */
+SEC("tp/raw_syscalls/sys_enter")
+int trace_raw_path(struct trace_event_raw_sys_enter *ctx)
 {
-	return agg_path_event((const char *)ctx->args[1], EVENT_TYPE_FILE_DELETE);
-}
+	const char *path;
+	u32 event_type;
 
-SEC("tp/syscalls/sys_enter_unlink")
-int trace_unlink(struct trace_event_raw_sys_enter *ctx)
-{
-	return agg_path_event((const char *)ctx->args[0], EVENT_TYPE_FILE_DELETE);
-}
-
-/* --- rename / renameat / renameat2 → FILE_RENAME --- */
-
-SEC("tp/syscalls/sys_enter_renameat2")
-int trace_renameat2(struct trace_event_raw_sys_enter *ctx)
-{
-	/* newpath is args[3] */
-	return agg_path_event((const char *)ctx->args[3], EVENT_TYPE_FILE_RENAME);
-}
-
-SEC("tp/syscalls/sys_enter_renameat")
-int trace_renameat(struct trace_event_raw_sys_enter *ctx)
-{
-	/* renameat(olddirfd, oldpath, newdirfd, newpath): newpath is args[3] */
-	return agg_path_event((const char *)ctx->args[3], EVENT_TYPE_FILE_RENAME);
-}
-
-SEC("tp/syscalls/sys_enter_rename")
-int trace_rename(struct trace_event_raw_sys_enter *ctx)
-{
-	/* rename(oldpath, newpath): newpath is args[1] */
-	return agg_path_event((const char *)ctx->args[1], EVENT_TYPE_FILE_RENAME);
-}
-
-/* --- mkdir / mkdirat → DIR_CREATE --- */
-
-SEC("tp/syscalls/sys_enter_mkdirat")
-int trace_mkdirat(struct trace_event_raw_sys_enter *ctx)
-{
-	return agg_path_event((const char *)ctx->args[1], EVENT_TYPE_DIR_CREATE);
-}
-
-SEC("tp/syscalls/sys_enter_mkdir")
-int trace_mkdir(struct trace_event_raw_sys_enter *ctx)
-{
-	/* TEMPORARY probe (#257): band-coded entry counters in the shared
-	 * per-CPU overflow slot. 1e9 = hook entered, +1e6 = fs gate open,
-	 * +1e3 = tracked. Decoded at exit; a zero band means the hook never
-	 * ran on that attempt, which distinguishes attach loss from gate
-	 * loss from aggregation loss. */
-	{
-		u32 pz = 0;
-		u64 *pc = bpf_map_lookup_elem(&agg_overflow_count, &pz);
-		if (pc) {
-			__sync_fetch_and_add(pc, 1000000000);
-			if (trace_fs_mutations)
-				__sync_fetch_and_add(pc, 1000000);
-			if (is_event_tracked())
-				__sync_fetch_and_add(pc, 1000);
-		}
+	switch (ctx->id) {
+#ifdef __TARGET_ARCH_x86
+	case 258:  /* __NR_mkdirat(dirfd, path, mode) */
+		path = (const char *)ctx->args[1];
+		event_type = EVENT_TYPE_DIR_CREATE;
+		break;
+	case 263:  /* __NR_unlinkat(dirfd, path, mode) */
+		path = (const char *)ctx->args[1];
+		event_type = EVENT_TYPE_FILE_DELETE;
+		break;
+	case 264:  /* __NR_renameat(olddirfd, oldpath, newdirfd, newpath) */
+	case 316:  /* __NR_renameat2(..., flags) */
+		/* newpath is args[3] */
+		path = (const char *)ctx->args[3];
+		event_type = EVENT_TYPE_FILE_RENAME;
+		break;
+	/* The plain variants exist only in the x86 table. */
+	case 83:  /* __NR_mkdir(path, mode) */
+		path = (const char *)ctx->args[0];
+		event_type = EVENT_TYPE_DIR_CREATE;
+		break;
+	case 87:  /* __NR_unlink(path) */
+		path = (const char *)ctx->args[0];
+		event_type = EVENT_TYPE_FILE_DELETE;
+		break;
+	case 82:  /* __NR_rename(oldpath, newpath) */
+		path = (const char *)ctx->args[1];
+		event_type = EVENT_TYPE_FILE_RENAME;
+		break;
+#elif defined(__TARGET_ARCH_arm64)
+	/* The generic table that arm64 uses; there is no plain mkdir/unlink
+	 * there, only the *at forms. */
+	case 34:  /* __NR_mkdirat(dirfd, path, mode) */
+		path = (const char *)ctx->args[1];
+		event_type = EVENT_TYPE_DIR_CREATE;
+		break;
+	case 35:  /* __NR_unlinkat(dirfd, path, flags) */
+		path = (const char *)ctx->args[1];
+		event_type = EVENT_TYPE_FILE_DELETE;
+		break;
+	case 38:   /* __NR_renameat(olddirfd, oldpath, newdirfd, newpath) */
+	case 276:  /* __NR_renameat2(..., flags) */
+		/* newpath is args[3] */
+		path = (const char *)ctx->args[3];
+		event_type = EVENT_TYPE_FILE_RENAME;
+		break;
+#endif
+	default:
+		return 0;
 	}
-	return agg_path_event((const char *)ctx->args[0], EVENT_TYPE_DIR_CREATE);
+
+	return agg_path_event(path, event_type);
 }
 
 SEC("tp/syscalls/sys_enter_ftruncate")
