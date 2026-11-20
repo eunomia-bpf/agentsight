@@ -69,7 +69,16 @@ class TracerSession:
                     holders[pid] += 1
             foreign = {p: c for p, c in holders.items() if p != os.getpid()}
             if foreign:
-                print(f"PROBE_PERF_HOLDERS {sorted(foreign.items())}", flush=True)
+                names = {}
+                for p in foreign:
+                    try:
+                        with open(f"/proc/{p}/cmdline", "rb") as cf:
+                            names[p] = cf.read().replace(b"\0", b" ").decode(
+                                "utf-8", "replace"
+                            )[:120]
+                    except OSError:
+                        names[p] = "?"
+                print(f"PROBE_PERF_HOLDERS {sorted(foreign.items())} {names}", flush=True)
         except Exception:
             pass
         self.stdout = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".jsonl", delete=False)
