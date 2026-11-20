@@ -1286,38 +1286,6 @@ fn parse_jsonl(
                     }
                 }
             }
-            (AGENT_CODEX, "token_usage_record") => {
-                let payload = obj.get("payload").unwrap_or(&Value::Null);
-                let token_usage = payload
-                    .get("thread_token_usage")
-                    .or_else(|| payload.get("turn_token_usage"))
-                    .or_else(|| payload.get("usage"))
-                    .unwrap_or(payload);
-                let usage = codex_token_usage(token_usage);
-                if usage.total_tokens > 0 {
-                    let name = if codex_model.is_empty() {
-                        "unknown"
-                    } else {
-                        &codex_model
-                    };
-                    acc.set_usage(
-                        name,
-                        usage.input_tokens,
-                        usage.output_tokens,
-                        0,
-                        usage.cache_read_tokens,
-                        usage.total_tokens,
-                    );
-                    if let Some(last) = events.llm_responses.last_mut()
-                        && last.total_tokens == 0
-                    {
-                        last.input_tokens = usage.input_tokens as u64;
-                        last.output_tokens = usage.output_tokens as u64;
-                        last.cache_tokens = usage.cache_read_tokens as u64;
-                        last.total_tokens = usage.total_tokens as u64;
-                    }
-                }
-            }
             (AGENT_CODEX, "response_item")
                 if obj.pointer("/payload/type").and_then(Value::as_str)
                     == Some("custom_tool_call") =>
