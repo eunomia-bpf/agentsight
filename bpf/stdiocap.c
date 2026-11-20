@@ -323,6 +323,11 @@ int main(int argc, char **argv)
 		err = refresh_session_pids(tracked_pids_fd, env.session_id);
 		if (err < 0)
 			warn("warning: failed to scan initial session PIDs: %s\n", strerror(-err));
+		/* A session capture that emits nothing is otherwise
+		 * indistinguishable from one whose probes never fired, so report
+		 * what the filter holds and how the answers would be built. */
+		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
+		     (int)env.session_id, err, (int)!env.all_fds, (unsigned)env.max_bytes);
 	}
 
 	event_buf = malloc(MAX_BUF_SIZE + 1);
