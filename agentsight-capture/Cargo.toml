@@ -15,6 +15,7 @@ include = [
     "Cargo.toml",
     "README.md",
     "build.rs",
+    "examples/**",
     "src/**",
     "tests/**",
     "vendor/bpf/process",
@@ -42,3 +43,12 @@ dirs = "6"
 libc = "0.2"
 sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
 num_cpus = "1.16"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_Diagnostics_Etw",
+  "Win32_System_Threading",
+  "Win32_System_Time",
+] }

@@ -32,6 +32,10 @@ jobs:
           cargo test --manifest-path compat/agentsight-capture/Cargo.toml
           cargo test --manifest-path collector/Cargo.toml
 
+      - name: Lint Windows capture
+        run: |
+          cargo clippy --manifest-path agentsight-capture/Cargo.toml --all-targets -- -D warnings
+
       - name: Verify canonical cross-platform source layout
         shell: pwsh
         run: |
