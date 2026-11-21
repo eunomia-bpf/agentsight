@@ -21,6 +21,7 @@ pub const AGENT_CODEX: &str = "codex";
 pub const AGENT_GEMINI: &str = "gemini";
 pub const AGENT_CURSOR: &str = "cursor";
 pub const AGENT_CODEBUDDY: &str = "codebuddy";
+pub const AGENT_ANTIGRAVITY: &str = "antigravity";
 
 pub const TRACE_EBPF_FILE: &str = "ebpf_file";
 pub const TRACE_PROC_FD: &str = "proc_fd";
