@@ -15,6 +15,8 @@ struct agg_key {
 	__u16 port;      /* assigned local port for successful datagram binds */
 	__u8 protocol;   /* IP protocol; zero for existing summary records */
 	char local_endpoint[DETAIL_LEN];
+	__u64 cgroup_id;
+	__u32 pidns;
 };
 
 struct agg_value {

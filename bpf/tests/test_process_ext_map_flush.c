@@ -247,6 +247,8 @@ static void test_print_summary_json_basic_fields(void)
 	memset(&key, 0, sizeof(key));
 	memset(&val, 0, sizeof(val));
 
+	key.cgroup_id = 9876543210ULL;
+	key.pidns = 4026532345U;
 	key.pid        = 1234;
 	key.event_type = EVENT_TYPE_FILE_DELETE;
 	strncpy(key.detail, "/tmp/foo.txt", DETAIL_LEN - 1);
@@ -277,6 +279,9 @@ static void test_print_summary_json_basic_fields(void)
 	            "output contains correct detail");
 	test_assert(strstr(buf, "\"count\":7") != NULL,
 	            "output contains correct count");
+
+	test_assert(strstr(buf, "\"cgroup_id\":9876543210") != NULL, "kernel cgroup id survives JSON output");
+	test_assert(strstr(buf, "\"pidns\":4026532345") != NULL, "PID namespace survives JSON output");
 }
 
 static void test_network_summary_endpoint_fields(void)

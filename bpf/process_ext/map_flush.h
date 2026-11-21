@@ -115,6 +115,9 @@ static void print_summary_json(const struct agg_key *key, const struct agg_value
 	       event_type_name(key->event_type), detail_esc,
 	       (unsigned long long)val->count);
 
+	printf(",\"cgroup_id\":%llu,\"pidns\":%u,\"first_timestamp\":%llu",
+	       (unsigned long long)key->cgroup_id, key->pidns,
+	       (unsigned long long)val->first_ts);
 	if (val->total_bytes > 0)
 		printf(",\"total_bytes\":%llu", (unsigned long long)val->total_bytes);
 	if (key->protocol) {
