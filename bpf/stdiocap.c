@@ -288,6 +288,18 @@ static void report_stats(int stats_fd)
 				(unsigned long long)total);
 	}
 	warn("stdiocap stats: %s\n", len ? line : "no hook ran");
+	/* A rejected pair is only meaningful when the not-tracked count is
+	 * non-zero; report it on its own line so the counters keep one shape. */
+	{
+		__u32 pid_key = STDIO_STAT_REJECT_PID, ppid_key = STDIO_STAT_REJECT_PPID;
+		__u64 pid = 0, ppid = 0;
+
+		if (bpf_map_lookup_elem(stats_fd, &pid_key, &pid) == 0 && pid) {
+			bpf_map_lookup_elem(stats_fd, &ppid_key, &ppid);
+			warn("stdiocap last rejected pid=%llu parent=%llu\n",
+			     (unsigned long long)pid, (unsigned long long)ppid);
+		}
+	}
 }
 
 /* Readiness marker for callers that start a capture and then act. Matches the

@@ -56,10 +56,25 @@ static __always_inline void count(enum stdiocap_stat slot)
 		__sync_fetch_and_add(value, 1);
 }
 
+static __always_inline void note_reject(__u32 pid, __u32 ppid)
+{
+	__u32 pid_key = STDIO_STAT_REJECT_PID;
+	__u32 ppid_key = STDIO_STAT_REJECT_PPID;
+	__u64 *slot;
+
+	slot = bpf_map_lookup_elem(&stats, &pid_key);
+	if (slot)
+		*slot = pid;
+	slot = bpf_map_lookup_elem(&stats, &ppid_key);
+	if (slot)
+		*slot = ppid;
+}
+
 static __always_inline bool tracked_or_descendant(__u32 pid)
 {
 	struct task_struct *task;
 	__u64 present = 1;
+	__u32 first_ppid = 0;
 
 	if (bpf_map_lookup_elem(&tracked_pids, &pid))
 		return true;
@@ -75,6 +90,8 @@ static __always_inline bool tracked_or_descendant(__u32 pid)
 		ppid = BPF_CORE_READ(parent, tgid);
 		if (!ppid || ppid == pid)
 			break;
+		if (!i)
+			first_ppid = ppid;
 		if (bpf_map_lookup_elem(&tracked_pids, &ppid)) {
 			bpf_map_update_elem(&tracked_pids, &pid, &present, BPF_ANY);
 			return true;
@@ -82,6 +99,7 @@ static __always_inline bool tracked_or_descendant(__u32 pid)
 		task = parent;
 	}
 
+	note_reject(pid, first_ppid);
 	return false;
 }
 
