@@ -38,7 +38,7 @@ test('commands become spans with exit status, and open commands end at the last 
     { ...byId(spans, 'exec:ok') },
     {
       id: 'exec:ok', kind: 'exec', label: 'git status', detail: 'git · pid 11 · exit 0',
-      start: 2_000, end: 2_500, open: false, status: 'success', pid: 11,
+      start: 2_000, end: 2_500, open: false, status: 'success', pid: 11, modelCallId: 'llm:req-1:res-1',
     },
   );
   const failed = byId(spans, 'exec:bad');
@@ -171,4 +171,55 @@ test('axis helpers format offsets and choose round steps', () => {
   assert.equal(formatOffset(3_725_000), '+1:02:05');
   assert.equal(tickStep(600_000), 120_000);
   assert.equal(tickStep(4_000), 1_000);
+});
+
+test('sandbox grouping preserves namespace lifetimes, HTTP requests and inferred model links', () => {
+  const spans = eventSpans({
+    ...snapshot, sessions: [{ id: 's' }],
+    sandboxes: [
+      { id: 'a', name: 'worker', pidns: 100, first_seen_ms: 900, last_seen_ms: 10_000 },
+      { id: 'b', name: 'build', pidns: 200, first_seen_ms: 2_000, last_seen_ms: 9_000, end_timestamp_ms: 9_000, exit_code: 2 },
+    ],
+    process_nodes: snapshot.process_nodes.map((p) => ({ ...p, sandbox_id: p.pid === 10 ? 'a' : 'b' })),
+    audit_events: [...snapshot.audit_events,
+      { id: 'http-req', pid: 11, sandbox_id: 'b', timestamp_ms: 2_100, audit_type: 'network', action: 'http_request', target: 'GET example.org/', details: { http_exchange_id: 'x' } },
+      { id: 'http-res', pid: 11, sandbox_id: 'b', timestamp_ms: 2_300, audit_type: 'network', action: 'http_response', target: 'HTTP example.org/', status: 'success', details: { http_exchange_id: 'x' } },
+    ],
+  });
+  assert.equal(byId(spans, 'sandbox:a').open, true);
+  assert.equal(byId(spans, 'sandbox:b').status, 'failed');
+  assert.equal(byId(spans, 'exec:bad').sandboxId, 'b');
+  const http = byId(spans, 'network:http-req');
+  assert.equal(http.kind, 'http');
+  assert.equal(http.end - http.start, 200);
+  assert.equal(http.modelCallId, 'llm:req-1:res-1');
+  assert.equal(http.sandboxId, 'b');
+  assert.ok(spans.filter((s) => s.aggregated).every((s) => !s.modelCallId));
+});
+
+test('temporal links exclude future, unfinished and unrelated-session model calls', () => {
+  const spans = eventSpans({ ...snapshot,
+    process_nodes: snapshot.process_nodes.map((p) => ({ ...p, ppid: null, root_pid: p.pid })),
+    sessions: [{ id: 'one' }, { id: 'two' }],
+  });
+  assert.equal(byId(spans, 'exec:ok').modelCallId, undefined);
+  assert.equal(byId(spans, 'network:connect').modelCallId, undefined);
+});
+
+test('HTTP rows without exchange ids pair despite method labels and keep failure status', () => {
+  const spans = eventSpans({ audit_events: [
+    { id: 'req', pid: 1, timestamp_ms: 100, audit_type: 'network', action: 'http_request', target: 'GET example.org/health' },
+    { id: 'res', pid: 1, timestamp_ms: 150, audit_type: 'network', action: 'http_response', target: 'HTTP example.org/health', status: 'failure' },
+  ] });
+  assert.equal(spans.length, 1);
+  assert.equal(spans[0].label, 'GET example.org/health');
+  assert.equal(spans[0].end - spans[0].start, 50);
+  assert.equal(spans[0].status, 'failed');
+});
+
+test('unfinished calls are not the inferred cause of later commands', () => {
+  const spans = eventSpans({ ...snapshot, process_nodes: [...snapshot.process_nodes,
+    { id: 'late', pid: 10, start_timestamp_ms: 9_600, end_timestamp_ms: 9_700, command: 'later' },
+  ] });
+  assert.equal(byId(spans, 'exec:late').modelCallId, 'llm:req-1:res-1');
 });

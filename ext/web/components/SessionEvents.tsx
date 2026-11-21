@@ -43,6 +43,9 @@ export function SessionEvents({ snapshot, captureEnd }: {
   const { t } = useTranslation();
   const spans = useMemo(() => eventSpans(snapshot, { captureEnd }), [captureEnd, snapshot]);
   const rowIds = useMemo(() => new Map(spans.map((span, index) => [span.id, `event-row-${index}`])), [spans]);
+  const [sandboxId, setSandboxId] = useState('');
+  const sandboxes = snapshot.sandboxes ?? [];
+  const scopedSpans = spans.filter((span) => !sandboxId || span.sandboxId === sandboxId);
   const [hidden, setHidden] = useState<EventSpanKind[]>([]);
   const [failuresOnly, setFailuresOnly] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -54,32 +57,37 @@ export function SessionEvents({ snapshot, captureEnd }: {
     return Number.isFinite(start) ? { start, length: Math.max(1, end - start) } : { start: 0, length: 1 };
   }, [spans]);
 
-  const visible = spans.filter((span) => (
+  const visible = scopedSpans.filter((span) => (
     !hidden.includes(span.kind) && (!failuresOnly || span.status === 'failed')
   ));
   // Pack bars by the box they are drawn in: short spans get a minimum width
   // and spans at the right edge are pulled left, so pack those bounds.
   const minWidth = range.length * MIN_BAR_PERCENT / 100;
   const latestStart = range.start + range.length - minWidth;
-  const groups = EVENT_SPAN_KINDS
+  const groups = [...new Set(visible.map((span) => span.sandboxId ?? ''))].flatMap((id) => EVENT_SPAN_KINDS
     .map((kind) => ({
-      kind,
-      rows: packSpans(visible.filter((span) => span.kind === kind).map((span) => {
+      id, kind,
+      rows: packSpans(visible.filter((span) => span.kind === kind && (span.sandboxId ?? '') === id).map((span) => {
         const start = Math.min(span.start, latestStart);
         return { span, start, end: Math.max(span.end, start + minWidth) };
       }), range.length * 0.002),
     }))
-    .filter((group) => group.rows.length > 0);
+    .filter((group) => group.rows.length > 0));
   const step = tickStep(range.length);
   const ticks = Array.from({ length: Math.floor(range.length / step) + 1 }, (_, index) => index * step);
   const percent = (value: number) => value / range.length * 100;
   const tableRows = showAll ? visible : visible.slice(0, TABLE_LIMIT);
 
   useEffect(() => {
+    if (sandboxId && !snapshot.sandboxes?.some((sandbox) => sandbox.id === sandboxId)) setSandboxId('');
+  }, [sandboxId, snapshot.sandboxes]);
+
+  useEffect(() => {
     if (selected) document.getElementById(rowIds.get(selected) ?? '')?.scrollIntoView({ block: 'nearest' });
   }, [rowIds, selected, showAll]);
 
   const select = (span: EventSpan) => {
+    setHidden((current) => current.filter((kind) => kind !== span.kind));
     setSelected(span.id);
     if (visible.indexOf(span) >= TABLE_LIMIT) setShowAll(true);
   };
@@ -97,9 +105,36 @@ export function SessionEvents({ snapshot, captureEnd }: {
 
   return (
     <div className="space-y-4">
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {sandboxes.length > 0 && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-semibold text-slate-950">{t('sandbox.title')}</h2>
+            {sandboxes.length > 1 && (
+              <label className="text-xs text-slate-600">{t('sandbox.filter')}
+                <select aria-label={t('sandbox.filter')} value={sandboxId} onChange={(event) => setSandboxId(event.target.value)}
+                  className="ml-2 rounded border border-slate-300 bg-white p-1">
+                  <option value="">{t('sandbox.all')}</option>
+                  {sandboxes.map((sandbox) => <option key={sandbox.id} value={sandbox.id}>{sandbox.name || sandbox.id}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {sandboxes.filter((sandbox) => !sandboxId || sandbox.id === sandboxId).map((sandbox) => (
+              <div key={sandbox.id} data-testid="sandbox-header" className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                <h3 className="font-medium text-slate-950">{sandbox.name || sandbox.cgroup_path || sandbox.id}</h3>
+                <p className="mt-1">{[sandbox.image, sandbox.runtime, `pidns ${sandbox.pidns}`].filter(Boolean).join(' · ')}</p>
+                <p className="mt-1">{t('sandbox.lifetime')}: {formatOffset(sandbox.first_seen_ms - range.start)} → {formatOffset((sandbox.end_timestamp_ms ?? sandbox.last_seen_ms) - range.start)}
+                  {' · '}{formatDuration(Math.max(0, (sandbox.end_timestamp_ms ?? sandbox.last_seen_ms) - sandbox.first_seen_ms))}
+                  {' · '}{sandbox.exit_code != null ? t('sandbox.exited', { code: sandbox.exit_code }) : t('sandbox.observed')}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {EVENT_SPAN_KINDS.map((kind) => {
-          const ofKind = spans.filter((span) => span.kind === kind);
+          const ofKind = scopedSpans.filter((span) => span.kind === kind);
           const failed = ofKind.filter((span) => span.status === 'failed').length;
           const active = !hidden.includes(kind);
           return (
@@ -153,9 +188,10 @@ export function SessionEvents({ snapshot, captureEnd }: {
                   ))}
                 </div>
               </div>
-              {groups.map((group) => (
-                <div key={group.kind} className="flex border-b border-slate-100 py-2 last:border-b-0">
+              {groups.map((group, index) => (
+                <div key={`${group.id}:${group.kind}`} className="flex border-b border-slate-100 py-2 last:border-b-0">
                   <div className="w-28 shrink-0 pr-3 pt-0.5 text-xs font-medium text-slate-600">
+                    {group.id && (index === 0 || groups[index - 1].id !== group.id) && <div className="mb-1 truncate text-slate-950">{sandboxes.find((sandbox) => sandbox.id === group.id)?.name || group.id}</div>}
                     {t(`events.kind.${group.kind}`)}
                   </div>
                   <div className="relative flex-1">
@@ -215,6 +251,15 @@ export function SessionEvents({ snapshot, captureEnd }: {
                   <td className="max-w-md px-3 py-2">
                     <div className="truncate font-medium text-slate-900" title={span.label}>{span.label}</div>
                     {span.detail && <div className="truncate text-[11px] text-slate-400">{span.detail}</div>}
+                    {span.modelCallId && (
+                      <a href={`#${rowIds.get(span.modelCallId)}`} className="text-[11px] text-blue-600 hover:underline"
+                        title={t('sandbox.inference')} onClick={(event) => {
+                          event.stopPropagation();
+                          setSandboxId(''); setFailuresOnly(false); setShowAll(true);
+                          const call = spans.find((candidate) => candidate.id === span.modelCallId);
+                          if (call) select(call);
+                        }}>{t('sandbox.modelCall')}</a>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-600">
                     {formatOffset(span.start - range.start)}
