@@ -174,7 +174,7 @@ export function isStdioSource(source: string): boolean {
 
 export function decodeStdioMessage(data: any): DecodedStdioMessage {
   const rawPayload = typeof data?.data === 'string' ? data.data : '';
-  const parsedPayload = safeJsonParse(rawPayload);
+  const parsedPayload = data?.rpc_payload ?? safeJsonParse(rawPayload);
   const direction = String(data?.direction || '').toUpperCase();
   const fdRole = String(data?.fd_role || (data?.fd !== undefined ? `fd ${data.fd}` : 'stdio'));
   const fdTarget = String(data?.fd_target || '');
@@ -183,14 +183,22 @@ export function decodeStdioMessage(data: any): DecodedStdioMessage {
   const truncated = Boolean(data?.truncated);
 
   let kind: StdioMessageKind = rawPayload.trim() ? 'text' : 'unknown';
-  let method: string | undefined;
-  let id: string | undefined;
+  let method: string | undefined =
+    typeof data?.rpc_method === 'string' ? data.rpc_method : undefined;
+  let id: string | undefined = stringifyId(data?.rpc_id);
+
+  if (typeof data?.rpc_kind === 'string') {
+    kind = data.rpc_kind as StdioMessageKind;
+  }
 
   if (parsedPayload && typeof parsedPayload === 'object') {
-    method = typeof parsedPayload.method === 'string' ? parsedPayload.method : undefined;
-    id = stringifyId(parsedPayload.id);
+    method = method || (typeof parsedPayload.method === 'string' ? parsedPayload.method : undefined);
+    id = id || stringifyId(parsedPayload.id);
 
-    if (method) {
+    if (data?.rpc_kind) {
+      // The Rust stdio analyzer already reassembled and classified this
+      // message. Keep its classification even when a response has no method.
+    } else if (method) {
       kind = id ? 'request' : 'notification';
     } else if (parsedPayload.result !== undefined) {
       kind = 'response';
@@ -201,7 +209,10 @@ export function decodeStdioMessage(data: any): DecodedStdioMessage {
     }
   }
 
-  const toolName = extractToolName(parsedPayload);
+  const toolName =
+    (typeof data?.rpc_tool_name === 'string' && data.rpc_tool_name.length > 0
+      ? data.rpc_tool_name
+      : undefined) || extractToolName(parsedPayload);
   const preview = parsedPayload ? extractPreview(parsedPayload, kind) : truncateText(rawPayload);
   const title = buildTitle(kind, method, id, toolName);
   const summary = buildSummary(
