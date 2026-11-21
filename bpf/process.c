@@ -851,6 +851,8 @@ static void print_exec_event(const struct event *e)
 	printf(",\"filename\":\"%s\"", filename_esc);
 	printf(",\"full_command\":\"%s\"", command_esc);
 
+	printf(",\"cgroup_id\":%llu,\"pidns\":%u,\"pidns_pid\":%u",
+	       e->cgroup_id, e->pidns, e->pidns_pid);
 	print_container_fields(e->pid);
 	printf("}\n");
 	fflush(stdout);
@@ -882,6 +884,8 @@ static void print_exit_event(const struct event *e)
 		}
 	}
 
+	printf(",\"cgroup_id\":%llu,\"pidns\":%u,\"pidns_pid\":%u",
+	       e->cgroup_id, e->pidns, e->pidns_pid);
 	print_container_fields(e->pid);
 	printf("}\n");
 	fflush(stdout);

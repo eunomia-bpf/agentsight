@@ -97,7 +97,7 @@ static void test_agg_key_total_size(void)
 	 * pid (4) + event_type (4) + process_start_ns (8) + detail[64]
 	 * + port (2) + protocol (1) + local_endpoint[64] + alignment (5).
 	 */
-	size_t expected = 4 + 4 + 8 + DETAIL_LEN + 4 + DETAIL_LEN + 4;
+	size_t expected = 4 + 4 + 8 + DETAIL_LEN + 4 + DETAIL_LEN + 4 + 16;
 	printf("  sizeof(struct agg_key) = %zu (expected %zu)\n",
 	       sizeof(struct agg_key), expected);
 	test_assert(sizeof(struct agg_key) == expected,

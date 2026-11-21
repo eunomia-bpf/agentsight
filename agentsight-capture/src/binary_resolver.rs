@@ -680,29 +680,8 @@ fn resolve_runtime_container_pid(container: &RuntimeContainerRef) -> Result<u32,
 }
 
 fn resolve_cri_container_pid(container_id: &str) -> Result<u32, String> {
-    let output = std::process::Command::new("crictl")
-        .args(["inspect", "--output", "json", container_id])
-        .output()
-        .map_err(|e| format!(
-            "failed to run `crictl inspect` for container '{}': {} (is crictl installed and configured for this node's CRI runtime?)",
-            container_id, e
-        ))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!(
-            "`crictl inspect {}` failed: {}",
-            container_id,
-            stderr.trim()
-        ));
-    }
-
-    let value: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| {
-        format!(
-            "`crictl inspect --output json {}` returned invalid JSON: {}",
-            container_id, e
-        )
-    })?;
+    let value = inspect_runtime_container("containerd", container_id)
+        .ok_or_else(|| format!("could not inspect CRI container '{container_id}'"))?;
 
     parse_crictl_pid(&value).ok_or_else(|| {
         format!(
@@ -710,6 +689,29 @@ fn resolve_cri_container_pid(container_id: &str) -> Result<u32, String> {
             container_id
         )
     })
+}
+
+/// Runtime metadata used by both binary targeting and sandbox attribution.
+pub(crate) fn inspect_runtime_container(runtime: &str, id: &str) -> Option<serde_json::Value> {
+    let output = if runtime == "docker" {
+        std::process::Command::new("docker")
+            .args(["inspect", "--type", "container", id])
+            .output()
+    } else {
+        std::process::Command::new("crictl")
+            .args(["inspect", "--output", "json", id])
+            .output()
+    }
+    .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    if runtime == "docker" {
+        value.as_array()?.first().cloned()
+    } else {
+        Some(value)
+    }
 }
 
 fn parse_crictl_pid(value: &serde_json::Value) -> Option<u32> {
