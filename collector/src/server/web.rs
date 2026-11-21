@@ -1115,6 +1115,7 @@ mod tests {
         let mut store = SqliteStore::open(&db).unwrap();
         store
             .process_node(&ProcessNodeRow {
+                sandbox_id: None,
                 id: "db-process".to_string(),
                 pid: 42,
                 ppid: None,
@@ -1148,6 +1149,7 @@ mod tests {
         {
             let mut view = live_view.lock().unwrap();
             view.upsert_process_node(&ProcessNodeRow {
+                sandbox_id: None,
                 id: "live-process".to_string(),
                 pid: 7,
                 ppid: None,

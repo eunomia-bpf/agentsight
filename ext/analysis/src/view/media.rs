@@ -31,6 +31,7 @@ impl MaterializedView {
         };
         for evidence in extract_media(&event.attributes) {
             self.emit_audit_event(AuditEventRow {
+                sandbox_id: None,
                 id: format!("audit-media-{}-{}", event.event_id, evidence.kind),
                 timestamp_ms: event.timestamp_ms,
                 audit_type: "media".to_string(),

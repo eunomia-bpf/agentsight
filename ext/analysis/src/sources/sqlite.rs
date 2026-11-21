@@ -30,6 +30,9 @@ fn load_view_inner(
     let mut view = MaterializedView::new();
     view.set_source("sqlite");
 
+    for row in store.sandbox_rows()? {
+        view.upsert_sandbox(&row);
+    }
     let mut llm_rows = Vec::new();
     if let Ok(rows) = store.all_llm_call_rows() {
         for row in &rows {
@@ -114,6 +117,7 @@ fn import_observed_process_nodes(
         let comm = row.comm.clone();
         let command = comm.clone().unwrap_or_else(|| format!("pid {}", pid));
         view.upsert_process_node(&ProcessNodeRow {
+            sandbox_id: None,
             id: format!("process-{}-observed", pid),
             pid,
             ppid: None,
@@ -163,6 +167,7 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
             ("sqlite".to_string(), Some(0.5))
         };
         prompts.push(AuditEventRow {
+            sandbox_id: None,
             id: format!("audit-{}-request", row.id),
             timestamp_ms: row.start_timestamp_ms,
             audit_type: "llm".to_string(),
@@ -459,6 +464,7 @@ mod tests {
         let mut store = SqliteStore::open(&db).unwrap();
         store
             .audit_event(&AuditEventRow {
+                sandbox_id: None,
                 id: "captured-exec".to_string(),
                 timestamp_ms: 1_000,
                 audit_type: "process".to_string(),
@@ -496,6 +502,7 @@ mod tests {
         let mut source_store = SqliteStore::open(&source_db).unwrap();
         source_store
             .audit_event(&AuditEventRow {
+                sandbox_id: None,
                 id: "captured-exec-round-trip".to_string(),
                 timestamp_ms: 1_000,
                 audit_type: "process".to_string(),
@@ -556,6 +563,7 @@ mod tests {
             .unwrap();
         store
             .audit_event(&AuditEventRow {
+                sandbox_id: None,
                 id: "audit-1".to_string(),
                 timestamp_ms: 1_500,
                 audit_type: "process".to_string(),
@@ -719,6 +727,7 @@ mod tests {
         text: &str,
     ) -> AuditEventRow {
         AuditEventRow {
+            sandbox_id: None,
             id: id.to_string(),
             timestamp_ms,
             audit_type: "llm".to_string(),
