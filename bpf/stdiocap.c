@@ -344,6 +344,19 @@ int main(int argc, char **argv)
 	}
 
 	/*
+	 * A session capture that emits nothing is otherwise indistinguishable
+	 * from one whose probes never fired, so report what the filter holds and
+	 * how the events would be built. Printed before the readiness marker: a
+	 * caller stops reading stderr at the marker, so a line printed after it
+	 * never reaches that caller.
+	 */
+	if (env.session_id != INVALID_PID) {
+		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
+		     (int)env.session_id, session_pid_count, (int)!env.all_fds,
+		     (unsigned)env.max_bytes);
+		fflush(stderr);
+	}
+	/*
 	 * Callers that capture this process's stdout, including the runtime
 	 * test, have no other way to know when the probes are attached and the
 	 * ring buffer is being drained. Without this marker they can only
@@ -353,17 +366,6 @@ int main(int argc, char **argv)
 	 * the stdout reader parses.
 	 */
 	warn("%s\n", AGENTSIGHT_STDIOCAP_READY);
-	/* A session capture that emits nothing is otherwise
-	 * indistinguishable from one whose probes never fired, so report what
-	 * the filter holds and how the events would be built. Printed after
-	 * the readiness marker: callers stop reading stderr once they see it,
-	 * so anything before it is discarded on the success path. */
-	if (env.session_id != INVALID_PID) {
-		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
-		     (int)env.session_id, session_pid_count, (int)!env.all_fds,
-		     (unsigned)env.max_bytes);
-		fflush(stderr);
-	}
 	fflush(stderr);
 
 	if (signal(SIGINT, sig_int) == SIG_ERR || signal(SIGTERM, sig_int) == SIG_ERR) {

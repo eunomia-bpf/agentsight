@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import os
-import select
 import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -16,40 +16,36 @@ STDIOCAP = BPF_DIR / "stdiocap"
 READY_MARKER = "AGENTSIGHT_STDIOCAP_READY"
 
 
-def _wait_for_captured(proc, needle, timeout=5.0):
-    """Block until `needle` shows up in the capture, then return.
+def _start_reader(stream, sink):
+    """Drain `stream` into `sink` on a thread, so no line is lost.
 
-    stdiocap flushes stdout per event, so the line is readable from the pipe
-    as soon as it is emitted. Reads are buffered here and left in
-    `proc._captured` for the caller to prepend to its own output.
+    `select()` on a pipe that a text-mode `Popen` wraps only reports data
+    still in the pipe itself: the wrapper reads ahead, so lines it already
+    holds are invisible to `select()` and are dropped by a later
+    `communicate()`. Reading every pipe on its own thread is the only way to
+    see each line exactly once.
     """
+    def run():
+        for line in stream:
+            sink.append(line)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    return thread
+
+
+def _wait_for_line(sink, needle, timeout):
+    """Wait until a collected line contains `needle`."""
     deadline = time.monotonic() + timeout
-    captured = getattr(proc, "_captured", [])
     while time.monotonic() < deadline:
-        readable, _, _ = select.select([proc.stdout], [], [], 0.05)
-        if not readable:
-            continue
-        line = proc.stdout.readline()
-        if not line:
-            break
-        captured.append(line)
-        if needle in line:
-            proc._captured = captured
-            return
-    proc._captured = captured
+        if any(needle in line for line in sink):
+            return True
+        time.sleep(0.02)
+    return False
 
 
-def _read_stderr_line(proc, timeout):
-    """One stderr line if it arrives within `timeout`, else None."""
-    readable, _, _ = select.select([proc.stderr], [], [], timeout)
-    if not readable:
-        return None
-    line = proc.stderr.readline()
-    return line.rstrip("\n") if line else None
-
-
-def wait_for_ready(proc, timeout=15.0):
-    """Wait for stdiocap's attach-complete marker on stderr.
+def wait_for_ready(err_lines, timeout=15.0):
+    """Wait for stdiocap's attach-complete marker in `err_lines`.
 
     stdiocap emits the marker only after its probes are attached and its ring
     buffer exists, so a target may write as soon as the marker is seen. This
@@ -58,20 +54,13 @@ def wait_for_ready(proc, timeout=15.0):
     any probe was live and the capture looked empty.
     """
     deadline = time.monotonic() + timeout
-    lines = []
     while time.monotonic() < deadline:
-        readable, _, _ = select.select([proc.stderr], [], [], deadline - time.monotonic())
-        if not readable:
-            break
-        line = proc.stderr.readline()
-        if not line:
-            break
-        lines.append(line.rstrip("\n"))
-        if line.strip() == READY_MARKER:
-            return lines
+        if any(line.strip() == READY_MARKER for line in err_lines):
+            return
+        time.sleep(0.02)
     raise AssertionError(
         "stdiocap did not report attach readiness within "
-        f"{timeout}s; stderr tail={lines[-8:]!r}, rc={proc.poll()!r}"
+        f"{timeout}s; stderr tail={err_lines[-8:]!r}"
     )
 
 
@@ -111,34 +100,46 @@ def test_session_captures_child_stdout():
         text=True,
     )
     target_sid = os.getsid(target.pid)
+    cap_out_lines, cap_err_lines = [], []
+    _start_reader(cap.stdout, cap_out_lines)
+    _start_reader(cap.stderr, cap_err_lines)
     try:
-        ready_lines = wait_for_ready(cap)
-        # The filter summary stdiocap prints immediately after the marker
-        # answers "did the session scan find the target?" and is the first
-        # thing to check when a capture comes back empty. wait_for_ready
-        # stops at the marker, so read that one line here instead of hoping
-        # it is still unread at the end.
-        filter_line = _read_stderr_line(cap, 2.0)
-        if filter_line:
-            ready_lines.append(filter_line)
+        try:
+            wait_for_ready(cap_err_lines)
+        except AssertionError:
+            # Report everything stdiocap printed, including the session
+            # summary it writes before the marker.
+            raise AssertionError(
+                "stdiocap reported no readiness: "
+                f"{''.join(cap_err_lines)!r}"
+            ) from None
+        # stdiocap reports the session filter before the readiness marker:
+        # "tracked N pid(s)" answers "did the scan find the target?", which
+        # separates an empty filter from a probe that never fired. It is
+        # therefore already collected once the marker arrives.
+        filter_line = next(
+            (
+                line.rstrip("\n")
+                for line in cap_err_lines
+                if line.startswith("session ") and "tracked" in line
+            ),
+            None,
+        )
         with open(go_marker, "w", encoding="utf-8"):
             pass
         target_out, target_err = target.communicate(timeout=15)
         # Wait for the event rather than sleeping a fixed 0.4 s: the ring
         # buffer is polled every PERF_POLL_TIMEOUT_MS (100 ms) and the
-        # target's own exit does not mean its last write has been drained.
-        # A fixed sleep passes on an idle runner and loses the write on a
-        # loaded one, which is how this test failed intermittently.
-        _wait_for_captured(cap, "agentsight-stdio-session")
+        # target's own exit does not mean its last write was drained, so a
+        # fixed sleep passes on an idle runner and loses the write on a
+        # loaded one.
+        _wait_for_line(cap_out_lines, "agentsight-stdio-session", 5.0)
         cap.send_signal(signal.SIGTERM)
-        cap_out, cap_err = cap.communicate(timeout=10)
-        # _wait_for_captured consumed the lines it needed to see; prepend
-        # them so the failure message shows what actually arrived.
-        cap_out = "".join(getattr(cap, "_captured", [])) + cap_out
-        # wait_for_ready stops at the marker, so the filter summary stdiocap
-        # prints just after it is still unread in the pipe here. Drain it so
-        # a failed capture reports what the filter held.
-        cap_err = "".join(ready_lines) + "\n" + (cap_err or "")
+        cap.wait(timeout=10)
+        cap_out = "".join(cap_out_lines)
+        cap_err = "".join(cap_err_lines)
+        if filter_line:
+            cap_err = filter_line + "\n" + cap_err
     finally:
         for proc in (target, cap):
             if proc.poll() is None:
