@@ -264,6 +264,11 @@ static void print_event(const struct stdiocap_event_t *event)
 	fflush(stdout);
 }
 
+/* Readiness marker for callers that start a capture and then act. Matches the
+ * SSL probe's AGENTSIGHT_SSL_READY convention: a stderr line, so it never
+ * appears in the JSON event stream on stdout. */
+#define AGENTSIGHT_STDIOCAP_READY "AGENTSIGHT_STDIOCAP_READY"
+
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	const struct stdiocap_event_t *event = data;
@@ -314,10 +319,14 @@ int main(int argc, char **argv)
 	}
 
 	tracked_pids_fd = bpf_map__fd(obj->maps.tracked_pids);
+	int session_pid_count = 0;
+
 	if (env.session_id != INVALID_PID) {
-		err = refresh_session_pids(tracked_pids_fd, env.session_id);
-		if (err < 0)
-			warn("warning: failed to scan initial session PIDs: %s\n", strerror(-err));
+		session_pid_count = refresh_session_pids(tracked_pids_fd,
+							 env.session_id);
+		if (session_pid_count < 0)
+			warn("warning: failed to scan initial session PIDs: %s\n",
+			     strerror(-session_pid_count));
 	}
 
 	event_buf = malloc(MAX_BUF_SIZE + 1);
@@ -333,6 +342,29 @@ int main(int argc, char **argv)
 		warn("failed to open ring buffer: %d\n", err);
 		goto cleanup;
 	}
+
+	/*
+	 * Callers that capture this process's stdout, including the runtime
+	 * test, have no other way to know when the probes are attached and the
+	 * ring buffer is being drained. Without this marker they can only
+	 * guess, and a target that writes just after the capture starts loses
+	 * that event to the attach window. Written to stderr, like the SSL
+	 * probe's readiness marker, so it stays out of the JSON event stream
+	 * the stdout reader parses.
+	 */
+	warn("%s\n", AGENTSIGHT_STDIOCAP_READY);
+	/* A session capture that emits nothing is otherwise
+	 * indistinguishable from one whose probes never fired, so report what
+	 * the filter holds and how the events would be built. Printed after
+	 * the readiness marker: callers stop reading stderr once they see it,
+	 * so anything before it is discarded on the success path. */
+	if (env.session_id != INVALID_PID) {
+		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
+		     (int)env.session_id, session_pid_count, (int)!env.all_fds,
+		     (unsigned)env.max_bytes);
+		fflush(stderr);
+	}
+	fflush(stderr);
 
 	if (signal(SIGINT, sig_int) == SIG_ERR || signal(SIGTERM, sig_int) == SIG_ERR) {
 		err = 1;

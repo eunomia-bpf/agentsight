@@ -145,9 +145,17 @@ runtime-test: process stdiocap sslsniff test_sslsniff_transport_identity test_ss
 	@echo ""
 	@echo "Running process runtime tests..."
 	@if [ "$$(id -u)" -eq 0 ]; then \
-		python3 tests/test_process_runtime.py; \
+		if command -v taskset >/dev/null 2>&1; then \
+			taskset -c 0-$$(N=$$(nproc); [ $$N -gt 1 ] && echo $$((N / 2 - 1)) || echo 0) python3 tests/test_process_runtime.py; \
+		else \
+			python3 tests/test_process_runtime.py; \
+		fi; \
 	elif sudo -n true >/dev/null 2>&1; then \
-		sudo -n env PATH="$$PATH" python3 tests/test_process_runtime.py; \
+		if command -v taskset >/dev/null 2>&1; then \
+			sudo -n env PATH="$$PATH" taskset -c 0-$$(N=$$(nproc); [ $$N -gt 1 ] && echo $$((N / 2 - 1)) || echo 0) python3 tests/test_process_runtime.py; \
+		else \
+			sudo -n env PATH="$$PATH" python3 tests/test_process_runtime.py; \
+		fi; \
 	else \
 		echo "SKIP: process runtime tests require root or cached sudo"; \
 	fi
