@@ -12,10 +12,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Cached boot time in seconds since UNIX epoch
 static BOOT_TIME_SECS: OnceLock<i64> = OnceLock::new();
 
-/// UNIX epoch minus CLOCK_MONOTONIC, in nanoseconds. The eBPF probes use
-/// bpf_ktime_get_ns(), so their timestamps must be paired with this clock.
-static MONOTONIC_EPOCH_OFFSET_NS: OnceLock<i128> = OnceLock::new();
-
+/// Read a clock as nanoseconds since that clock's epoch. The eBPF probes use
+/// `bpf_ktime_get_ns()`, i.e. `CLOCK_MONOTONIC`.
 #[cfg(unix)]
 fn clock_ns(clock: libc::clockid_t) -> Option<i128> {
     let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
@@ -25,24 +23,23 @@ fn clock_ns(clock: libc::clockid_t) -> Option<i128> {
     Some(i128::from(ts.tv_sec) * 1_000_000_000 + i128::from(ts.tv_nsec))
 }
 
-/// Bracket the realtime read with monotonic reads, using the sample with the
-/// shortest interval to minimize clock-read scheduling error.
+/// Sample the epoch offset by bracketing the realtime read with two monotonic
+/// reads, so the error is half the interval between them rather than a whole
+/// second. Both clocks are read through the vDSO; three reads cost tens of
+/// nanoseconds.
+///
+/// This is called per conversion rather than cached: CLOCK_MONOTONIC stands
+/// still while the host is suspended and CLOCK_REALTIME does not, so a cached
+/// offset leaves every timestamp after a resume behind by the suspended time.
 #[cfg(unix)]
 fn sample_monotonic_epoch_offset_ns() -> Option<i128> {
-    let mut best: Option<(i128, i128)> = None;
-    for _ in 0..5 {
-        let before = clock_ns(libc::CLOCK_MONOTONIC)?;
-        let realtime = clock_ns(libc::CLOCK_REALTIME)?;
-        let after = clock_ns(libc::CLOCK_MONOTONIC)?;
-        let span = after - before;
-        if span < 0 {
-            continue;
-        }
-        if best.is_none_or(|(best_span, _)| span < best_span) {
-            best = Some((span, realtime - (before + span / 2)));
-        }
+    let before = clock_ns(libc::CLOCK_MONOTONIC)?;
+    let realtime = clock_ns(libc::CLOCK_REALTIME)?;
+    let after = clock_ns(libc::CLOCK_MONOTONIC)?;
+    if after < before {
+        return None;
     }
-    best.map(|(_, offset)| offset)
+    Some(realtime - (before + (after - before) / 2))
 }
 
 fn epoch_ms_with_offset(ns_since_boot: u64, offset_ns: i128) -> u64 {
@@ -84,16 +81,13 @@ pub fn get_boot_time_secs() -> i64 {
 /// # Returns
 /// Milliseconds since UNIX epoch (1970-01-01 00:00:00 UTC)
 pub fn boot_ns_to_epoch_ms(ns_since_boot: u64) -> u64 {
-    let offset = *MONOTONIC_EPOCH_OFFSET_NS.get_or_init(|| {
-        #[cfg(unix)]
-        if let Some(offset) = sample_monotonic_epoch_offset_ns() {
-            return offset;
-        }
-        // Preserve the existing cross-platform fallback if the clock API
-        // is unavailable. This fallback has only whole-second precision.
-        i128::from(get_boot_time_secs()) * 1_000_000_000
-    });
-    epoch_ms_with_offset(ns_since_boot, offset)
+    #[cfg(unix)]
+    if let Some(offset) = sample_monotonic_epoch_offset_ns() {
+        return epoch_ms_with_offset(ns_since_boot, offset);
+    }
+    // Preserve the existing cross-platform fallback if the clock API is
+    // unavailable. This fallback has only whole-second precision.
+    epoch_ms_with_offset(ns_since_boot, i128::from(get_boot_time_secs()) * 1_000_000_000)
 }
 
 #[cfg(test)]
@@ -142,5 +136,25 @@ mod tests {
             (i128::from(converted_ms) - realtime_ms).abs() < 50,
             "timestamp differs from realtime by more than 50 ms"
         );
+    }
+
+    /// Each conversion reads the clocks again, so a timestamp taken after the
+    /// clocks moved is still right. (A real suspend cannot be staged here; the
+    /// suspend case is what per-call sampling rather than a cached offset
+    /// covers.)
+    #[cfg(unix)]
+    #[test]
+    fn test_conversion_stays_correct_over_time() {
+        for _ in 0..3 {
+            let converted_ms = i128::from(boot_ns_to_epoch_ms(
+                clock_ns(libc::CLOCK_MONOTONIC).unwrap() as u64,
+            ));
+            let realtime_ms = clock_ns(libc::CLOCK_REALTIME).unwrap() / 1_000_000;
+            assert!(
+                (converted_ms - realtime_ms).abs() < 50,
+                "converted {converted_ms} ms, realtime {realtime_ms} ms"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
     }
 }
