@@ -191,6 +191,7 @@ mod tests {
     fn network_section_falls_back_to_network_audit_events() {
         let mut snapshot = Snapshot::empty("test");
         snapshot.audit_events.push(AuditEventRow {
+            sandbox_id: None,
             id: "audit-net-1".to_string(),
             timestamp_ms: 1,
             audit_type: "network".to_string(),
