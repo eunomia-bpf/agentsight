@@ -91,7 +91,10 @@ class TracerSession:
         )
         self.stdout.close()
         self.stderr.close()
-        self.wait_ready(wait_attach)
+        # wait_attach=0 leaves the readiness wait to the caller, which uses
+        # wait_probe_ready() to key on the flushed start heartbeat.
+        if wait_attach:
+            self.wait_ready(wait_attach)
 
     def wait_ready(self, timeout):
         # The tracer prints a CLOCK_SYNC "start" anchor only after the BPF
