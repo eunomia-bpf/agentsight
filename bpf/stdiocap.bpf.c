@@ -222,22 +222,49 @@ static __always_inline int exit_common(long ret)
 	return 0;
 }
 
-SEC("tp/syscalls/sys_enter_read")
-int trace_enter_read(struct trace_event_raw_sys_enter *ctx)
+/* The per-syscall `tp/syscalls/sys_enter_read`/`_write` hooks lose stdio
+ * writes on the kernel these tests run on: measured on the CI runner, the
+ * target's own `write(1, ...)` never reached the hook while a non-stdio
+ * `write(3, ...)` from the same pid did, and the exit hooks fired 626 times
+ * against 608 enters. `kernel/trace/trace_syscalls.c` (v7.0) explains it:
+ * `write` sets `user_mask`/`user_arg_size`, and `ftrace_syscall_enter`
+ * returns before the tracepoint callback when `syscall_get_data()` cannot
+ * get the shared fault buffer. `raw_syscalls:sys_enter` copies no user
+ * memory, so it fires for every call — the same move #271 made for the fs
+ * path hooks.
+ *
+ * The ids are read per arch, and only the stdio reads/writes are taken, so
+ * this one program replaces both per-syscall enter hooks. */
+SEC("tp/raw_syscalls/sys_enter")
+int trace_raw_enter(struct trace_event_raw_sys_enter *ctx)
 {
-	return enter_common((int)ctx->args[0], (const void *)ctx->args[1], true);
+	/* Constant offsets only: the verifier rejects a context pointer that
+	 * was advanced by a computed index. */
+	int fd = (int)ctx->args[0];
+	const void *buf = (const void *)ctx->args[1];
+
+	switch (ctx->id) {
+#ifdef __TARGET_ARCH_x86
+	case 0:   /* __NR_read */
+		return enter_common(fd, buf, true);
+	case 1:   /* __NR_write */
+		return enter_common(fd, buf, false);
+#elif defined(__TARGET_ARCH_arm64)
+	case 63:  /* __NR_read */
+		return enter_common(fd, buf, true);
+	case 64:  /* __NR_write */
+		return enter_common(fd, buf, false);
+#endif
+	default:
+		break;
+	}
+	return 0;
 }
 
 SEC("tp/syscalls/sys_exit_read")
 int trace_exit_read(struct trace_event_raw_sys_exit *ctx)
 {
 	return exit_common(ctx->ret);
-}
-
-SEC("tp/syscalls/sys_enter_write")
-int trace_enter_write(struct trace_event_raw_sys_enter *ctx)
-{
-	return enter_common((int)ctx->args[0], (const void *)ctx->args[1], false);
 }
 
 SEC("tp/syscalls/sys_exit_write")
