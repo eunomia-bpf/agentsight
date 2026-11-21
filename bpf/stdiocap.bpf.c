@@ -87,14 +87,26 @@ static __always_inline bool tracked_or_descendant(__u32 pid)
 
 static __always_inline bool trace_allowed(__u32 uid, __u32 pid, int fd)
 {
-	if (targ_uid != 0xffffffffU && targ_uid != uid)
+	/* Count the branch that rejects, so "every enter filtered" says which
+	 * condition dropped the writer instead of only that one did. */
+	if (targ_uid != 0xffffffffU && targ_uid != uid) {
+		count(STDIO_STAT_FILTER_UID);
 		return false;
-	if (trace_stdio_only && (fd < 0 || fd > 2))
+	}
+	if (trace_stdio_only && (fd < 0 || fd > 2)) {
+		count(STDIO_STAT_FILTER_FD);
 		return false;
-	if (use_tracked_pids)
-		return tracked_or_descendant(pid);
-	if (targ_pid && targ_pid != pid)
+	}
+	if (use_tracked_pids) {
+		if (tracked_or_descendant(pid))
+			return true;
+		count(STDIO_STAT_FILTER_NOT_TRACKED);
 		return false;
+	}
+	if (targ_pid && targ_pid != pid) {
+		count(STDIO_STAT_FILTER_NOT_TRACKED);
+		return false;
+	}
 	return true;
 }
 

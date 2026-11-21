@@ -269,7 +269,8 @@ static void print_event(const struct stdiocap_event_t *event)
 static void report_stats(int stats_fd)
 {
 	static const char *const names[] = {
-		"enter", "enter_filtered", "exit_no_args", "exit_error",
+		"enter", "enter_filtered", "filter_uid", "filter_fd",
+		"filter_not_tracked", "exit_no_args", "exit_error",
 		"ringbuf_full", "event",
 	};
 	char line[256] = "";
