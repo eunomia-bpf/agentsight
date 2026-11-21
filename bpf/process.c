@@ -1199,64 +1199,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to attach BPF skeleton\n");
 		goto cleanup;
 	}
-	/* TEMPORARY probe (#257): per-hook link ids plus the tracepoints'
-	 * enable flags, read from the kernel side at attach time and again at
-	 * exit, so a run whose hooks stop firing shows whether the link or
-	 * the tracepoint enable changed under it. */
-	for (const char *phase = "start"; phase; phase = phase[0] == 's' ? "exit" : NULL) {
-		struct {
-			const char *name;
-			struct bpf_link *link;
-			const char *tp;
-		} fs_links[] = {
-			{ "raw_path", skel->links.trace_raw_path, "raw_syscalls/sys_enter" },
-			{ "ftruncate", skel->links.trace_ftruncate, "syscalls/sys_enter_ftruncate" },
-			{ "chdir", skel->links.trace_chdir, "syscalls/sys_enter_chdir" },
-			{ "write_enter", skel->links.trace_write_enter, "syscalls/sys_enter_write" },
-		};
-		for (size_t i = 0; i < sizeof(fs_links) / sizeof(fs_links[0]); i++) {
-			struct bpf_link_info info = {};
-			__u32 len = sizeof(info);
-			char path[128], buf[8] = { 0 };
-			ssize_t n = 0;
-			int lfd = fs_links[i].link ?
-				bpf_link__fd(fs_links[i].link) : -1;
-
-			if (lfd >= 0 && bpf_obj_get_info_by_fd(lfd, &info, &len) == 0) {
-				char dbg = '?', trc = '?';
-				/* libbpf prefers /sys/kernel/debug/tracing when
-				 * debugfs is mounted; read both instances'
-				 * enable flags so the line says which one the
-				 * attach actually enabled. */
-				snprintf(path, sizeof(path),
-					 "/sys/kernel/debug/tracing/events/%s/enable",
-					 fs_links[i].tp);
-				int efd = open(path, O_RDONLY);
-				if (efd >= 0) {
-					n = read(efd, buf, sizeof(buf) - 1);
-					dbg = n > 0 ? buf[0] : '?';
-					close(efd);
-				}
-				snprintf(path, sizeof(path),
-					 "/sys/kernel/tracing/events/%s/enable",
-					 fs_links[i].tp);
-				efd = open(path, O_RDONLY);
-				if (efd >= 0) {
-					n = read(efd, buf, sizeof(buf) - 1);
-					trc = n > 0 ? buf[0] : '?';
-					close(efd);
-				}
-				/* print only the flag digit; the file's newline
-				 * would break the JSON line */
-				printf("{\"event\":\"FS_LINK_INFO\",\"hook\":\"%s\",\"link_id\":%u,"
-				       "\"prog_id\":%u,\"dbg_enable\":\"%c\",\"tp_enable\":\"%c\",\"phase\":\"%s\"}\n",
-				       fs_links[i].name, info.id, info.prog_id,
-				       dbg, trc, phase);
-			}
-		}
-		fflush(stdout);
-	}
-
 	/* Set up ring buffer polling with pid_tracker as context */
 	rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, &pid_tracker, NULL);
 	if (!rb) {
@@ -1313,28 +1255,7 @@ int main(int argc, char **argv)
 	}
 
 	if (g_agg_map_fd >= 0)
-		dump_agg_map_counts(g_agg_map_fd, "pre-exit-flush");
-	if (g_agg_map_fd >= 0)
 		flush_agg_map(g_agg_map_fd);
-	/* TEMPORARY probe (#257): raw overflow-slot sum, always printed so a
-	 * silent zero is distinguishable from a lost line. */
-	if (g_overflow_fd >= 0) {
-		uint32_t zero = 0;
-		int num_cpus = libbpf_num_possible_cpus();
-		if (num_cpus <= 0)
-			num_cpus = 256;
-		uint64_t *counts = calloc(num_cpus, sizeof(uint64_t));
-		if (counts) {
-			uint64_t total = 0;
-			if (bpf_map_lookup_elem(g_overflow_fd, &zero, counts) == 0)
-				for (int i = 0; i < num_cpus; i++)
-					total += counts[i];
-			printf("{\"event\":\"PROBE_RAW\",\"overflow_sum\":%llu}\n",
-			       (unsigned long long)total);
-			fflush(stdout);
-			free(counts);
-		}
-	}
 	report_file_open_drops();
 	print_clock_sync_anchor("end");
 
