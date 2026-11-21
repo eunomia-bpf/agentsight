@@ -251,4 +251,55 @@ export const en = {
   'tag.ssl': 'SSL',
   'tag.stdio': 'STDIO',
 
+  // Timeline (Timeline.tsx)
+  'timeline.title': 'Timeline View',
+  'timeline.durationInfo': 'Duration: {duration} \u2022 {count} events',
+  'timeline.zoomHelp': 'Use mouse wheel + Ctrl/Cmd to zoom, or Ctrl/Cmd + +/- keys. Press Ctrl/Cmd + 0 to reset.',
+  'timeline.scrollHelp': 'Scroll with mouse wheel or arrow keys when zoomed.',
+  'timeline.noEvents': 'No events to display',
+  'timeline.eventDetails': 'Timeline Event Details',
+
+  // Zoom Controls (ZoomControls.tsx)
+  'timeline.zoomOut': 'Zoom Out',
+  'timeline.zoomIn': 'Zoom In',
+  'timeline.resetZoom': 'Reset Zoom',
+  'timeline.reset': 'Reset',
+  'timeline.scrollLeft': 'Scroll Left',
+  'timeline.scroll': 'Scroll',
+  'timeline.scrollRight': 'Scroll Right',
+
+  // Timeline Minimap (TimelineMinimap.tsx)
+  'timeline.overview': 'Timeline Overview',
+  'timeline.scrolled': '{percent}% scrolled',
+
+  // Timeline ScrollBar (TimelineScrollBar.tsx)
+  'timeline.scrollPosition': 'Scroll Position',
+
+  'log.noEvents': 'No events found matching the current filters.',
+  'log.eventDetails': 'Log Event Details',
+  'nebula.title': 'Agent Nebula',
+  'nebula.subtitle': 'Files are stars. Path areas get stable colors. Playback is server-prepared.',
+  'nebula.loading': 'Loading nebula layout…',
+  'nebula.error': 'Could not load Agent Nebula',
+  'nebula.retry': 'Retry',
+  'nebula.emptyTitle': 'No file events to visualize',
+  'nebula.emptyHint': 'Record a session that reads or writes files, then open Nebula again.',
+  'nebula.emptySource': 'Source: materialized view audit_events with audit_type=file',
+  'nebula.showing': 'Showing {stars} of {totalStars} files · {frames} of {totalEvents} action moments',
+  'nebula.full': '{stars} files · {frames} frames',
+  'nebula.repository': 'repository',
+  'nebula.play': 'Play',
+  'nebula.pause': 'Pause',
+  'nebula.speed': 'Speed',
+  'nebula.reload': 'Reload',
+  'nebula.scrub': 'Scrub timeline',
+  'nebula.selected': 'Selected',
+  'nebula.openLogs': 'Open in logs',
+  'nebula.openTimeline': 'Open in timeline',
+  'nebula.clearSelection': 'Clear',
+  'nebula.legend.read': 'read',
+  'nebula.legend.write': 'write',
+  'nebula.legend.create': 'create',
+  'nebula.legend.rename': 'rename',
+  'nebula.legend.delete': 'delete',
 } as const;

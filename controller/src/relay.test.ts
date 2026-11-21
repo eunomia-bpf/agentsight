@@ -96,6 +96,36 @@ test('browser relay parses supported Node paths before semantic authorization', 
     statusOnly: false,
   });
 
+  const overview = browserRelayRoute(new Request(
+    'https://controller.example/v1/nodes/node_test/relay/overview',
+  ));
+  assert.deepEqual(overview, {
+    nodeId: 'node_test',
+    method: 'GET',
+    nodePath: '/api/v1/overview',
+    statusOnly: false,
+  });
+
+  const nebula = browserRelayRoute(new Request(
+    'https://controller.example/v1/nodes/node_test/relay/nebula',
+  ));
+  assert.deepEqual(nebula, {
+    nodeId: 'node_test',
+    method: 'GET',
+    nodePath: '/api/v1/nebula',
+    statusOnly: false,
+  });
+
+  const session = browserRelayRoute(new Request(
+    'https://controller.example/v1/nodes/node_test/relay/sessions/session-1',
+  ));
+  assert.deepEqual(session, {
+    nodeId: 'node_test',
+    method: 'GET',
+    nodePath: '/api/v1/sessions/session-1',
+    statusOnly: false,
+  });
+
   const message = browserRelayRoute(new Request(
     'https://controller.example/v1/nodes/node_test/relay/sessions/session-1/messages',
     { method: 'POST' },

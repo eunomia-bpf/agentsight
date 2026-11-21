@@ -255,4 +255,55 @@ export const zh: Record<TranslationKey, string> = {
   'tag.ssl': 'SSL',
   'tag.stdio': '标准 I/O',
 
+  // Timeline
+  'timeline.title': '时间线视图',
+  'timeline.durationInfo': '持续时间：{duration} · {count} 个事件',
+  'timeline.zoomHelp': '使用鼠标滚轮 + Ctrl/Cmd 缩放，或使用 Ctrl/Cmd + +/- 键。按 Ctrl/Cmd + 0 重置。',
+  'timeline.scrollHelp': '缩放后可使用鼠标滚轮或方向键滚动。',
+  'timeline.noEvents': '暂无事件可显示',
+  'timeline.eventDetails': '时间线事件详情',
+
+  // Zoom Controls
+  'timeline.zoomOut': '缩小',
+  'timeline.zoomIn': '放大',
+  'timeline.resetZoom': '重置缩放',
+  'timeline.reset': '重置',
+  'timeline.scrollLeft': '向左滚动',
+  'timeline.scroll': '滚动',
+  'timeline.scrollRight': '向右滚动',
+
+  // Timeline Minimap
+  'timeline.overview': '时间线概览',
+  'timeline.scrolled': '已滚动 {percent}%',
+
+  // Timeline ScrollBar
+  'timeline.scrollPosition': '滚动位置',
+
+  'log.noEvents': '没有找到匹配当前筛选条件的事件。',
+  'log.eventDetails': '日志事件详情',
+  'nebula.title': 'Agent 星云',
+  'nebula.subtitle': '文件是星点。路径区域有稳定颜色。布局由服务端预计算。',
+  'nebula.loading': '正在加载星云布局…',
+  'nebula.error': '无法加载 Agent 星云',
+  'nebula.retry': '重试',
+  'nebula.emptyTitle': '没有可可视化的文件事件',
+  'nebula.emptyHint': '请录制包含读写文件的会话，再打开星云视图。',
+  'nebula.emptySource': '数据源：物化视图中 audit_type=file 的 audit_events',
+  'nebula.showing': '显示 {stars}/{totalStars} 个文件 · {frames}/{totalEvents} 个动作时刻',
+  'nebula.full': '{stars} 个文件 · {frames} 帧',
+  'nebula.repository': '仓库',
+  'nebula.play': '播放',
+  'nebula.pause': '暂停',
+  'nebula.speed': '速度',
+  'nebula.reload': '重新加载',
+  'nebula.scrub': '拖动时间轴',
+  'nebula.selected': '已选',
+  'nebula.openLogs': '在日志中打开',
+  'nebula.openTimeline': '在时间线中打开',
+  'nebula.clearSelection': '清除',
+  'nebula.legend.read': '读',
+  'nebula.legend.write': '写',
+  'nebula.legend.create': '创建',
+  'nebula.legend.rename': '重命名',
+  'nebula.legend.delete': '删除',
 };
