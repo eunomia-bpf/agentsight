@@ -361,6 +361,7 @@ def test_trace_fs_summary_events():
             f"missing fs SUMMARY types: {sorted(required - types)}; "
             f"observed SUMMARY types: {sorted(types)}; "
             f"probes: {probes}; "
+            f"event names: {sorted({e.get('event') for e in events})}; "
             f"stderr: {sess.stderr_text()[-2000:]}"
         )
     finally:
