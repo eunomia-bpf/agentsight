@@ -103,6 +103,16 @@ static __always_inline bool tracked_or_descendant(__u32 pid)
 	return false;
 }
 
+static __always_inline void note_tracked_fd(int fd)
+{
+	__u32 key = STDIO_STAT_TRACKED_FD;
+	__u64 *slot = bpf_map_lookup_elem(&stats, &key);
+
+	count(STDIO_STAT_TRACKED_ENTER);
+	if (slot)
+		*slot = (fd < 0) ? 0xffffffffULL : (__u64)fd;
+}
+
 static __always_inline bool trace_allowed(__u32 uid, __u32 pid, int fd)
 {
 	/* Count the branch that rejects, so "every enter filtered" says which
@@ -112,18 +122,22 @@ static __always_inline bool trace_allowed(__u32 uid, __u32 pid, int fd)
 		return false;
 	}
 	if (trace_stdio_only && (fd < 0 || fd > 2)) {
-		count(STDIO_STAT_FILTER_FD);
-		/* The fd branch rejects most of the container's writes, so record
-		 * which pid and fd it dropped last: if the tracked writer is among
-		 * them, the fd the hook read is not the one it wrote to. */
+		if (use_tracked_pids && tracked_or_descendant(pid)) {
+			note_tracked_fd(fd);
+			count(STDIO_STAT_FILTER_FD);
+			return false;
+		}
 		note_reject(pid, (__u32)fd);
+		count(STDIO_STAT_FILTER_FD);
 		return false;
 	}
 	if (use_tracked_pids) {
-		if (tracked_or_descendant(pid))
-			return true;
-		count(STDIO_STAT_FILTER_NOT_TRACKED);
-		return false;
+		if (!tracked_or_descendant(pid)) {
+			count(STDIO_STAT_FILTER_NOT_TRACKED);
+			return false;
+		}
+		note_tracked_fd(fd);
+		return true;
 	}
 	if (targ_pid && targ_pid != pid) {
 		count(STDIO_STAT_FILTER_NOT_TRACKED);

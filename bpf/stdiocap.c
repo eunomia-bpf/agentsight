@@ -271,7 +271,8 @@ static void report_stats(int stats_fd)
 	static const char *const names[] = {
 		"enter", "enter_filtered", "filter_uid", "filter_fd",
 		"filter_not_tracked", "exit_no_args", "exit_error",
-		"ringbuf_full", "event",
+		"ringbuf_full", "event", "reject_pid", "reject_ppid",
+		"tracked_enter", "tracked_fd",
 	};
 	char line[256] = "";
 	size_t len = 0;
@@ -288,6 +289,17 @@ static void report_stats(int stats_fd)
 				(unsigned long long)total);
 	}
 	warn("stdiocap stats: %s\n", len ? line : "no hook ran");
+	/* A tracked enter that still hit the fd branch, or a tracked fd outside
+	 * 0..2, is the case where the hook saw the target and read the wrong
+	 * argument; printing it on its own line keeps the counters simple. */
+	{
+		__u32 key = STDIO_STAT_TRACKED_FD;
+		__u64 fd = 0;
+
+		if (bpf_map_lookup_elem(stats_fd, &key, &fd) == 0 && fd)
+			warn("stdiocap tracked-enter fd=%lld\n",
+			     fd == 0xffffffffULL ? -1LL : (long long)fd);
+	}
 	/* A rejected pair is only meaningful when the not-tracked count is
 	 * non-zero; report it on its own line so the counters keep one shape. */
 	{
