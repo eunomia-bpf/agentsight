@@ -21,6 +21,11 @@ enum stdiocap_stat {
 	STDIO_STAT_EXIT_ERROR,
 	STDIO_STAT_RINGBUF_FULL,
 	STDIO_STAT_EVENT,
+	/* The last write the tracked-pid check rejected, with the parent it
+	 * walked to, so "filtered by not-tracked" names the pair instead of only
+	 * the count. */
+	STDIO_STAT_REJECT_PID,
+	STDIO_STAT_REJECT_PPID,
 	STDIO_STAT_COUNT,
 };
 
