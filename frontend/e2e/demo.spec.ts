@@ -33,6 +33,13 @@ test('recorded demo exposes overview, conversation, process, and analysis data',
   await expect(page.getByRole('heading', { name: 'Events timeline' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'npm run build · Failed', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'npm run build · Succeeded', exact: true })).toBeVisible();
+  await expect(page.getByTestId('sandbox-header').filter({ hasText: 'demo-main' })).toBeVisible();
+  await expect(page.getByTestId('sandbox-header').filter({ hasText: 'demo-build' })).toBeVisible();
+  await page.getByLabel('Sandbox', { exact: true }).selectOption('demo:build');
+  await expect(page.getByTestId('sandbox-header')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'git status --short · Succeeded', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'npm run build · Failed', exact: true })).toBeVisible();
+  await page.getByLabel('Sandbox', { exact: true }).selectOption('');
   await page.getByLabel('Failures only').check();
   await expect(page.getByRole('button', { name: 'git status --short · Succeeded', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'git diff --check · Failed', exact: true })).toBeVisible();

@@ -29,6 +29,9 @@ struct event {
 	unsigned exit_code;
 	unsigned long long duration_ns;
 	unsigned long long timestamp_ns;
+	unsigned long long cgroup_id;
+	unsigned int pidns;
+	unsigned int pidns_pid;
 	char comm[TASK_COMM_LEN];
 	char full_command[MAX_COMMAND_LEN];     /* full command line with args */
 	union {

@@ -6,6 +6,8 @@ pub(crate) mod llm;
 mod media;
 pub mod process_select;
 mod projection;
+#[cfg(test)]
+mod sandbox_tests;
 pub mod session_process_match;
 
 pub(crate) use canonical::{CanonicalEvent, EventKind, normalize_event};
@@ -15,8 +17,8 @@ pub(crate) use llm::{
 
 use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow,
-    ResourceSampleRow, SessionRow, Snapshot, SnapshotOptions, SnapshotSummary, TokenSummary,
-    TokenUsageRow, ToolCallRow, ViewResult, ViewSink,
+    ResourceSampleRow, SandboxRow, SessionRow, Snapshot, SnapshotOptions, SnapshotSummary,
+    TokenSummary, TokenUsageRow, ToolCallRow, ViewResult, ViewSink,
 };
 use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
@@ -35,6 +37,8 @@ pub struct MaterializedView {
     token_usage: BTreeMap<String, TokenUsageRow>,
     audit_events: BTreeMap<String, AuditEventRow>,
     process_nodes: BTreeMap<String, ProcessNodeRow>,
+    sandboxes: BTreeMap<String, SandboxRow>,
+    sandbox_by_pid: HashMap<u32, (String, u64)>,
     tool_calls: BTreeMap<String, ToolCallRow>,
     sessions: BTreeMap<String, SessionRow>,
     network_targets: BTreeMap<String, NetworkTargetRow>,
@@ -100,6 +104,8 @@ impl MaterializedView {
             token_usage: self.token_usage.clone(),
             audit_events: self.audit_events.clone(),
             process_nodes: self.process_nodes.clone(),
+            sandboxes: self.sandboxes.clone(),
+            sandbox_by_pid: self.sandbox_by_pid.clone(),
             tool_calls: self.tool_calls.clone(),
             sessions: self.sessions.clone(),
             network_targets: self.network_targets.clone(),
@@ -116,6 +122,38 @@ impl MaterializedView {
             max_resource_samples: self.max_resource_samples,
             next_seq: self.next_seq,
         }
+    }
+
+    pub fn upsert_sandbox(&mut self, row: &SandboxRow) {
+        let existing = self
+            .sandboxes
+            .entry(row.identity.id.clone())
+            .or_insert_with(|| row.clone());
+        existing.first_seen_ms = existing.first_seen_ms.min(row.first_seen_ms);
+        existing.last_seen_ms = existing.last_seen_ms.max(row.last_seen_ms);
+        if row.exit_code.is_some() {
+            existing.exit_code = row.exit_code;
+            existing.end_timestamp_ms = row.end_timestamp_ms;
+        }
+    }
+
+    fn sandbox_at(&self, pid: Option<u32>, timestamp: u64) -> Option<String> {
+        let pid = pid?;
+        self.process_nodes
+            .values()
+            .filter(|p| {
+                p.pid == pid
+                    && p.start_timestamp_ms.is_none_or(|t| t <= timestamp)
+                    && p.end_timestamp_ms.is_none_or(|t| timestamp <= t)
+            })
+            .max_by_key(|p| p.start_timestamp_ms)
+            .and_then(|p| p.sandbox_id.clone())
+            .or_else(|| {
+                self.sandbox_by_pid
+                    .get(&pid)
+                    .filter(|(_, t)| *t <= timestamp)
+                    .map(|(id, _)| id.clone())
+            })
     }
 
     pub fn bounded() -> Self {
@@ -147,7 +185,15 @@ impl MaterializedView {
         self.publish(|sink| sink.token_usage(&row))
     }
 
-    pub fn emit_audit_event(&mut self, row: AuditEventRow) -> ViewResult<()> {
+    pub fn emit_audit_event(&mut self, mut row: AuditEventRow) -> ViewResult<()> {
+        if row.sandbox_id.is_none() {
+            row.sandbox_id = row
+                .details
+                .get("sandbox_id")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .or_else(|| self.sandbox_at(row.pid, row.timestamp_ms));
+        }
         self.apply_audit_event(&row);
         self.publish(|sink| sink.audit_event(&row))
     }
@@ -162,7 +208,10 @@ impl MaterializedView {
         self.publish(|sink| sink.tool_call(&row))
     }
 
-    pub fn emit_network_target(&mut self, row: NetworkTargetRow) -> ViewResult<()> {
+    pub fn emit_network_target(&mut self, mut row: NetworkTargetRow) -> ViewResult<()> {
+        if row.sandbox_id.is_none() {
+            row.sandbox_id = self.sandbox_at(row.pid, row.first_timestamp_ms.unwrap_or_default());
+        }
         self.upsert_network_target(&row);
         self.publish(|sink| sink.network_target(&row))
     }
@@ -313,6 +362,9 @@ impl MaterializedView {
         if existing.argv.is_empty() && !row.argv.is_empty() {
             existing.argv = row.argv.clone();
         }
+        if row.sandbox_id.is_some() {
+            existing.sandbox_id = row.sandbox_id.clone();
+        }
         if row.cwd.is_some() {
             existing.cwd = row.cwd.clone();
         }
@@ -327,6 +379,7 @@ impl MaterializedView {
 
     pub fn export_snapshot(&self, options: SnapshotOptions) -> Snapshot {
         Snapshot {
+            sandboxes: self.sandboxes.values().cloned().collect(),
             schema_version: 1,
             generated_at: Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true),
             summary: self.snapshot_summary(options),
@@ -688,7 +741,8 @@ fn token_source_priority(source: &str) -> u8 {
 
 fn network_target_key(row: &NetworkTargetRow) -> String {
     format!(
-        "{}\0{}\0{}",
+        "{}\0{}\0{}\0{}",
+        row.sandbox_id.as_deref().unwrap_or_default(),
         row.pid.unwrap_or_default(),
         row.host,
         row.path.as_deref().unwrap_or_default()
@@ -734,6 +788,7 @@ mod tests {
 
     fn audit_row(timestamp_ms: u64) -> AuditEventRow {
         AuditEventRow {
+            sandbox_id: None,
             id: format!("audit-{timestamp_ms}"),
             timestamp_ms,
             audit_type: "file".to_string(),
@@ -798,6 +853,7 @@ mod tests {
 
     fn process_node(pid: u32, cwd: &str) -> ProcessNodeRow {
         ProcessNodeRow {
+            sandbox_id: None,
             id: format!("process-{pid}"),
             pid,
             ppid: None,
@@ -1011,6 +1067,7 @@ mod tests {
     fn process_node_preserves_first_non_empty_argv() {
         let mut view = MaterializedView::new();
         let first = ProcessNodeRow {
+            sandbox_id: None,
             id: "pid:42:start:100".to_string(),
             pid: 42,
             ppid: Some(1),

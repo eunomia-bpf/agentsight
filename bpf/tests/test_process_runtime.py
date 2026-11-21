@@ -421,6 +421,9 @@ def test_trace_net_summary_events():
         # and this test sees container namespace PIDs.
         binds = [e for e in events if e.get("type") == "NET_BIND"
                  and e.get("port") in {udp_port, icmp_port}]
+        expected_pidns = os.stat("/proc/self/ns/pid").st_ino
+        assert_true(bool(binds) and all(e.get("cgroup_id", 0) > 0 and e.get("pidns") == expected_pidns for e in binds),
+                    f"missing kernel sandbox identity: {binds}")
         assert_true(any(e.get("protocol") == "udp" and e.get("port") == udp_port
                         and e.get("detail") == f"127.0.0.1:{udp_port}" for e in binds),
                     f"missing assigned UDP port: {binds}")

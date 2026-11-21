@@ -3,8 +3,8 @@
 
 use crate::json::{parse_optional_value as parse_optional_json, parse_value as parse_json_value};
 use crate::model::{
-    AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow, ResourceSampleRow, TokenUsageRow,
-    ToolCallRow, ViewResult, ViewSink,
+    AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow, ResourceSampleRow, SandboxRow,
+    TokenUsageRow, ToolCallRow, ViewResult, ViewSink,
 };
 use rusqlite::{Connection, OpenFlags, params};
 use std::path::Path;
@@ -51,6 +51,14 @@ impl SqliteStore {
              ON llm_calls(connection_id, stream_id);",
         )?;
         self.ensure_audit_event_columns()?;
+        for table in ["process_nodes", "network_targets", "audit_events"] {
+            if !self.has_column(table, "sandbox_id") {
+                self.conn.execute(
+                    &format!("ALTER TABLE {table} ADD COLUMN sandbox_id TEXT"),
+                    [],
+                )?;
+            }
+        }
         Ok(())
     }
 
@@ -100,12 +108,32 @@ impl SqliteStore {
         Ok(())
     }
 
+    fn optional_sandbox_column(&self, table: &str) -> &str {
+        if self.has_column(table, "sandbox_id") {
+            "sandbox_id"
+        } else {
+            "NULL AS sandbox_id"
+        }
+    }
+
+    pub fn sandbox_rows(&self) -> ViewResult<Vec<SandboxRow>> {
+        // Old recordings predate this additive table.
+        let Ok(mut stmt) = self
+            .conn
+            .prepare("SELECT row_json FROM sandboxes ORDER BY id")
+        else {
+            return Ok(Vec::new());
+        };
+        let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+
     fn upsert_network_target(&self, target: &NetworkTargetRow) -> ViewResult<()> {
         let id = network_target_id(target);
         self.conn.execute(
             "INSERT INTO network_targets (
-                id, pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                id, pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms, sandbox_id
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
              ON CONFLICT(id) DO UPDATE SET
                 count = count + excluded.count,
                 error_count = error_count + excluded.error_count,
@@ -121,6 +149,7 @@ impl SqliteStore {
                 target.error_count,
                 target.first_timestamp_ms.map(|v| v as i64),
                 target.last_timestamp_ms.map(|v| v as i64),
+                target.sandbox_id,
             ],
         )?;
         Ok(())
@@ -219,8 +248,8 @@ impl SqliteStore {
         self.conn.execute(
             "INSERT OR REPLACE INTO audit_events (
                 id, timestamp_ms, audit_type, pid, comm, subject,
-                action, target, status, summary, details_json, view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                action, target, status, summary, details_json, view_source, confidence, sandbox_id
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             params![
                 audit.id,
                 audit.timestamp_ms as i64,
@@ -235,6 +264,7 @@ impl SqliteStore {
                 audit.details.to_string(),
                 audit.view_source,
                 audit.confidence,
+                audit.sandbox_id,
             ],
         )?;
         Ok(())
@@ -244,9 +274,10 @@ impl SqliteStore {
         self.conn.execute(
             "INSERT INTO process_nodes (
                 id, pid, ppid, root_pid, start_timestamp_ms, end_timestamp_ms,
-                comm, command, argv_json, cwd, exit_code, status, view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                comm, command, argv_json, cwd, exit_code, status, view_source, confidence, sandbox_id
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
              ON CONFLICT(id) DO UPDATE SET
+                sandbox_id = COALESCE(excluded.sandbox_id, sandbox_id),
                 ppid = COALESCE(excluded.ppid, ppid),
                 root_pid = COALESCE(excluded.root_pid, root_pid),
                 start_timestamp_ms = CASE
@@ -284,6 +315,7 @@ impl SqliteStore {
                 process.status.as_deref(),
                 process.view_source,
                 process.confidence.unwrap_or(1.0),
+                process.sandbox_id,
             ],
         )?;
         Ok(())
@@ -482,13 +514,14 @@ impl SqliteStore {
     }
 
     pub fn network_target_rows(&self) -> ViewResult<Vec<NetworkTargetRow>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms
-             FROM network_targets
-             ORDER BY count DESC, host, path",
-        )?;
+        let sandbox = self.optional_sandbox_column("network_targets");
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms, {sandbox}
+             FROM network_targets ORDER BY count DESC, host, path"
+        ))?;
         let rows = stmt.query_map([], |row| {
             Ok(NetworkTargetRow {
+                sandbox_id: row.get(8)?,
                 pid: row.get::<_, Option<i64>>(0)?.map(|v| v as u32),
                 comm: row.get(1)?,
                 host: row.get(2)?,
@@ -513,9 +546,10 @@ impl SqliteStore {
         } else {
             "NULL AS confidence"
         };
+        let sandbox = self.optional_sandbox_column("audit_events");
         let sql = format!(
             "SELECT id, timestamp_ms, audit_type, pid, comm, subject, action,
-                    target, status, summary, details_json, {view_source_col}, {confidence_col}
+                    target, status, summary, details_json, {view_source_col}, {confidence_col}, {sandbox}
              FROM audit_events
              ORDER BY timestamp_ms, id"
         );
@@ -526,11 +560,13 @@ impl SqliteStore {
 
     pub fn process_node_rows(&self) -> ViewResult<Vec<ProcessNodeRow>> {
         let has_view_source = self.has_column("process_nodes", "view_source");
-        let extra_cols = if has_view_source {
-            ", view_source, confidence"
+        let provenance = if has_view_source {
+            "view_source, confidence"
         } else {
-            ""
+            "'view', NULL"
         };
+        let sandbox = self.optional_sandbox_column("process_nodes");
+        let extra_cols = format!(", {provenance}, {sandbox}");
         let sql = format!(
             "SELECT id, pid, ppid, root_pid, start_timestamp_ms, end_timestamp_ms,
                     comm, command, argv_json, cwd, exit_code, status{extra_cols}
@@ -541,6 +577,7 @@ impl SqliteStore {
         let rows = stmt.query_map([], move |row| {
             let argv_json: String = row.get(8)?;
             Ok(ProcessNodeRow {
+                sandbox_id: row.get(14)?,
                 id: row.get(0)?,
                 pid: row.get::<_, i64>(1)? as u32,
                 ppid: row.get::<_, Option<i64>>(2)?.map(|v| v as u32),
@@ -567,6 +604,14 @@ impl SqliteStore {
 }
 
 impl ViewSink for SqliteStore {
+    fn sandbox(&mut self, row: &SandboxRow) -> ViewResult<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO sandboxes (id, row_json) VALUES (?1, ?2)",
+            params![row.identity.id, serde_json::to_string(row)?],
+        )?;
+        Ok(())
+    }
+
     fn llm_call(&mut self, row: &LlmCallRow) -> ViewResult<()> {
         self.insert_llm_call(row)
     }
@@ -643,6 +688,7 @@ fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
 fn read_audit_event_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AuditEventRow> {
     let details_json: String = row.get(10)?;
     Ok(AuditEventRow {
+        sandbox_id: row.get(13)?,
         id: row.get(0)?,
         timestamp_ms: row.get::<_, i64>(1)? as u64,
         audit_type: row.get(2)?,
@@ -675,7 +721,8 @@ where
 fn network_target_id(target: &NetworkTargetRow) -> String {
     let path = target.path.as_deref().unwrap_or_default();
     format!(
-        "net:{}:{}:{}:{}:{}",
+        "net:{}:{}:{}:{}:{}:{}",
+        target.sandbox_id.as_deref().unwrap_or_default(),
         target.pid.unwrap_or_default(),
         target.host.len(),
         target.host,
@@ -685,6 +732,11 @@ fn network_target_id(target: &NetworkTargetRow) -> String {
 }
 
 const SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS sandboxes (
+  id TEXT PRIMARY KEY,
+  row_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS network_targets (
   id TEXT PRIMARY KEY,
   pid INTEGER,
@@ -964,6 +1016,7 @@ mod tests {
         let mut store = SqliteStore::open(&db).unwrap();
         store
             .audit_event(&AuditEventRow {
+                sandbox_id: None,
                 id: "audit-provenance".to_string(),
                 timestamp_ms: 1_000,
                 audit_type: "network".to_string(),

@@ -703,7 +703,8 @@
       "command": "codex --workspace /workspace/agentsight",
       "argv": ["codex", "--workspace", "/workspace/agentsight"],
       "cwd": "/workspace/agentsight",
-      "status": "running"
+      "status": "running",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-rg",
@@ -716,7 +717,8 @@
       "command": "rg -n sample-snapshot ext frontend docs",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-sed",
@@ -729,7 +731,8 @@
       "command": "sed -n 1,160p ext/web/page.tsx",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-cat",
@@ -742,7 +745,8 @@
       "command": "cat docs/sample-overview.json",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-git",
@@ -755,7 +759,8 @@
       "command": "git status --short",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-prepare",
@@ -768,7 +773,8 @@
       "command": "node scripts/prepare-sample.mjs",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "process-codex-install",
@@ -781,7 +787,8 @@
       "command": "npm ci",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "process-codex-build",
@@ -794,7 +801,8 @@
       "command": "npm run build",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 1,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "process-codex-rebuild",
@@ -807,7 +815,8 @@
       "command": "npm run build",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "process-codex-unit",
@@ -820,7 +829,8 @@
       "command": "npm run test:workers",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "process-codex-node",
@@ -832,7 +842,8 @@
       "comm": "node",
       "command": "playwright test e2e/demo.spec.ts",
       "cwd": "/workspace/agentsight/frontend",
-      "status": "running"
+      "status": "running",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "process-codex-browser",
@@ -844,7 +855,8 @@
       "comm": "chromium",
       "command": "chromium --headless",
       "cwd": "/workspace/agentsight/frontend",
-      "status": "running"
+      "status": "running",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-diff-check",
@@ -857,7 +869,8 @@
       "command": "git diff --check",
       "cwd": "/workspace/agentsight",
       "exit_code": 1,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-codex-diff-recheck",
@@ -870,7 +883,8 @@
       "command": "git diff --check",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "process-claude-root",
@@ -883,7 +897,8 @@
       "command": "claude review",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-claude-rg",
@@ -896,7 +911,8 @@
       "command": "rg -n process_details ext/web",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-claude-cat",
@@ -909,7 +925,8 @@
       "command": "cat docs/sample-snapshot.json",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-claude-git",
@@ -922,7 +939,8 @@
       "command": "git log --oneline -20",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-claude-lint",
@@ -935,7 +953,8 @@
       "command": "npm run lint",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-claude-e2e",
@@ -948,7 +967,8 @@
       "command": "npx playwright test e2e/demo.spec.ts",
       "cwd": "/workspace/agentsight/frontend",
       "exit_code": 1,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-codex",
@@ -966,7 +986,8 @@
       ],
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-1",
@@ -979,7 +1000,8 @@
       "command": "git show --no-ext-diff --pretty=fuller --stat --summary 7ecbdf01e96c",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-2",
@@ -992,7 +1014,8 @@
       "command": "git show --no-ext-diff --find-renames --find-copies --format=medium --unified=80 7ecbdf01e96c -- controller/sr…",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-3",
@@ -1005,7 +1028,8 @@
       "command": "git status --short --branch",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-4",
@@ -1018,7 +1042,8 @@
       "command": "wrangler deploy --dry-run --config wrangler.jsonc",
       "cwd": "/workspace/agentsight",
       "exit_code": 1,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-5",
@@ -1031,7 +1056,8 @@
       "command": "git status --short",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-6",
@@ -1044,7 +1070,8 @@
       "command": "wrangler types --help | Select-Object -First 160",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-7",
@@ -1057,7 +1084,8 @@
       "command": "wrangler types \"/tmp/agentsight-preview-env.d.ts\" --env preview --config wrangler.jsonc",
       "cwd": "/workspace/agentsight",
       "exit_code": 124,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-8",
@@ -1070,7 +1098,8 @@
       "command": "npm --prefix controller test",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-9",
@@ -1083,7 +1112,8 @@
       "command": "npm --prefix frontend run build",
       "cwd": "/workspace/agentsight",
       "exit_code": 1,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-10",
@@ -1096,7 +1126,8 @@
       "command": "git grep -n -I \"controllerClient\" -- frontend/src | Select-Object -First 100",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-11",
@@ -1109,7 +1140,8 @@
       "command": "npm --prefix frontend exec -- tsc --noEmit",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-12",
@@ -1122,7 +1154,8 @@
       "command": "npx tsc --noEmit",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-13",
@@ -1135,7 +1168,8 @@
       "command": "npx next build",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-14",
@@ -1148,7 +1182,8 @@
       "command": "git restore -- frontend/tsconfig.tsbuildinfo",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-15",
@@ -1161,7 +1196,8 @@
       "command": "python - (inline script)",
       "cwd": "/workspace/agentsight",
       "exit_code": 1,
-      "status": "failed"
+      "status": "failed",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-16",
@@ -1174,7 +1210,8 @@
       "command": "Get-ChildItem frontend/dist/_next/static/chunks -Filter *.js | ForEach-Object { $s=[IO.File]::ReadAllText($_.F…",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-17",
@@ -1187,7 +1224,8 @@
       "command": "Select-String -Path controller/node_modules/wrangler/config-schema.json -Pattern '\"migrations\"|\"env\"|Environme…",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-18",
@@ -1200,7 +1238,8 @@
       "command": "Get-Content controller/node_modules/wrangler/package.json -TotalCount 200",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-19",
@@ -1213,7 +1252,8 @@
       "command": "Select-String -Path controller/node_modules/wrangler/wrangler-dist/cli.d.ts -Pattern '^export|unstable|readCon…",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "process-review-20",
@@ -1226,7 +1266,8 @@
       "command": "node --input-type=module (inline script)",
       "cwd": "/workspace/agentsight",
       "exit_code": 0,
-      "status": "success"
+      "status": "success",
+      "sandbox_id": "demo:review"
     }
   ],
   "resource_samples": [
@@ -1246,7 +1287,8 @@
       "count": 5,
       "error_count": 1,
       "first_timestamp_ms": 1787370320000,
-      "last_timestamp_ms": 1787370755000
+      "last_timestamp_ms": 1787370755000,
+      "sandbox_id": "demo:main"
     },
     {
       "pid": 4257,
@@ -1256,7 +1298,8 @@
       "count": 268,
       "error_count": 0,
       "first_timestamp_ms": 1787370481000,
-      "last_timestamp_ms": 1787370536000
+      "last_timestamp_ms": 1787370536000,
+      "sandbox_id": "demo:build"
     },
     {
       "pid": 4257,
@@ -1266,7 +1309,8 @@
       "count": 3,
       "error_count": 1,
       "first_timestamp_ms": 1787370522000,
-      "last_timestamp_ms": 1787370534000
+      "last_timestamp_ms": 1787370534000,
+      "sandbox_id": "demo:build"
     },
     {
       "pid": 4242,
@@ -1276,7 +1320,8 @@
       "count": 7,
       "error_count": 0,
       "first_timestamp_ms": 1787370400000,
-      "last_timestamp_ms": 1787370820000
+      "last_timestamp_ms": 1787370820000,
+      "sandbox_id": "demo:main"
     },
     {
       "pid": 5100,
@@ -1286,7 +1331,8 @@
       "count": 2,
       "error_count": 0,
       "first_timestamp_ms": 1787370210000,
-      "last_timestamp_ms": 1787370460000
+      "last_timestamp_ms": 1787370460000,
+      "sandbox_id": "demo:review"
     },
     {
       "pid": 21472,
@@ -1296,7 +1342,8 @@
       "count": 38,
       "error_count": 0,
       "first_timestamp_ms": 1787369401276,
-      "last_timestamp_ms": 1787370003735
+      "last_timestamp_ms": 1787370003735,
+      "sandbox_id": "demo:review"
     }
   ],
   "audit_events": [
@@ -1309,7 +1356,8 @@
       "action": "connect",
       "target": "api.openai.com:443",
       "status": "success",
-      "summary": "connect api.openai.com:443"
+      "summary": "connect api.openai.com:443",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-prompt-1",
@@ -1321,7 +1369,8 @@
       "action": "request",
       "status": "success",
       "summary": "Make the AgentSight demo show the complete agent workflow",
-      "details": { "text_content": "Make the AgentSight demo show the complete agent workflow: overview, conversation, processes, tools, network activity, resources, plans, and subscriptions." }
+      "details": { "text_content": "Make the AgentSight demo show the complete agent workflow: overview, conversation, processes, tools, network activity, resources, plans, and subscriptions." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-response-1",
@@ -1333,7 +1382,8 @@
       "action": "response",
       "status": "success",
       "summary": "Inspecting the demo fixture and live overview path",
-      "details": { "text_content": "I found that the recorded demo only loaded the snapshot while the live UI also consumes an overview. I will make the demo exercise the same UI model." }
+      "details": { "text_content": "I found that the recorded demo only loaded the snapshot while the live UI also consumes an overview. I will make the demo exercise the same UI model." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-file-read",
@@ -1344,7 +1394,8 @@
       "action": "read",
       "target": "/workspace/agentsight/ext/web/page.tsx",
       "status": "success",
-      "summary": "read ext/web/page.tsx"
+      "summary": "read ext/web/page.tsx",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-prompt-plan",
@@ -1356,7 +1407,8 @@
       "action": "request",
       "status": "success",
       "summary": "Plan the fixture and overview changes",
-      "details": { "text_content": "Plan how the snapshot fixture and the live overview rows should change together." }
+      "details": { "text_content": "Plan how the snapshot fixture and the live overview rows should change together." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-response-plan",
@@ -1368,7 +1420,8 @@
       "action": "response",
       "status": "success",
       "summary": "Update the snapshot fixture first, then the overview rows",
-      "details": { "text_content": "I will extend the snapshot fixture, keep its identities consistent with the overview rows, and rebuild the frontend to check the demo path." }
+      "details": { "text_content": "I will extend the snapshot fixture, keep its identities consistent with the overview rows, and rebuild the frontend to check the demo path." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-network",
@@ -1379,7 +1432,8 @@
       "action": "connect",
       "target": "github.com:443",
       "status": "success",
-      "summary": "connect github.com:443"
+      "summary": "connect github.com:443",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-connect-npm",
@@ -1390,7 +1444,8 @@
       "action": "connect",
       "target": "registry.npmjs.org:443",
       "status": "success",
-      "summary": "connect registry.npmjs.org:443"
+      "summary": "connect registry.npmjs.org:443",
+      "sandbox_id": "demo:build"
     },
     {
       "id": "audit-codex-prompt-rate-limited",
@@ -1402,7 +1457,8 @@
       "action": "request",
       "status": "success",
       "summary": "Keep the demo representative of a real coding session",
-      "details": { "text_content": "Keep the demo representative of a real coding session and make every existing view contain useful data." }
+      "details": { "text_content": "Keep the demo representative of a real coding session and make every existing view contain useful data." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-response-rate-limited",
@@ -1414,7 +1470,8 @@
       "action": "response",
       "status": "failed",
       "summary": "HTTP 429 Too Many Requests",
-      "details": { "text_content": "Rate limited by the model API; retrying in 3s.", "status_code": 429 }
+      "details": { "text_content": "Rate limited by the model API; retrying in 3s.", "status_code": 429 },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-prompt-2",
@@ -1426,7 +1483,8 @@
       "action": "request",
       "status": "success",
       "summary": "Keep the demo representative of a real coding session",
-      "details": { "text_content": "Keep the demo representative of a real coding session and make every existing view contain useful data." }
+      "details": { "text_content": "Keep the demo representative of a real coding session and make every existing view contain useful data." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-response-2",
@@ -1438,7 +1496,8 @@
       "action": "response",
       "status": "success",
       "summary": "Adding coherent data across all views",
-      "details": { "text_content": "The fixture now uses one coherent session identity across token usage, process tree, tool calls, network targets, resource samples, plan state, and subscription state." }
+      "details": { "text_content": "The fixture now uses one coherent session identity across token usage, process tree, tool calls, network targets, resource samples, plan state, and subscription state." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-file-write",
@@ -1449,7 +1508,8 @@
       "action": "write",
       "target": "/workspace/agentsight/docs/sample-overview.json",
       "status": "success",
-      "summary": "write docs/sample-overview.json"
+      "summary": "write docs/sample-overview.json",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-prompt-3",
@@ -1461,7 +1521,8 @@
       "action": "request",
       "status": "success",
       "summary": "The build passes; run the browser regression suite",
-      "details": { "text_content": "The production build and worker tests pass. Run the browser regression suite against the recorded demo." }
+      "details": { "text_content": "The production build and worker tests pass. Run the browser regression suite against the recorded demo." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-response-3",
@@ -1473,7 +1534,8 @@
       "action": "response",
       "status": "success",
       "summary": "Starting Playwright against the recorded demo",
-      "details": { "text_content": "Starting Playwright against the recorded demo; the run stays open until the browser checks finish." }
+      "details": { "text_content": "Starting Playwright against the recorded demo; the run stays open until the browser checks finish." },
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-exec",
@@ -1484,7 +1546,8 @@
       "action": "exec",
       "target": "npm run test:e2e",
       "status": "success",
-      "summary": "npm run test:e2e"
+      "summary": "npm run test:e2e",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-failure",
@@ -1495,7 +1558,8 @@
       "action": "exec",
       "target": "git diff --check",
       "status": "failed",
-      "summary": "git diff --check reported trailing whitespace"
+      "summary": "git diff --check reported trailing whitespace",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-codex-recovery",
@@ -1506,7 +1570,8 @@
       "action": "write",
       "target": "/workspace/agentsight/ext/web/page.tsx",
       "status": "success",
-      "summary": "removed trailing whitespace and reran checks"
+      "summary": "removed trailing whitespace and reran checks",
+      "sandbox_id": "demo:main"
     },
     {
       "id": "audit-claude-connect",
@@ -1517,7 +1582,8 @@
       "action": "connect",
       "target": "api.anthropic.com:443",
       "status": "success",
-      "summary": "connect api.anthropic.com:443"
+      "summary": "connect api.anthropic.com:443",
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-claude-prompt",
@@ -1529,7 +1595,8 @@
       "action": "request",
       "status": "success",
       "summary": "Review the observability UI for missing evidence",
-      "details": { "text_content": "Review the AgentSight demo and identify observability views that are empty or misleading." }
+      "details": { "text_content": "Review the AgentSight demo and identify observability views that are empty or misleading." },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-claude-response-scan",
@@ -1541,7 +1608,8 @@
       "action": "response",
       "status": "success",
       "summary": "Reading the overview and the demo fixture first",
-      "details": { "text_content": "I will read the overview components and the demo fixture, then run lint and the demo browser test to see which views come up empty." }
+      "details": { "text_content": "I will read the overview components and the demo fixture, then run lint and the demo browser test to see which views come up empty." },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-claude-prompt-2",
@@ -1553,7 +1621,8 @@
       "action": "request",
       "status": "success",
       "summary": "Summarize the missing evidence",
-      "details": { "text_content": "The browser test failed on the demo overview. Summarize which evidence the demo is missing." }
+      "details": { "text_content": "The browser test failed on the demo overview. Summarize which evidence the demo is missing." },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-claude-response",
@@ -1565,7 +1634,8 @@
       "action": "response",
       "status": "success",
       "summary": "The live overview path is missing from recorded demo mode",
-      "details": { "text_content": "The snapshot has historical evidence, but the demo does not populate the live overview model, leaving running state, CPU, RSS and live process information unavailable." }
+      "details": { "text_content": "The snapshot has historical evidence, but the demo does not populate the live overview model, leaving running state, CPU, RSS and live process information unavailable." },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-prompt",
@@ -1579,7 +1649,8 @@
       "summary": "Review the code changes introduced by commit 7ecbdf01",
       "details": {
         "text_content": "Review the code changes introduced by commit 7ecbdf01e96cb58eddcddbd762a2598e69c570c5. Provide prioritized, actionable findings."
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-1-response",
@@ -1594,7 +1665,8 @@
       "details": {
         "duration_ms": 8610,
         "text_content": "Run a shell command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-2-response",
@@ -1609,7 +1681,8 @@
       "details": {
         "duration_ms": 9898,
         "text_content": "Run `git show --no-ext-diff --pretty=fuller --stat --summary 7ecbdf01e96c`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-3-response",
@@ -1624,7 +1697,8 @@
       "details": {
         "duration_ms": 5142,
         "text_content": "Run `git show --no-ext-diff --find-renames --find-copies --format=medium --unified=80 7ecbdf01e96c -- controller/sr…`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-4-response",
@@ -1639,7 +1713,8 @@
       "details": {
         "duration_ms": 15515,
         "text_content": "Run `git status --short --branch`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-5-response",
@@ -1654,7 +1729,8 @@
       "details": {
         "duration_ms": 8377,
         "text_content": "Run `wrangler deploy --dry-run --config wrangler.jsonc`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-6-response",
@@ -1669,7 +1745,8 @@
       "details": {
         "duration_ms": 3035,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-7-response",
@@ -1684,7 +1761,8 @@
       "details": {
         "duration_ms": 3855,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-8-response",
@@ -1699,7 +1777,8 @@
       "details": {
         "duration_ms": 1631,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-9-response",
@@ -1714,7 +1793,8 @@
       "details": {
         "duration_ms": 2724,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-10-response",
@@ -1729,7 +1809,8 @@
       "details": {
         "duration_ms": 2560,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-11-response",
@@ -1744,7 +1825,8 @@
       "details": {
         "duration_ms": 12998,
         "text_content": "Run a shell command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-12-response",
@@ -1759,7 +1841,8 @@
       "details": {
         "duration_ms": 4070,
         "text_content": "Run `git status --short`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-13-response",
@@ -1774,7 +1857,8 @@
       "details": {
         "duration_ms": 9526,
         "text_content": "Run `wrangler types --help | Select-Object -First 160`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-14-response",
@@ -1789,7 +1873,8 @@
       "details": {
         "duration_ms": 5505,
         "text_content": "Run `wrangler types \"/tmp/agentsight-preview-env.d.ts\" --env preview --config wrangler.jsonc`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-15-response",
@@ -1804,7 +1889,8 @@
       "details": {
         "duration_ms": 3878,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-16-response",
@@ -1819,7 +1905,8 @@
       "details": {
         "duration_ms": 3383,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-17-response",
@@ -1834,7 +1921,8 @@
       "details": {
         "duration_ms": 5151,
         "text_content": "Run `npm --prefix controller test`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-18-response",
@@ -1849,7 +1937,8 @@
       "details": {
         "duration_ms": 13064,
         "text_content": "Run `npm --prefix frontend run build`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-19-response",
@@ -1864,7 +1953,8 @@
       "details": {
         "duration_ms": 2159,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-20-response",
@@ -1879,7 +1969,8 @@
       "details": {
         "duration_ms": 9690,
         "text_content": "Run `git grep -n -I \"controllerClient\" -- frontend/src | Select-Object -First 100`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-21-response",
@@ -1894,7 +1985,8 @@
       "details": {
         "duration_ms": 7341,
         "text_content": "Run `npm --prefix frontend exec -- tsc --noEmit`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-22-response",
@@ -1909,7 +2001,8 @@
       "details": {
         "duration_ms": 3108,
         "text_content": "Run `npx tsc --noEmit`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-23-response",
@@ -1924,7 +2017,8 @@
       "details": {
         "duration_ms": 2274,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-24-response",
@@ -1939,7 +2033,8 @@
       "details": {
         "duration_ms": 7123,
         "text_content": "Run `npx next build`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-25-response",
@@ -1954,7 +2049,8 @@
       "details": {
         "duration_ms": 2734,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-26-response",
@@ -1969,7 +2065,8 @@
       "details": {
         "duration_ms": 2979,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-27-response",
@@ -1984,7 +2081,8 @@
       "details": {
         "duration_ms": 2016,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-28-response",
@@ -1999,7 +2097,8 @@
       "details": {
         "duration_ms": 1922,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-29-response",
@@ -2014,7 +2113,8 @@
       "details": {
         "duration_ms": 1817,
         "text_content": "Wait for the running command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-30-response",
@@ -2029,7 +2129,8 @@
       "details": {
         "duration_ms": 5320,
         "text_content": "Run `git restore -- frontend/tsconfig.tsbuildinfo`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-31-response",
@@ -2044,7 +2145,8 @@
       "details": {
         "duration_ms": 6722,
         "text_content": "Run `python - (inline script)`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-32-response",
@@ -2059,7 +2161,8 @@
       "details": {
         "duration_ms": 5679,
         "text_content": "Run `Get-ChildItem frontend/dist/_next/static/chunks -Filter *.js | ForEach-Object { $s=[IO.File]::ReadAllText($_.F…`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-33-response",
@@ -2074,7 +2177,8 @@
       "details": {
         "duration_ms": 13491,
         "text_content": "Run `Select-String -Path controller/node_modules/wrangler/config-schema.json -Pattern '\"migrations\"|\"env\"|Environme…`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-34-response",
@@ -2089,7 +2193,8 @@
       "details": {
         "duration_ms": 4720,
         "text_content": "Run `Get-Content controller/node_modules/wrangler/package.json -TotalCount 200`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-35-response",
@@ -2104,7 +2209,8 @@
       "details": {
         "duration_ms": 2993,
         "text_content": "Run `Select-String -Path controller/node_modules/wrangler/wrangler-dist/cli.d.ts -Pattern '^export|unstable|readCon…`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-36-response",
@@ -2119,7 +2225,8 @@
       "details": {
         "duration_ms": 5950,
         "text_content": "Run `node --input-type=module (inline script)`"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-37-response",
@@ -2134,7 +2241,8 @@
       "details": {
         "duration_ms": 11404,
         "text_content": "Run a shell command"
-      }
+      },
+      "sandbox_id": "demo:review"
     },
     {
       "id": "audit-review-turn-38-response",
@@ -2149,7 +2257,52 @@
       "details": {
         "duration_ms": 140,
         "text_content": "Reply to the user"
-      }
+      },
+      "sandbox_id": "demo:review"
+    }
+  ],
+  "sandboxes": [
+    {
+      "id": "demo:main",
+      "name": "demo-main",
+      "image": "ubuntu:24.04",
+      "runtime": "docker",
+      "container_id": "abcd0abcd0abcd0abcd0abcd0abcd0abcd0abcd0abcd0abcd0abcd0abcd0abcd",
+      "cgroup_id": 9000,
+      "cgroup_path": "/demo/main",
+      "pidns": 4026533000,
+      "first_seen_ms": 1787370300000,
+      "last_seen_ms": 1787370900000,
+      "end_timestamp_ms": null,
+      "exit_code": null
+    },
+    {
+      "id": "demo:build",
+      "name": "demo-build",
+      "image": "node:22",
+      "runtime": "docker",
+      "container_id": "abcd1abcd1abcd1abcd1abcd1abcd1abcd1abcd1abcd1abcd1abcd1abcd1abcd",
+      "cgroup_id": 9001,
+      "cgroup_path": "/demo/build",
+      "pidns": 4026533001,
+      "first_seen_ms": 1787370470000,
+      "last_seen_ms": 1787370900000,
+      "end_timestamp_ms": null,
+      "exit_code": null
+    },
+    {
+      "id": "demo:review",
+      "name": "demo-review",
+      "image": "ubuntu:24.04",
+      "runtime": "docker",
+      "container_id": "abcd2abcd2abcd2abcd2abcd2abcd2abcd2abcd2abcd2abcd2abcd2abcd2abcd",
+      "cgroup_id": 9002,
+      "cgroup_path": "/demo/review",
+      "pidns": 4026533002,
+      "first_seen_ms": 1787369400000,
+      "last_seen_ms": 1787370480000,
+      "end_timestamp_ms": 1787370480000,
+      "exit_code": 0
     }
   ]
 }

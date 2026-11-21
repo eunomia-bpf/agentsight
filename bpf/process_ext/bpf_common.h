@@ -79,9 +79,29 @@ static __always_inline u64 current_process_start_ns(void)
 	return BPF_CORE_READ(leader, start_time);
 }
 
+/* Read the active namespace from struct pid, not pid_ns_for_children:
+ * unshare(CLONE_NEWPID) changes only the latter until the next fork. */
+static __always_inline void current_pid_namespace(u32 *ino, u32 *nr)
+{
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct pid *pid = BPF_CORE_READ(task, group_leader, thread_pid);
+	u32 level = BPF_CORE_READ(pid, level);
+	*ino = 0;
+	*nr = 0;
+	if (level >= PIDNS_MAX_LEVEL)
+		return;
+	struct upid upid = {};
+	bpf_core_read(&upid, sizeof(upid), &pid->numbers[level]);
+	*ino = BPF_CORE_READ(upid.ns, ns.inum);
+	*nr = upid.nr;
+}
+
 static __always_inline void update_agg_map(struct agg_key *key, u64 count, u64 bytes)
 {
 	key->process_start_ns = current_process_start_ns();
+	key->cgroup_id = bpf_get_current_cgroup_id();
+	u32 nr;
+	current_pid_namespace(&key->pidns, &nr);
 	struct agg_value *val = bpf_map_lookup_elem(&event_agg_map, key);
 	if (val) {
 		__sync_fetch_and_add(&val->count, count);

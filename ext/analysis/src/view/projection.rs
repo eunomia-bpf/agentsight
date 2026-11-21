@@ -4,8 +4,8 @@
 use crate::event::Event;
 use crate::json::{i64_field as json_i64, parse_optional_value as parse_optional_json};
 use crate::model::{
-    AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow, ResourceSampleRow, TokenUsageRow,
-    ToolCallRow, ViewResult,
+    AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow, ResourceSampleRow, SandboxRow,
+    TokenUsageRow, ToolCallRow, ViewResult,
 };
 use crate::text::sanitize_ascii_identifier as sanitize_id;
 use crate::view::llm::TokenUsage;
@@ -30,7 +30,8 @@ impl MaterializedView {
             event.pid,
             self.next_seq
         );
-        let canonical = normalize_event(event, raw_id);
+        let mut canonical = normalize_event(event, raw_id);
+        self.observe_sandbox(&mut canonical)?;
         self.prune_pending(canonical.timestamp_ms)?;
         if event.source == "http_correlation" {
             if let Some(exchange_id) = canonical.http_exchange_id.as_deref()
@@ -50,7 +51,73 @@ impl MaterializedView {
             self.emit_network_target(target)?;
         }
         self.ingest_media_event(&canonical)?;
-        self.ingest(&canonical)
+        let result = self.ingest(&canonical);
+        if canonical.kind == EventKind::ProcessExit {
+            if let Some(pid) = canonical.pid {
+                self.sandbox_by_pid.remove(&pid);
+            }
+        }
+        result
+    }
+
+    fn observe_sandbox(&mut self, event: &mut CanonicalEvent) -> ViewResult<()> {
+        let identity = event.attributes.get("sandbox").cloned().and_then(|v| {
+            serde_json::from_value::<agentsight_capture_core::sandbox::SandboxIdentity>(v).ok()
+        });
+        let id = if let Some(identity) = identity {
+            let id = identity.id.clone();
+            if let Some(pid) = event.pid {
+                self.sandbox_by_pid
+                    .insert(pid, (id.clone(), event.timestamp_ms));
+            }
+            let exited = event.kind == EventKind::ProcessExit
+                && event.attributes.get("pidns_pid").and_then(Value::as_u64) == Some(1);
+            let row = SandboxRow {
+                identity,
+                first_seen_ms: event.timestamp_ms.saturating_sub(
+                    event
+                        .attributes
+                        .get("timestamp")
+                        .and_then(Value::as_u64)
+                        .zip(
+                            event
+                                .attributes
+                                .get("first_timestamp")
+                                .and_then(Value::as_u64),
+                        )
+                        .map_or(0, |(last, first)| last.saturating_sub(first) / 1_000_000),
+                ),
+                last_seen_ms: event.timestamp_ms,
+                end_timestamp_ms: exited.then_some(event.timestamp_ms),
+                exit_code: if exited {
+                    event
+                        .attributes
+                        .get("exit_code")
+                        .and_then(Value::as_i64)
+                        .map(|n| n as i32)
+                } else {
+                    None
+                },
+            };
+            self.upsert_sandbox(&row);
+            let row = self.sandboxes[&id].clone();
+            self.publish(|sink| sink.sandbox(&row))?;
+            Some(id)
+        } else {
+            self.sandbox_at(event.pid, event.timestamp_ms)
+        };
+        if let Some(id) = id {
+            // HTTP can be the last observation of a still-running process.
+            if let Some(row) = self.sandboxes.get_mut(&id) {
+                if event.timestamp_ms > row.last_seen_ms {
+                    row.last_seen_ms = event.timestamp_ms;
+                    let row = row.clone();
+                    self.publish(|sink| sink.sandbox(&row))?;
+                }
+            }
+            event.attributes["sandbox_id"] = Value::String(id);
+        }
+        Ok(())
     }
 
     fn ingest(&mut self, event: &CanonicalEvent) -> ViewResult<()> {
@@ -61,6 +128,7 @@ impl MaterializedView {
             EventKind::HttpResponse if self.has_pending_llm_request(event) => {
                 self.ingest_llm_response(event)
             }
+            EventKind::HttpRequest | EventKind::HttpResponse => self.ingest_network_audit(event),
             EventKind::ProcessExec => self.ingest_process_audit(event, "exec"),
             EventKind::ProcessExit => self.ingest_process_audit(event, "exit"),
             EventKind::FsOpen if is_writable_open(event) => self.ingest_file_audit(event),
@@ -721,6 +789,7 @@ impl MaterializedView {
     fn ingest_process_audit(&mut self, event: &CanonicalEvent, action: &str) -> ViewResult<()> {
         let target = event.attributes.get("filename").and_then(Value::as_str);
         self.emit_audit_event(AuditEventRow {
+            sandbox_id: None,
             id: format!("audit-{}", event.event_id),
             timestamp_ms: event.timestamp_ms,
             audit_type: "process".to_string(),
@@ -770,6 +839,7 @@ impl MaterializedView {
             .or_else(|| event.attributes.get("filepath"))
             .and_then(Value::as_str);
         self.emit_audit_event(AuditEventRow {
+            sandbox_id: None,
             id: format!("audit-{}", event.event_id),
             timestamp_ms: event.timestamp_ms,
             audit_type: "file".to_string(),
@@ -787,13 +857,29 @@ impl MaterializedView {
     }
 
     fn ingest_network_audit(&mut self, event: &CanonicalEvent) -> ViewResult<()> {
-        let target = event
-            .attributes
-            .get("detail")
-            .or_else(|| event.attributes.get("host"))
-            .and_then(Value::as_str);
-        let action = process_network_action(&event.attributes).unwrap_or("network");
+        let target = if matches!(event.kind, EventKind::HttpRequest | EventKind::HttpResponse) {
+            event.host.as_ref().map(|host| {
+                format!(
+                    "{} {}{}",
+                    event.method.as_deref().unwrap_or("HTTP"),
+                    host,
+                    event.path.as_deref().unwrap_or("")
+                )
+            })
+        } else {
+            event
+                .attributes
+                .get("detail")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        };
+        let action = match event.kind {
+            EventKind::HttpRequest => "http_request",
+            EventKind::HttpResponse => "http_response",
+            _ => process_network_action(&event.attributes).unwrap_or("network"),
+        };
         self.emit_audit_event(AuditEventRow {
+            sandbox_id: None,
             id: format!("audit-{}", event.event_id),
             timestamp_ms: event.timestamp_ms,
             audit_type: "network".to_string(),
@@ -801,8 +887,17 @@ impl MaterializedView {
             comm: event.comm.clone(),
             subject: event.comm.clone(),
             action: Some(action.to_string()),
-            target: target.map(str::to_string),
-            status: Some("observed".to_string()),
+            target,
+            status: Some(
+                if event.status_code.is_some_and(|c| c >= 400) {
+                    "failure"
+                } else if event.kind == EventKind::HttpResponse && event.status_code.is_some() {
+                    "success"
+                } else {
+                    "observed"
+                }
+                .to_string(),
+            ),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
             view_source: "view".to_string(),
@@ -827,6 +922,7 @@ fn emit_llm_audit(
     confidence: f32,
 ) -> ViewResult<()> {
     view.emit_audit_event(AuditEventRow {
+        sandbox_id: None,
         id: format!("audit-{llm_call_id}-{action}"),
         timestamp_ms,
         audit_type: "llm".to_string(),
@@ -910,6 +1006,11 @@ fn process_node_from_event(
     let status = process_audit_status(action, &event.attributes).to_string();
     let argv = process_argv(&event.attributes);
     Some(ProcessNodeRow {
+        sandbox_id: event
+            .attributes
+            .get("sandbox_id")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
         id,
         pid,
         ppid: event.ppid,
@@ -1012,6 +1113,11 @@ fn network_target_from_event(event: &CanonicalEvent) -> Option<NetworkTargetRow>
             || event.status_code.map(|code| code >= 400).unwrap_or(false),
     );
     Some(NetworkTargetRow {
+        sandbox_id: event
+            .attributes
+            .get("sandbox_id")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
         pid: event.pid,
         comm: event.comm.clone(),
         host: host.to_string(),

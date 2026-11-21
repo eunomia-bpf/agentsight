@@ -922,6 +922,7 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
             continue;
         };
         rows.push(AuditEventRow {
+            sandbox_id: None,
             id: format!(
                 "audit-agent-native-prompt-{}-{pid}",
                 sanitize_id(&session.display_id)
@@ -955,6 +956,7 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
 fn observed_exec_prompt_row(observed: ObservedCodexPrompt) -> AuditEventRow {
     let summary = truncate_text(&observed.prompt, 160);
     AuditEventRow {
+        sandbox_id: None,
         id: format!(
             "audit-codex-exec-prompt-{}-{}",
             observed.timestamp_ms,
@@ -2314,6 +2316,7 @@ mod tests {
 
     fn exec_row(id: &str, timestamp_ms: u64, comm: &str, full_command: &str) -> AuditEventRow {
         AuditEventRow {
+            sandbox_id: None,
             id: id.to_string(),
             timestamp_ms,
             audit_type: "process".to_string(),
@@ -2332,6 +2335,7 @@ mod tests {
 
     fn file_row(id: &str, timestamp_ms: u64, path: &Path) -> AuditEventRow {
         AuditEventRow {
+            sandbox_id: None,
             id: id.to_string(),
             timestamp_ms,
             audit_type: "file".to_string(),
