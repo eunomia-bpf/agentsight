@@ -113,6 +113,10 @@ static __always_inline bool trace_allowed(__u32 uid, __u32 pid, int fd)
 	}
 	if (trace_stdio_only && (fd < 0 || fd > 2)) {
 		count(STDIO_STAT_FILTER_FD);
+		/* The fd branch rejects most of the container's writes, so record
+		 * which pid and fd it dropped last: if the tracked writer is among
+		 * them, the fd the hook read is not the one it wrote to. */
+		note_reject(pid, (__u32)fd);
 		return false;
 	}
 	if (use_tracked_pids) {

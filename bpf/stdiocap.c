@@ -296,7 +296,7 @@ static void report_stats(int stats_fd)
 
 		if (bpf_map_lookup_elem(stats_fd, &pid_key, &pid) == 0 && pid) {
 			bpf_map_lookup_elem(stats_fd, &ppid_key, &ppid);
-			warn("stdiocap last rejected pid=%llu parent=%llu\n",
+			warn("stdiocap last rejected pid=%llu id=%llu\n",
 			     (unsigned long long)pid, (unsigned long long)ppid);
 		}
 	}
