@@ -1,23 +1,27 @@
 # agent-session
 
 `agent-session` is the reusable Rust library for local AI coding-agent session
-data. It owns agent-specific transcript discovery/parsing and exposes a common
-session IR for applications such as AgentSight.
+data. It owns agent-specific transcript discovery/parsing, a common session IR,
+and the portable process-to-session correlation algorithm.
 
 ## Responsibilities
 
 - Discover and parse local Claude Code, Codex, and Gemini CLI session files.
 - Normalize model usage, token totals, tool calls, file references, prompts,
   cwd, timestamps, and session identifiers.
-- Match live process trees to sessions using real path evidence, sticky
-  bindings, and recent cwd fallback.
-- Expose PID-to-session lookup through `SessionProcessMatches::session_for_pid`.
+- Correlate sessions with caller-supplied process trees and path evidence.
+- Export the transcript parser as a `wasm32-wasip2` Component Model entrypoint
+  when the host supplies transcript content.
+
+AgentSight keeps native process discovery out of this crate. `agentsight-capture-core`
+produces generic process facts; `agentsight-analysis` adapts those facts into the
+portable matcher and owns materialized views, storage, and export.
 
 ## Non-goals
 
 - No OpenTelemetry exporter in this crate. AgentSight owns OTEL and other
   product sinks.
-- No UI, report rendering, database schema, or eBPF capture logic.
+- No UI, report rendering, database schema, eBPF capture, or `/proc` discovery.
 - No dependency on AgentSight collector internals.
 
 ## OTel Alignment
@@ -30,10 +34,8 @@ AgentSight maps those fields to OTLP only at export time and leaves
 ## Release
 
 AgentSight's release workflow publishes `agent-session` before publishing
-`agentsight`. The workflow finds the next available `agent-session` patch
-version on crates.io, updates `ext/session/Cargo.toml`, updates the collector
-dependency, regenerates `collector/Cargo.lock`, and commits that release
-snapshot before packaging.
+`agentsight`. The workflow updates all consumers and regenerated locks from one
+version updater before packaging.
 
 After crates.io publish, docs.rs builds the Rust API docs and the unofficial
 lib.rs index can discover the crate from crates.io metadata.

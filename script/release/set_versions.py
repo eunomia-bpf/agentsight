@@ -28,7 +28,6 @@ EXTENSION_VERSIONS = {
 }
 
 DEPENDENCIES = {
-    "agentsight-capture/Cargo.toml": {"agent-session": "session"},
     "compat/agentsight-capture/Cargo.toml": {"agentsight-analysis": "release"},
     "ext/analysis/Cargo.toml": {
         "agentsight-capture-core": "release",
