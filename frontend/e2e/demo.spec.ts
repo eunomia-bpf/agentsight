@@ -18,7 +18,7 @@ test('recorded demo exposes overview, conversation, process, and analysis data',
   await expect(page.getByRole('heading', { name: 'Agent Plan' })).toBeVisible();
   await expect(page.getByText('Run browser regression coverage').first()).toBeVisible();
 
-  await page.getByRole('button', { name: 'codex', exact: true }).click();
+  await page.getByRole('button', { name: 'codex', exact: true }).first().click();
   await expect(page.getByRole('tab', { name: 'Conversation' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText(/recorded demo only loaded the snapshot/)).toBeVisible();
 
@@ -30,5 +30,10 @@ test('recorded demo exposes overview, conversation, process, and analysis data',
   await expect(page.getByRole('heading', { name: 'Token usage' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Execution' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Resources & health' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Timeline View' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Events timeline' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'npm run build · Failed', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'npm run build · Succeeded', exact: true })).toBeVisible();
+  await page.getByLabel('Failures only').check();
+  await expect(page.getByRole('button', { name: 'git status --short · Succeeded', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'git diff --check · Failed', exact: true })).toBeVisible();
 });

@@ -50,6 +50,37 @@ def has_hidden_host_pids():
 
 class TracerSession:
     def __init__(self, *args, wait_attach=1.5):
+        # TEMPORARY probe (#257): list other processes' open perf events
+        # before this session opens its own. A leftover event from an
+        # earlier session in the same job would show as a foreign pid
+        # holding anon_inode:[perf_event] fds.
+        try:
+            import glob
+
+            holders = {}
+            for fdlink in glob.glob("/proc/[0-9]*/fd/*"):
+                try:
+                    target = os.readlink(fdlink)
+                except OSError:
+                    continue
+                if target.startswith("anon_inode:[perf_event"):
+                    pid = int(fdlink.split("/")[2])
+                    holders.setdefault(pid, 0)
+                    holders[pid] += 1
+            foreign = {p: c for p, c in holders.items() if p != os.getpid()}
+            if foreign:
+                names = {}
+                for p in foreign:
+                    try:
+                        with open(f"/proc/{p}/cmdline", "rb") as cf:
+                            names[p] = cf.read().replace(b"\0", b" ").decode(
+                                "utf-8", "replace"
+                            )[:120]
+                    except OSError:
+                        names[p] = "?"
+                print(f"PROBE_PERF_HOLDERS {sorted(foreign.items())} {names}", flush=True)
+        except Exception:
+            pass
         self.stdout = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".jsonl", delete=False)
         self.stderr = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".stderr", delete=False)
         self.proc = subprocess.Popen(
@@ -59,11 +90,42 @@ class TracerSession:
         )
         self.stdout.close()
         self.stderr.close()
-        time.sleep(wait_attach)
+        self.wait_ready(wait_attach)
+
+    def wait_ready(self, timeout):
+        # The tracer prints a CLOCK_SYNC "start" anchor only after the BPF
+        # programs are attached and the ring buffer exists, so seeing it is a
+        # real readiness barrier. A fixed sleep made the first activity race
+        # the attach, which shows up as missing SUMMARY types on a loaded
+        # runner (#257).
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeErrorWithContext(
+                    f"process tracer exited early with {self.proc.returncode}: {self.stderr_text()}"
+                )
+            try:
+                with open(self.stdout.name, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            record = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if record.get("event") == "CLOCK_SYNC" and record.get("phase") == "start":
+                            return
+            except OSError:
+                pass
+            time.sleep(0.02)
         if self.proc.poll() is not None:
             raise RuntimeErrorWithContext(
                 f"process tracer exited early with {self.proc.returncode}: {self.stderr_text()}"
             )
+        raise RuntimeErrorWithContext(
+            f"process tracer printed no attach anchor within {timeout}s: {self.stderr_text()}"
+        )
 
     def stop(self):
         if self.proc.poll() is None:
@@ -250,6 +312,29 @@ def test_trace_fs_summary_events():
     tempdir = tempfile.TemporaryDirectory(prefix="agentsight-runtime-fs-")
     old_cwd = os.getcwd()
     try:
+        # TEMPORARY probe (#257): issue the mutations through the raw
+        # syscalls as well, so python's/glibc's choice of plain vs *at
+        # wrappers is out of the equation, and record the environment.
+        import ctypes
+
+        libc = ctypes.CDLL(None, use_errno=True)
+        syscall = libc.syscall
+        direct_dir = os.path.join(tempdir.name, "direct")
+        rc_mkdir = syscall(83, direct_dir.encode(), 0o755)  # SYS_mkdir
+        err_mkdir = ctypes.get_errno()
+        rc_mkdirat = syscall(258, -100, (direct_dir + "at").encode(), 0o755)  # SYS_mkdirat
+        err_mkdirat = ctypes.get_errno()
+        try:
+            glibc = libc.gnu_get_libc_version().decode()
+        except AttributeError:
+            glibc = "?"
+        print(
+            f"PROBE_ENV kernel={os.uname().release} glibc={glibc} "
+            f"mkdir=({rc_mkdir}, {err_mkdir}) mkdirat=({rc_mkdirat}, {err_mkdirat})",
+        )
+    except OSError:
+        pass
+    try:
         subdir = os.path.join(tempdir.name, "dir")
         os.mkdir(subdir)
         path = os.path.join(subdir, 'file "quote" \\ slash.txt')
@@ -263,9 +348,21 @@ def test_trace_fs_summary_events():
         os.chdir(old_cwd)
         time.sleep(0.5)
         sess.stop()
-        types = summary_types(sess.events())
+        events = sess.events()
+        types = summary_types(events)
         required = {"DIR_CREATE", "WRITE", "FILE_RENAME", "FILE_DELETE"}
-        assert_true(required.issubset(types), f"missing fs SUMMARY types: {sorted(required - types)}")
+        probes = [
+            json.dumps(e, sort_keys=True)
+            for e in events
+            if e.get("event") in ("AGG_MAP_COUNTS", "FS_LINKS", "FS_LINK_INFO", "PROBE_RAW")
+        ]
+        assert_true(
+            required.issubset(types),
+            f"missing fs SUMMARY types: {sorted(required - types)}; "
+            f"observed SUMMARY types: {sorted(types)}; "
+            f"probes: {probes}; "
+            f"stderr: {sess.stderr_text()[-2000:]}"
+        )
     finally:
         os.chdir(old_cwd)
         sess.cleanup()
@@ -419,7 +516,19 @@ def test_probe_heartbeat():
     wall_start = time.time_ns()
     sess = TracerSession("-m", "0", "--heartbeat", "1")
     try:
-        time.sleep(1.2)
+        # The loop emits the tick only after ring_buffer__poll returns, and a
+        # poll with no events blocks for its whole 1000 ms timeout. A fixed
+        # 1.2 s sleep leaves 200 ms of slack over that cycle, which a loaded
+        # runner exhausts; wait for the record itself instead.
+        deadline = time.time() + 10.0
+        while time.time() < deadline:
+            records = [e for e in sess.events() if e.get("event") == "PROBE_LIVENESS"]
+            if any(e.get("kind") == "alive" for e in records[1:]):
+                break
+            assert_true(sess.proc.poll() is None,
+                        f"process tracer exited before an alive tick: "
+                        f"{sess.proc.returncode}; {sess.stderr_text()[-2000:]}")
+            time.sleep(0.05)
         sess.stop()
         records = [e for e in sess.events() if e.get("event") == "PROBE_LIVENESS"]
         assert_true(len(records) >= 2 and records[0].get("kind") == "start" and
