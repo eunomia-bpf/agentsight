@@ -63,7 +63,7 @@ test('signed-in user opens a relay Node and sees machine value before session de
   await expect(page.getByRole('heading', { name: 'Machine resources' })).toBeVisible();
 });
 
-test('conversation, message send, process tree, timeline filters, and event detail work together', async ({ page }) => {
+test('conversation, message send, process tree, and the events timeline work together', async ({ page }) => {
   const state = await mockController(page, { signedIn: true, responseDelayMs: 10_500 });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
@@ -95,13 +95,13 @@ test('conversation, message send, process tree, timeline filters, and event deta
   await expect(page.getByRole('heading', { name: 'Token usage' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Execution' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Resources & health' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Timeline View' })).toBeVisible();
-  const panel = page.getByRole('tabpanel');
-  await panel.getByRole('combobox').first().selectOption('file');
-  await panel.locator('.cursor-pointer').first().click();
-  await expect(page.getByRole('heading', { name: 'Timeline Event Details' })).toBeVisible();
-  await expect(page.getByText('file-1', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Raw Data' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Events timeline' })).toBeVisible();
+  const bar = page.getByRole('button', { name: 'git diff · Succeeded', exact: true });
+  await bar.click();
+  await expect(bar).toHaveAttribute('aria-pressed', 'true');
+  const selectedRow = page.locator('tr[aria-selected="true"]');
+  await expect(selectedRow).toHaveCount(1);
+  await expect(selectedRow).toContainText('git diff');
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

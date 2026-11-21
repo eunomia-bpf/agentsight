@@ -3635,7 +3635,7 @@ fn definitely_not_a_path(part: &str) -> bool {
             component.chars().all(char::is_alphabetic)
                 && component.chars().next().is_some_and(char::is_uppercase)
         });
-    if part.is_empty()
+    part.is_empty()
         || part.starts_with('-')
         || part.starts_with('$')
         || part.starts_with('~')
@@ -3652,10 +3652,6 @@ fn definitely_not_a_path(part: &str) -> bool {
         || part.len() > 140
         || part.chars().any(char::is_whitespace)
         || part.chars().any(|c| "{}()=;<>|`*?[]\"#$,:@^!".contains(c))
-    {
-        return true;
-    }
-    false
 }
 
 pub fn path_group(path: &str, project_root: &Path) -> String {

@@ -17,15 +17,24 @@ use tokio::process::Command as TokioCommand;
 use tokio::sync::oneshot;
 
 const SSL_READY_MARKER: &str = "AGENTSIGHT_SSL_READY";
+const STDIOCAP_READY_MARKER: &str = "AGENTSIGHT_STDIOCAP_READY";
 
-fn ssl_probe_reports_readiness(binary_path: &str) -> bool {
+/// Readiness marker a probe prints on stderr once its probes are attached, or
+/// `None` for probes that do not report one.
+fn probe_ready_marker(runner_name: Option<&str>, binary_path: &str) -> Option<&'static str> {
+    let marker = match runner_name {
+        Some("SSL") => SSL_READY_MARKER,
+        Some("Stdio") => STDIOCAP_READY_MARKER,
+        _ => return None,
+    };
     // Direct `cargo build` can still embed the older vendored loader. Keep
     // its startup delay until `make build` refreshes the bundled BPF binary.
-    std::fs::read(binary_path).is_ok_and(|bytes| {
+    let reported = std::fs::read(binary_path).is_ok_and(|bytes| {
         bytes
-            .windows(SSL_READY_MARKER.len())
-            .any(|window| window == SSL_READY_MARKER.as_bytes())
-    })
+            .windows(marker.len())
+            .any(|window| window == marker.as_bytes())
+    });
+    reported.then_some(marker)
 }
 
 /// Type alias for JSON stream
@@ -309,11 +318,12 @@ impl BinaryExecutor {
         let binary_path = self.binary_path.clone();
         let label = runner_label(runner_name.as_deref(), &binary_path);
 
-        // Wait for sslsniff's readiness marker before releasing a launched
-        // client. A fixed delay can expire while a large static binary is
-        // still being scanned for probe offsets.
-        let wait_for_ssl_ready =
-            runner_name.as_deref() == Some("SSL") && ssl_probe_reports_readiness(&self.binary_path);
+        // Wait for the probe's readiness marker before releasing a launched
+        // client, or before a caller acts on a running capture. A fixed delay
+        // can expire while a large static binary is still being scanned for
+        // probe offsets, and an unannounced attach window loses events.
+        let ready_marker = probe_ready_marker(runner_name.as_deref(), &self.binary_path);
+        let wait_for_ready = ready_marker.is_some();
         let (ready_tx, ready_rx) = oneshot::channel();
         let stderr_label = label.clone();
         tokio::spawn(async move {
@@ -330,12 +340,13 @@ impl BinaryExecutor {
                     }
                     Ok(_) => {
                         let trimmed = stderr_line.trim();
-                        if trimmed == SSL_READY_MARKER {
+                        if Some(trimmed) == ready_marker {
                             if let Some(tx) = ready_tx.take() {
                                 let _ = tx.send(());
                             }
                             continue;
                         }
+
                         if !trimmed.is_empty() {
                             log::warn!("[{}] STDERR: {}", stderr_label, trimmed);
                         }
@@ -350,7 +361,7 @@ impl BinaryExecutor {
             }
         });
 
-        let startup_delay_ms = if wait_for_ssl_ready {
+        let startup_delay_ms = if wait_for_ready {
             None
         } else if self
             .additional_args
@@ -373,7 +384,8 @@ impl BinaryExecutor {
             }
         }
 
-        if wait_for_ssl_ready {
+        if wait_for_ready {
+            let marker_label = runner_name.as_deref().unwrap_or("binary");
             match tokio::time::timeout(tokio::time::Duration::from_secs(10), ready_rx).await {
                 Ok(Ok(())) => {}
                 Ok(Err(_)) => {
@@ -382,15 +394,19 @@ impl BinaryExecutor {
                         ProbeProcessGuard::new(child.id(), needs_sudo).terminate();
                     }
                     return Err(RunnerError::from(match status {
-                        Some(status) => runner_startup_exit_message("SSL", status, needs_sudo),
-                        None => "SSL probe closed stderr before reporting readiness".to_string(),
+                        Some(status) => {
+                            runner_startup_exit_message(marker_label, status, needs_sudo)
+                        }
+                        None => format!(
+                            "{marker_label} probe closed stderr before reporting readiness"
+                        ),
                     }));
                 }
                 Err(_) => {
                     ProbeProcessGuard::new(child.id(), needs_sudo).terminate();
-                    return Err(RunnerError::from(
-                        "SSL probe did not report readiness within 10 seconds".to_string(),
-                    ));
+                    return Err(RunnerError::from(format!(
+                        "{marker_label} probe did not report readiness within 10 seconds"
+                    )));
                 }
             }
         }
@@ -579,5 +595,40 @@ mod tests {
     fn non_sudo_startup_exit_message_stays_short() {
         let message = runner_startup_exit_message("Process", "exit status: 1", false);
         assert_eq!(message, "Process exited during startup with exit status: 1");
+    }
+
+    #[test]
+    fn stdio_without_marker_keeps_startup_delay() {
+        // A binary that predates the marker must keep the old fixed delay
+        // instead of waiting out the 10s readiness timeout on every start.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("stdiocap");
+        std::fs::write(&path, b"no marker here").expect("write");
+        assert_eq!(
+            probe_ready_marker(Some("Stdio"), path.to_str().expect("utf8")),
+            None
+        );
+    }
+
+    #[test]
+    fn stdio_with_marker_reports_its_marker() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("stdiocap");
+        std::fs::write(&path, STDIOCAP_READY_MARKER.as_bytes()).expect("write");
+        assert_eq!(
+            probe_ready_marker(Some("Stdio"), path.to_str().expect("utf8")),
+            Some(STDIOCAP_READY_MARKER)
+        );
+    }
+
+    #[test]
+    fn unannounced_runners_wait_on_no_marker() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("process");
+        std::fs::write(&path, STDIOCAP_READY_MARKER.as_bytes()).expect("write");
+        assert_eq!(
+            probe_ready_marker(Some("Process"), path.to_str().expect("utf8")),
+            None
+        );
     }
 }
