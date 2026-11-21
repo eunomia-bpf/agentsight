@@ -119,6 +119,21 @@ export function NodeOverview({
           hint={liveAvailable ? t('overview.currentRss') : t('overview.liveUnavailable')} />
       </section>
 
+      {(snapshot.sandboxes?.length ?? 0) > 0 && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-semibold text-slate-950">{t('sandbox.title')}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {snapshot.sandboxes?.map((sandbox) => (
+              <div key={sandbox.id} className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                <p className="font-medium text-slate-950">{sandbox.name || sandbox.cgroup_path || sandbox.id}</p>
+                <p className="mt-1">{[sandbox.image, sandbox.runtime, `pidns ${sandbox.pidns}`].filter(Boolean).join(' · ')}</p>
+                <p className="mt-1">{sandbox.exit_code != null ? t('sandbox.exited', { code: sandbox.exit_code }) : t('sandbox.observed')}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {(overview?.failures.length ?? 0) > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {overview?.failures.join(' · ')}

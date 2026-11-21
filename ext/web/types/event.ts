@@ -27,6 +27,7 @@ export interface SnapshotTokenSummary {
 }
 
 export interface SnapshotNetworkTarget {
+  sandbox_id?: string | null;
   pid?: number | null;
   comm?: string | null;
   host: string;
@@ -38,6 +39,7 @@ export interface SnapshotNetworkTarget {
 }
 
 export interface SnapshotAuditEvent {
+  sandbox_id?: string | null;
   id: string;
   timestamp_ms: number;
   audit_type: string;
@@ -54,6 +56,7 @@ export interface SnapshotAuditEvent {
 }
 
 export interface SnapshotProcessNode {
+  sandbox_id?: string | null;
   id: string;
   pid: number;
   ppid?: number | null;
@@ -176,7 +179,23 @@ export interface SnapshotToolCall {
   related_pid?: number | null;
 }
 
+export interface SnapshotSandbox {
+  id: string;
+  name?: string | null;
+  image?: string | null;
+  runtime?: string | null;
+  container_id?: string | null;
+  cgroup_id?: number;
+  cgroup_path?: string | null;
+  pidns: number;
+  first_seen_ms: number;
+  last_seen_ms: number;
+  end_timestamp_ms?: number | null;
+  exit_code?: number | null;
+}
+
 export interface AgentSightSnapshot {
+  sandboxes?: SnapshotSandbox[];
   schema_version?: number;
   generated_at?: string;
   summary?: SnapshotSummary;
