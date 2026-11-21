@@ -37,6 +37,25 @@ const volatile bool trace_stdio_only = true;
 const volatile __u32 max_capture_bytes = MAX_BUF_SIZE;
 const volatile bool use_tracked_pids = false;
 
+/* Where a run's writes get lost, counted in the kernel so an empty capture
+ * names the path instead of only reporting that nothing arrived. A zero
+ * event count with zeroes on the others means no hook ran at all. */
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, STDIO_STAT_COUNT);
+	__type(key, __u32);
+	__type(value, __u64);
+} stats SEC(".maps");
+
+static __always_inline void count(enum stdiocap_stat slot)
+{
+	__u32 key = slot;
+	__u64 *value = bpf_map_lookup_elem(&stats, &key);
+
+	if (value)
+		__sync_fetch_and_add(value, 1);
+}
+
 static __always_inline bool tracked_or_descendant(__u32 pid)
 {
 	struct task_struct *task;
@@ -86,8 +105,11 @@ static __always_inline int enter_common(int fd, const void *buf, bool is_read)
 	__u32 uid = bpf_get_current_uid_gid();
 	struct io_args_t args = {};
 
-	if (!trace_allowed(uid, pid, fd))
+	count(STDIO_STAT_ENTER);
+	if (!trace_allowed(uid, pid, fd)) {
+		count(STDIO_STAT_ENTER_FILTERED);
 		return 0;
+	}
 
 	args.buf = (__u64)buf;
 	args.start_ns = bpf_ktime_get_ns();
@@ -108,16 +130,20 @@ static __always_inline int exit_common(long ret)
 	__u32 copy_size;
 
 	args = bpf_map_lookup_elem(&io_args, &pid_tgid);
-	if (!args)
+	if (!args) {
+		count(STDIO_STAT_EXIT_NO_ARGS);
 		return 0;
+	}
 
 	if (ret <= 0) {
+		count(STDIO_STAT_EXIT_ERROR);
 		bpf_map_delete_elem(&io_args, &pid_tgid);
 		return 0;
 	}
 
 	event = bpf_ringbuf_reserve(&rb, sizeof(*event), 0);
 	if (!event) {
+		count(STDIO_STAT_RINGBUF_FULL);
 		bpf_map_delete_elem(&io_args, &pid_tgid);
 		return 0;
 	}
@@ -142,6 +168,7 @@ static __always_inline int exit_common(long ret)
 	if (copy_size > 0)
 		bpf_probe_read_user(event->buf, copy_size, (const void *)args->buf);
 
+	count(STDIO_STAT_EVENT);
 	bpf_ringbuf_submit(event, 0);
 	bpf_map_delete_elem(&io_args, &pid_tgid);
 	return 0;

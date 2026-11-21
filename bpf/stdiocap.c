@@ -264,6 +264,31 @@ static void print_event(const struct stdiocap_event_t *event)
 	fflush(stdout);
 }
 
+/* Read the per-hook counters the BPF side keeps, so an empty capture says
+ * which path the writes took instead of only that nothing arrived. */
+static void report_stats(int stats_fd)
+{
+	static const char *const names[] = {
+		"enter", "enter_filtered", "exit_no_args", "exit_error",
+		"ringbuf_full", "event",
+	};
+	char line[256] = "";
+	size_t len = 0;
+
+	if (stats_fd < 0)
+		return;
+	for (__u32 i = 0; i < (__u32)(sizeof(names) / sizeof(names[0])); i++) {
+		__u64 total = 0;
+
+		if (bpf_map_lookup_elem(stats_fd, &i, &total) != 0 || !total)
+			continue;
+		len += snprintf(line + len, sizeof(line) - len - 1, "%s%s=%llu",
+				len ? " " : "", names[i],
+				(unsigned long long)total);
+	}
+	warn("stdiocap stats: %s\n", len ? line : "no hook ran");
+}
+
 /* Readiness marker for callers that start a capture and then act. Matches the
  * SSL probe's AGENTSIGHT_SSL_READY convention: a stderr line, so it never
  * appears in the JSON event stream on stdout. */
@@ -285,6 +310,7 @@ int main(int argc, char **argv)
 	struct stdiocap_bpf *obj = NULL;
 	struct ring_buffer *rb = NULL;
 	int tracked_pids_fd = -1;
+	int stats_fd = -1;
 	int err;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
@@ -319,6 +345,7 @@ int main(int argc, char **argv)
 	}
 
 	tracked_pids_fd = bpf_map__fd(obj->maps.tracked_pids);
+	stats_fd = bpf_map__fd(obj->maps.stats);
 	int session_pid_count = 0;
 
 	if (env.session_id != INVALID_PID) {
@@ -393,6 +420,10 @@ int main(int argc, char **argv)
 	}
 
 cleanup:
+	/* A capture that ends with nothing on stdout is otherwise silent about
+	 * where its writes went. */
+	if (stats_fd >= 0 && env.session_id != INVALID_PID)
+		report_stats(stats_fd);
 	if (event_buf) {
 		free(event_buf);
 		event_buf = NULL;

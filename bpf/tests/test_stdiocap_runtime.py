@@ -156,7 +156,8 @@ def test_session_captures_child_stdout():
     events = [line for line in cap_out.splitlines() if line.startswith("{")]
     assert "agentsight-stdio-session" in cap_out, (
         f"stdiocap emitted {len(events)} event(s) for session {target_sid} "
-        f"(target pid {target.pid}, session asked for {target.pid})\n"
+        f"(target pid {target.pid}, session asked for {target.pid}); "
+        f"the stats line says which path the writes took\n"
         f"stdout={cap_out!r}\nstderr={cap_err!r}"
     )
 
