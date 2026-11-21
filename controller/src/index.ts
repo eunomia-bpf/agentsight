@@ -23,6 +23,7 @@ import {
   deleteNode,
   ensurePersonalOrganization,
   getConfig,
+  getBillingProviderState,
   getDirectConfig,
   getNodeAccess,
   getOrganizationAccess,
@@ -43,6 +44,13 @@ import {
   validNodeId,
 } from './access.ts';
 import {
+  createStripePortal,
+  handleStripeWebhook,
+  isTrustedStripeUrl,
+  stripeCheckoutAvailability,
+  type StripeEnv,
+} from './billing.ts';
+import {
   NodeRelay,
   browserRelayRoute,
   connectNodeRelay,
@@ -54,7 +62,7 @@ import {
   type RelayEnv,
 } from './relay.ts';
 
-interface Env extends RelayEnv {
+interface Env extends RelayEnv, StripeEnv {
   APP_ORIGIN: string;
   OAUTH_IP_LIMITER: RateLimit;
   OAUTH_LOCATION_LIMITER: RateLimit;
@@ -110,11 +118,18 @@ export default {
 
     try {
       if (request.method === 'GET' && url.pathname === '/v1/pricing') {
-        return respond(json(publicPricing()));
+        return respond(json({
+          ...publicPricing(),
+          checkout: stripeCheckoutAvailability(env),
+        }));
       }
 
       if (isCoreIdentityRoute(url.pathname)) {
         return respond(await core.fetch(request, env));
+      }
+
+      if (request.method === 'POST' && url.pathname === '/v1/billing/webhook') {
+        return respond(await handleStripeWebhook(request, env));
       }
 
       if (url.pathname.startsWith('/v1/admin/')) {
@@ -228,7 +243,52 @@ export default {
           current_period_end: access.currentPeriodEnd,
           contributor_pro: access.contributorPro,
           price: publicPricing(),
+          checkout: stripeCheckoutAvailability(env),
         }));
+      }
+
+      const billingAction = organizationBillingActionPath(url.pathname);
+      if (billingAction && request.method === 'POST') {
+        const rate = await env.OAUTH_IP_LIMITER.limit({ key: `billing:${user.id}` });
+        if (!rate.success) throw new AccessError(429, 'billing_rate_limited');
+        const provider = await getBillingProviderState(
+          env.DB, user.id, billingAction.organizationId,
+        );
+        if (billingAction.action === 'portal') {
+          return respond(json({
+            url: await createStripePortal(env, provider.externalCustomerId),
+          }));
+        }
+        const body = await readJson<{ plan?: unknown; interval?: unknown }>(request);
+        if ((body.plan !== 'pro' && body.plan !== 'team')
+            || (body.interval !== 'monthly' && body.interval !== 'annual')) {
+          throw new AccessError(400, 'invalid_billing_checkout');
+        }
+        const coordinator = env.NODE_RELAY.get(
+          env.NODE_RELAY.idFromName(`billing:${provider.access.id}`),
+        );
+        const result = await coordinator.fetch(new Request('https://relay.internal/billing/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizationId: provider.access.id,
+            organizationKind: provider.access.kind,
+            email: user.email,
+            plan: body.plan,
+            interval: body.interval,
+            externalCustomerId: provider.externalCustomerId,
+            externalSubscriptionId: provider.externalSubscriptionId,
+            billingStatus: provider.access.billingStatus,
+          }),
+        }));
+        const checkout = await result.json().catch(() => null) as {
+          url?: unknown; error?: string;
+        } | null;
+        if (!result.ok) throw new AccessError(result.status, checkout?.error || 'billing_provider_failed');
+        if (!isTrustedStripeUrl(checkout?.url, 'checkout.stripe.com')) {
+          throw new AccessError(502, 'billing_provider_invalid_response');
+        }
+        return respond(json({ url: checkout.url }));
       }
 
       if (url.pathname === '/v1/nodes' && request.method === 'GET') {
@@ -418,6 +478,7 @@ function isCoreIdentityRoute(pathname: string): boolean {
     || pathname === '/v1/me'
     || pathname === '/v1/auth/exchange'
     || pathname === '/v1/auth/logout'
+    || pathname.startsWith('/v1/auth/link/')
     || pathname.startsWith('/v1/auth/start/')
     || pathname.startsWith('/v1/auth/callback/');
 }
@@ -457,6 +518,21 @@ function organizationBillingPath(pathname: string): string | null {
   try { return decodeURIComponent(match[1]); } catch { return null; }
 }
 
+function organizationBillingActionPath(
+  pathname: string,
+): { organizationId: string; action: 'checkout' | 'portal' } | null {
+  const match = pathname.match(/^\/v1\/organizations\/([^/]+)\/billing\/(checkout|portal)$/);
+  if (!match) return null;
+  try {
+    return {
+      organizationId: decodeURIComponent(match[1]),
+      action: match[2] as 'checkout' | 'portal',
+    };
+  } catch {
+    return null;
+  }
+}
+
 function nodeCapabilityPath(pathname: string): string | null {
   const match = pathname.match(/^\/v1\/nodes\/([^/]+)\/capabilities$/);
   if (!match) return null;
@@ -477,11 +553,35 @@ function isInviteRole(value: unknown): value is Exclude<Role, 'owner'> {
   return value === 'viewer' || value === 'operator' || value === 'admin';
 }
 
-async function readJson<T>(request: Request): Promise<T> {
+export async function readJson<T>(request: Request): Promise<T> {
+  const maxBytes = 96 * 1024;
   const declared = Number(request.headers.get('Content-Length') || '0');
-  if (declared > 96 * 1024) throw new AccessError(413, 'request_too_large');
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > 96 * 1024) throw new AccessError(413, 'request_too_large');
+  if (declared > maxBytes) throw new AccessError(413, 'request_too_large');
+  if (!request.body) throw new AccessError(400, 'invalid_json');
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel('request too large');
+        throw new AccessError(413, 'request_too_large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const joined = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const text = new TextDecoder().decode(joined);
   try { return JSON.parse(text) as T; } catch { throw new AccessError(400, 'invalid_json'); }
 }
 

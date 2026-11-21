@@ -6,6 +6,7 @@ export type Plan = 'free' | 'pro' | 'team' | 'enterprise';
 export type EffectivePlan = Plan | 'unlimited';
 export type OrganizationKind = 'personal' | 'team';
 export type BillingStatus = 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+export type BillingInterval = 'monthly' | 'annual' | null;
 
 // Billing is modeled now, but is intentionally not enforced during the hosted
 // preview. Keep persisted billing plans truthful while granting all registered
@@ -630,6 +631,112 @@ export async function setBilling(
     organizationId,
   ).run();
   if (!result.meta.changes) throw new AccessError(404, 'organization_not_found');
+}
+
+/**
+ * Apply Stripe state without allowing a second subscription to replace a
+ * currently active one. The caller serializes updates for an organization;
+ * this conditional update is the final fail-closed guard for old or duplicate
+ * subscription events and uses only the existing billing columns.
+ */
+export async function setStripeBilling(
+  db: D1Database,
+  organizationId: string,
+  input: {
+    plan: 'pro';
+    interval: BillingInterval;
+    status: BillingStatus;
+    externalCustomerId: string;
+    externalSubscriptionId: string;
+    currentPeriodEnd: number | null;
+  },
+): Promise<'updated' | 'ignored'> {
+  const result = await db.prepare(
+    `UPDATE organizations SET
+       plan = ?1, billing_interval = COALESCE(?2, billing_interval), billing_status = ?3,
+       external_customer_id = ?4, external_subscription_id = ?5,
+       current_period_end = ?6, updated_at = ?7
+     WHERE id = ?8 AND kind = 'personal'
+       AND (
+         external_subscription_id IS NULL
+         OR external_subscription_id = ?5
+         OR billing_status IN ('inactive', 'canceled')
+       )`,
+  ).bind(
+    input.plan,
+    input.interval,
+    input.status,
+    input.externalCustomerId,
+    input.externalSubscriptionId,
+    input.currentPeriodEnd,
+    nowSeconds(),
+    organizationId,
+  ).run();
+  if (result.meta.changes) return 'updated';
+
+  const existing = await db.prepare(
+    `SELECT kind, billing_status, external_subscription_id
+     FROM organizations WHERE id = ?1`,
+  ).bind(organizationId).first<{
+    kind: OrganizationKind;
+    billing_status: BillingStatus;
+    external_subscription_id: string | null;
+  }>();
+  if (!existing) throw new AccessError(404, 'organization_not_found');
+  if (existing.kind !== 'personal') throw new AccessError(400, 'billing_plan_mismatch');
+  return 'ignored';
+}
+
+export async function getStripeBillingRecord(
+  db: D1Database,
+  organizationId: string,
+): Promise<{
+  kind: OrganizationKind;
+  billingStatus: BillingStatus;
+  billingInterval: BillingInterval;
+  externalSubscriptionId: string | null;
+}> {
+  const row = await db.prepare(
+    `SELECT kind, billing_status, billing_interval, external_subscription_id
+     FROM organizations WHERE id = ?1`,
+  ).bind(organizationId).first<{
+    kind: OrganizationKind;
+    billing_status: BillingStatus;
+    billing_interval: BillingInterval;
+    external_subscription_id: string | null;
+  }>();
+  if (!row) throw new AccessError(404, 'organization_not_found');
+  return {
+    kind: row.kind,
+    billingStatus: row.billing_status,
+    billingInterval: row.billing_interval,
+    externalSubscriptionId: row.external_subscription_id,
+  };
+}
+
+export async function getBillingProviderState(
+  db: D1Database,
+  userId: string,
+  organizationId: string,
+): Promise<{
+  access: OrganizationAccess;
+  externalCustomerId: string | null;
+  externalSubscriptionId: string | null;
+}> {
+  const access = await requireOrganizationAction(db, userId, organizationId, 'billing.manage');
+  const row = await db.prepare(
+    `SELECT external_customer_id, external_subscription_id
+     FROM organizations WHERE id = ?1`,
+  ).bind(organizationId).first<{
+    external_customer_id: string | null;
+    external_subscription_id: string | null;
+  }>();
+  if (!row) throw new AccessError(404, 'organization_not_found');
+  return {
+    access,
+    externalCustomerId: row.external_customer_id,
+    externalSubscriptionId: row.external_subscription_id,
+  };
 }
 
 export async function grantLifetimePro(
