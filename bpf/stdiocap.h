@@ -26,6 +26,11 @@ enum stdiocap_stat {
 	 * the count. */
 	STDIO_STAT_REJECT_PID,
 	STDIO_STAT_REJECT_PPID,
+	/* Enters by a tracked pid, and the last fd such an enter carried. The
+	 * fd branch also rejects other processes' writes, so only these two
+	 * say whether the target's own write reached the hook. */
+	STDIO_STAT_TRACKED_ENTER,
+	STDIO_STAT_TRACKED_FD,
 	STDIO_STAT_COUNT,
 };
 
