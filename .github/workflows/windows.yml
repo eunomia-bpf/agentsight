@@ -21,6 +21,12 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          cache-workspaces: |
+            agentsight-protocol -> target
+            agentsight-capture -> target
+            compat/agentsight-capture -> target
+            ext/session -> target
+            collector -> target
 
       - name: Test portable session parser
         run: cargo test --manifest-path ext/session/Cargo.toml
