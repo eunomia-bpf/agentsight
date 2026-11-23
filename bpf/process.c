@@ -22,6 +22,7 @@
 #include "container_info.h"
 #include "process_ext/map_flush.h"
 #include "process_ext/userspace.h"
+#include "readline_probe.h"
 
 #define MAX_COMMAND_LIST 256
 #define MAX_SEED_PIDS 4096
@@ -1070,6 +1071,7 @@ int main(int argc, char **argv)
 {
 	struct ring_buffer *rb = NULL;
 	struct process_bpf *skel;
+	struct bpf_link *readline_link = NULL;
 	int err;
 	int pidns_fd = -1;
 
@@ -1257,6 +1259,37 @@ int main(int argc, char **argv)
 		fflush(stdout);
 	}
 
+	/* bash's readline probe is attached here rather than by the skeleton:
+	 * on a distro whose bash imports readline from libreadline.so the symbol
+	 * has no section in bash, libbpf's per-target symbol search fails, and a
+	 * skeleton attach is all-or-nothing (issue #250). */
+	{
+		char readline_path[PATH_MAX];
+		const char *target = find_readline_target(readline_path,
+							  sizeof(readline_path));
+
+		if (target) {
+			LIBBPF_OPTS(bpf_uprobe_opts, uprobe_opts,
+				    .func_name = READLINE_SYM, .retprobe = true);
+			readline_link = bpf_program__attach_uprobe_opts(
+				skel->progs.bash_readline, env.pid, target, 0,
+				&uprobe_opts);
+			/* libbpf_get_error() maps a valid link to 0. */
+			err = readline_link ? libbpf_get_error(readline_link) : -1;
+			if (err) {
+				bpf_link__destroy(readline_link);
+				readline_link = NULL;
+				fprintf(stderr,
+					"Warning: bash readline probe not attached (%s): %d\n",
+					target, err);
+				err = 0;
+			}
+		} else if (env.verbose) {
+			fprintf(stderr,
+				"bash readline probe skipped: no bash defines readline\n");
+		}
+	}
+
 	/* Set up ring buffer polling with pid_tracker as context */
 	rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, &pid_tracker, NULL);
 	if (!rb) {
@@ -1342,6 +1375,7 @@ cleanup:
 	/* Clean up */
 	if (pidns_fd >= 0)
 		close(pidns_fd);
+	bpf_link__destroy(readline_link);
 	ring_buffer__free(rb);
 	process_bpf__destroy(skel);
 	
