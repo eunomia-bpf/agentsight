@@ -321,9 +321,9 @@ $(OUTPUT)/test_readline_probe.o: tests/test_readline_probe.c readline_probe.h | 
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
 
-test_readline_probe: $(OUTPUT)/test_readline_probe.o | $(OUTPUT)
+test_readline_probe: $(OUTPUT)/test_readline_probe.o $(OUTPUT)/readline_fixture_undef $(OUTPUT)/libreadline_fixture_def.so | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -o $@
+	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -lelf -o $@
 
 # Fixtures: one object that imports readline, one shared object that defines
 # it — the /usr/bin/bash + libreadline.so shape issue #250 is about.
