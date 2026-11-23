@@ -19,6 +19,9 @@ pub struct SandboxIdentity {
     pub runtime: Option<String>,
 }
 
+/// Cache of runtime metadata per kernel cgroup id. An entry is reused only
+/// while the id still names the cgroup it was resolved from; the kernel can
+/// hand a removed cgroup's id to a different one.
 #[derive(Default)]
 pub struct SandboxResolver {
     cgroups: HashMap<u64, SandboxIdentity>,
@@ -33,7 +36,7 @@ impl SandboxResolver {
         ) else {
             return;
         };
-        let identity = self.resolve(cgroup, pidns, || resolve_cgroup(cgroup, pid));
+        let identity = self.resolve(cgroup, pidns, pid, || resolve_cgroup(cgroup, pid));
         event["sandbox"] = serde_json::to_value(identity).unwrap_or(Value::Null);
     }
 
@@ -41,8 +44,20 @@ impl SandboxResolver {
         &mut self,
         cgroup: u64,
         pidns: u64,
+        pid: u64,
         lookup: impl FnOnce() -> SandboxIdentity,
     ) -> SandboxIdentity {
+        let reusable = self.cgroups.get(&cgroup).is_some_and(|entry| {
+            entry_usable(
+                entry,
+                cgroup,
+                recorded_inode(entry),
+                live_cgroup(pid).as_ref(),
+            )
+        });
+        if !reusable {
+            self.cgroups.remove(&cgroup);
+        }
         let mut identity = self.cgroups.entry(cgroup).or_insert_with(lookup).clone();
         // A cgroup can contain multiple nested PID namespaces. Cache runtime
         // metadata by cgroup, but keep their lifetimes and commands separate.
@@ -51,6 +66,50 @@ impl SandboxResolver {
         identity.pidns = pidns;
         identity
     }
+}
+
+/// Decide whether a cached entry may still speak for the kernel id `cgroup`.
+///
+/// The kernel can reuse a removed cgroup's id for an unrelated cgroup, so an
+/// entry is only good while the cgroup it described still exists:
+/// `recorded_inode` is a live `stat` of its path. When that cgroup is gone,
+/// the process reporting the event is asked next; it proves reuse when it sits
+/// in a cgroup whose inode is `cgroup` but whose path is not the cached one.
+/// A process in a cgroup with another id, or one that has already exited,
+/// says nothing, and the entry stays for the events it still explains.
+fn entry_usable(
+    entry: &SandboxIdentity,
+    cgroup: u64,
+    recorded_inode: Option<u64>,
+    live: Option<&(String, u64)>,
+) -> bool {
+    let Some(cached_path) = entry.cgroup_path.as_deref() else {
+        // Nothing path-derived was cached, so nothing path-derived can be stale.
+        return true;
+    };
+    if recorded_inode.is_some() {
+        return true;
+    }
+    !live.is_some_and(|(path, inode)| *inode == cgroup && path != cached_path)
+}
+
+/// Inode of the cgroup a cached entry recorded, if it still exists there.
+fn recorded_inode(entry: &SandboxIdentity) -> Option<u64> {
+    let path = entry.cgroup_path.as_deref()?;
+    cgroup_inode(&cgroup_root().join(path.trim_start_matches('/')))
+}
+
+/// Path and inode of the cgroup a process is in now, if it is still alive.
+fn live_cgroup(pid: u64) -> Option<(String, u64)> {
+    let path = std::fs::read_to_string(format!("/proc/{pid}/cgroup"))
+        .ok()
+        .and_then(|s| unified_path(&s).map(str::to_owned))?;
+    let inode = cgroup_inode(&cgroup_root().join(path.trim_start_matches('/')))?;
+    Some((path, inode))
+}
+
+fn cgroup_root() -> &'static Path {
+    Path::new("/sys/fs/cgroup")
 }
 
 fn unified_path(contents: &str) -> Option<&str> {
@@ -124,7 +183,7 @@ fn find_cgroup(root: &Path, id: u64) -> Option<std::path::PathBuf> {
 }
 
 fn resolve_cgroup(id: u64, pid: u64) -> SandboxIdentity {
-    let root = Path::new("/sys/fs/cgroup");
+    let root = cgroup_root();
     // Verify the inode: /proc can already refer to a reused PID or a process
     // that moved cgroups. Delayed exit/network events retain the kernel ID.
     let proc_path = std::fs::read_to_string(format!("/proc/{pid}/cgroup"))
@@ -207,8 +266,8 @@ mod tests {
     #[test]
     fn caches_failures_and_separates_namespaces_in_one_cgroup() {
         let mut resolver = SandboxResolver::default();
-        let first = resolver.resolve(42, 100, SandboxIdentity::default);
-        let second = resolver.resolve(42, 200, || panic!("cgroup must only be resolved once"));
+        let first = resolver.resolve(42, 100, 1, SandboxIdentity::default);
+        let second = resolver.resolve(42, 200, 1, || panic!("cgroup must only be resolved once"));
         assert_ne!(first.id, second.id);
         assert_eq!(second.pidns, 200);
         assert_eq!(second.cgroup_id, 42);
@@ -216,5 +275,39 @@ mod tests {
         let mut old = json!({"event":"EXEC", "pid":1});
         resolver.enrich(&mut old);
         assert!(old.get("sandbox").is_none());
+    }
+
+    /// The kernel can hand a removed cgroup's id to an unrelated cgroup, so a
+    /// cached entry must stop answering once the cgroup it described is gone.
+    #[test]
+    fn a_reused_cgroup_id_drops_the_stale_entry() {
+        let cached = SandboxIdentity {
+            cgroup_id: 42,
+            cgroup_path: Some("/system.slice/gone.scope".to_owned()),
+            name: Some("gone".to_owned()),
+            ..Default::default()
+        };
+        let same_id_elsewhere = ("/system.slice/other.scope".to_owned(), 42);
+        let another_id = ("/system.slice/other.scope".to_owned(), 43);
+
+        // The recorded cgroup still exists: nothing to re-derive.
+        assert!(entry_usable(&cached, 42, Some(42), None));
+        // Gone, and the live process shows the id now names a different cgroup.
+        assert!(!entry_usable(&cached, 42, None, Some(&same_id_elsewhere)));
+        // Gone, and the live process is in a cgroup the id does not name: the
+        // entry says nothing about it, so it stays for delayed events.
+        assert!(entry_usable(&cached, 42, None, Some(&another_id)));
+        // Gone, and the path is still the recorded one: identity unchanged.
+        let renamed_same_path = ("/system.slice/gone.scope".to_owned(), 42);
+        assert!(entry_usable(&cached, 42, None, Some(&renamed_same_path)));
+        // Gone with no live process to ask: a delayed event keeps it.
+        assert!(entry_usable(&cached, 42, None, None));
+        // Nothing path-derived was cached, so nothing can be stale.
+        assert!(entry_usable(
+            &SandboxIdentity::default(),
+            42,
+            None,
+            Some(&same_id_elsewhere)
+        ));
     }
 }
