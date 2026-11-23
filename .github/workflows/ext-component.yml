@@ -26,7 +26,13 @@ jobs:
 
       - name: Enforce extension dependency direction
         run: |
-          ! cargo tree --manifest-path agentsight-capture/Cargo.toml | grep -q 'agent-session'
+          # `! cmd` never fails a `set -e` step: the negation makes the status
+          # zero even when the pipeline matched. Test the match explicitly.
+          if cargo tree --manifest-path agentsight-capture/Cargo.toml | grep -q 'agent-session'; then
+            echo "agentsight-capture still depends on agent-session:" >&2
+            cargo tree --manifest-path agentsight-capture/Cargo.toml | grep 'agent-session' >&2
+            exit 1
+          fi
           test -e ext/session/src/process_match.rs
 
       - name: Validate release metadata updater
