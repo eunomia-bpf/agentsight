@@ -11,6 +11,7 @@
 #[cfg(target_arch = "wasm32")]
 mod component;
 mod parser;
+mod process_match;
 mod types;
 
 pub const AGENT_CLAUDE: &str = "claude";
