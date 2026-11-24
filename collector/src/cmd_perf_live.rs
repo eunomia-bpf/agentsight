@@ -39,7 +39,7 @@ const LIVE_EBPF_ROOT_NOTE: &str = "live eBPF process capture enabled";
 const LIVE_EBPF_SUDO_NOTE: &str = "live eBPF process capture enabled via sudo";
 #[cfg(any(test, target_os = "linux"))]
 const LIVE_EBPF_UNAVAILABLE_NOTE: &str = "no eBPF: showing process snapshots and agent-native sessions only (run with sudo or configure passwordless sudo for kernel probes)";
-#[cfg(any(test, not(any(target_os = "linux", target_os = "windows"))))]
+#[cfg(all(not(target_os = "linux"), any(test, not(target_os = "windows"))))]
 const LIVE_EBPF_UNSUPPORTED_NOTE: &str = "no eBPF: live kernel probes are Linux-only; showing process snapshots and agent-native sessions only";
 #[cfg(target_os = "windows")]
 const WINDOWS_ETW_REQUIRES_PID_NOTE: &str =
@@ -321,7 +321,7 @@ pub(crate) async fn start_live_capture(options: &TopOptions) -> LiveCapture {
     }
 }
 
-#[cfg(any(test, not(any(target_os = "linux", target_os = "windows"))))]
+#[cfg(all(not(target_os = "linux"), any(test, not(target_os = "windows"))))]
 fn prepare_live_ebpf_privileges() -> Result<Option<String>, String> {
     if let Err(err) = ensure_agentsight_state_dir() {
         log::warn!("could not create ~/.agentsight: {err}");
