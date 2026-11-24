@@ -23,6 +23,10 @@ Current architecture notes:
 - [View, Session, And Process Model](view-session-process-model.md)
 - [AgentSight Top as a Session Monitor](session-centric-top.md)
 
+Platform capture designs:
+
+- [Windows Native Capture](windows-native-capture.md)
+
 Product and workflow proposals:
 
 - [Agent Behavior Analysis Skills](agent-behavior-analysis-skills.md)
