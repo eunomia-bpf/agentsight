@@ -32,10 +32,22 @@ are not inferred yet.
 | `--otel` | off | Enable GenAI span export. |
 | `--otel-endpoint <URL>` | `$OTEL_EXPORTER_OTLP_ENDPOINT` or `http://localhost:4318` | OTLP/HTTP base endpoint. `/v1/traces` is appended. |
 | `--otel-capture-content` | off | Include `gen_ai.input.messages` / `gen_ai.output.messages`. |
+| `--content-redaction <MODE>` | `preview` | Redact high-confidence secrets/PII (`preview`, `full`, or `off`) before persistence, UI, and OTLP export. |
 
 Standard OTel env vars are honored: `OTEL_EXPORTER_OTLP_ENDPOINT`,
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (used as-is if set), and `OTEL_SERVICE_NAME`
 (default `agentsight`).
+
+Content capture and redaction are independent controls:
+
+- `--otel-capture-content` defaults to off so no prompt or completion text is
+  exported unless explicitly requested.
+- When content is captured (for SQLite, `debug` output, or `--otel-capture-content`),
+  `--content-redaction` defaults to `preview`, masking private keys, AWS/provider
+  API keys, JWTs, credential URIs, Bearer/key-value secrets, Luhn/IIN-validated
+  payment cards, validated national IDs, and phone numbers while keeping short
+  prefixes/suffixes for troubleshooting. Use `full` for `[REDACTED:<rule>]`
+  placeholders or `off` to keep raw content.
 
 ## Run a collector
 
