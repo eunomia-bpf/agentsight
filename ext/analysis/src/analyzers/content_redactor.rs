@@ -268,7 +268,11 @@ pub fn redact_text(input: &str, mode: RedactionMode) -> (String, RedactionStats)
     let mut out = String::with_capacity(input.len());
     let mut cursor = 0;
     for m in selected {
-        if m.start < cursor || m.end > input.len() {
+        if m.start < cursor
+            || m.end > input.len()
+            || !input.is_char_boundary(m.start)
+            || !input.is_char_boundary(m.end)
+        {
             continue;
         }
         out.push_str(&input[cursor..m.start]);
@@ -284,21 +288,29 @@ fn full_marker(rule: RedactionRule) -> String {
     format!("[REDACTED:{}]", rule.as_str())
 }
 
+/// 将字节偏移向下对齐到合法的 UTF-8 字符边界，避免切片落在多字节字符内部触发 panic。
+fn floor_char_boundary(s: &str, mut idx: usize) -> usize {
+    idx = idx.min(s.len());
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    idx
+}
+
 fn mask_token_preview(token: &str, keep_prefix: usize, keep_suffix: usize) -> String {
-    let bytes = token.as_bytes();
-    if bytes.len() <= keep_prefix + keep_suffix {
-        if bytes.len() <= 4 {
+    // 按 Unicode 标量字符数截取，避免含多字节 UTF-8 字符的敏感值预览触发边界 panic。
+    let char_count = token.chars().count();
+    let (head_len, tail_len) = if char_count <= keep_prefix + keep_suffix {
+        if char_count <= 4 {
             return "****".to_string();
         }
-        let head = &token[..2];
-        let tail = &token[bytes.len() - 2..];
-        return format!("{head}****{tail}");
-    }
-    format!(
-        "{}****{}",
-        &token[..keep_prefix],
-        &token[bytes.len() - keep_suffix..]
-    )
+        (2, 2)
+    } else {
+        (keep_prefix, keep_suffix)
+    };
+    let head: String = token.chars().take(head_len).collect();
+    let tail: String = token.chars().skip(char_count - tail_len).collect();
+    format!("{head}****{tail}")
 }
 
 fn is_ascii_word_byte(b: u8) -> bool {
@@ -333,7 +345,7 @@ fn collect_private_keys(input: &str, mode: RedactionMode, out: &mut Vec<Candidat
     while let Some(rel_begin) = input[search_from..].find(BEGIN_PREFIX) {
         let begin = search_from + rel_begin;
         let header_body_start = begin + BEGIN_PREFIX.len();
-        let search_limit = (header_body_start + 64).min(input.len());
+        let search_limit = floor_char_boundary(input, header_body_start + 64);
         let Some(rel_hdr_end) = input[header_body_start..search_limit].find(PRIVATE_KEY_SUFFIX)
         else {
             search_from = header_body_start;
@@ -350,7 +362,7 @@ fn collect_private_keys(input: &str, mode: RedactionMode, out: &mut Vec<Candidat
         let header_end = header_body_start + rel_hdr_end + PRIVATE_KEY_SUFFIX.len();
         let begin_marker = &input[begin..header_end];
         let end_marker = format!("-----END {label}{PRIVATE_KEY_SUFFIX}");
-        let body_limit = (header_end + MAX_PEM_BYTES).min(input.len());
+        let body_limit = floor_char_boundary(input, header_end + MAX_PEM_BYTES);
         let Some(rel_end) = input[header_end..body_limit].find(&end_marker) else {
             search_from = header_end;
             continue;
@@ -393,6 +405,7 @@ fn collect_credential_uris(input: &str, mode: RedactionMode, out: &mut Vec<Candi
     ];
     let bytes = input.as_bytes();
     let lower = input.to_ascii_lowercase();
+    let lower_bytes = lower.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
         let Some(rel_sep) = lower[i..].find("://") else {
@@ -401,7 +414,10 @@ fn collect_credential_uris(input: &str, mode: RedactionMode, out: &mut Vec<Candi
         let sep = i + rel_sep;
         let mut matched_scheme_start = None;
         for scheme in SCHEMES {
-            if sep >= scheme.len() && &lower[sep - scheme.len()..sep] == *scheme {
+            // 使用字节切片比较 scheme，避免 `sep - scheme.len()` 落在前置多字节 UTF-8 字符内部。
+            if sep >= scheme.len()
+                && &lower_bytes[sep - scheme.len()..sep] == scheme.as_bytes()
+            {
                 let start = sep - scheme.len();
                 let before_ok = !prev_byte(bytes, start)
                     .is_some_and(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'-' | b'.'));
@@ -473,7 +489,10 @@ fn collect_aws_access_keys(input: &str, mode: RedactionMode, out: &mut Vec<Candi
                 .iter()
                 .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
         {
-            let token = &input[i..i + 20];
+            let Some(token) = input.get(i..i + 20) else {
+                i += 1;
+                continue;
+            };
             let replacement = match mode {
                 RedactionMode::Preview => mask_token_preview(token, 4, 4),
                 RedactionMode::Full => full_marker(RedactionRule::AwsAccessKey),
@@ -700,7 +719,8 @@ fn collect_provider_api_keys(input: &str, mode: RedactionMode, out: &mut Vec<Can
     while i < bytes.len() {
         let mut matched = None;
         for spec in SPECS {
-            if input[i..].starts_with(spec.prefix) {
+            // 按字节前缀匹配，避免按字节步进的 `i` 落在多字节 UTF-8 字符内部时切片 panic。
+            if bytes[i..].starts_with(spec.prefix.as_bytes()) {
                 let mut end = i + spec.prefix.len();
                 while end < bytes.len() {
                     let b = bytes[end];
@@ -732,7 +752,10 @@ fn collect_provider_api_keys(input: &str, mode: RedactionMode, out: &mut Vec<Can
         }
 
         if let Some((end, preview_keep)) = matched {
-            let token = &input[i..end];
+            let Some(token) = input.get(i..end) else {
+                i = end;
+                continue;
+            };
             let replacement = match mode {
                 RedactionMode::Preview => mask_token_preview(token, preview_keep, 4),
                 RedactionMode::Full => full_marker(RedactionRule::ProviderApiKey),
@@ -782,7 +805,10 @@ fn collect_jwts(input: &str, mode: RedactionMode, out: &mut Vec<CandidateMatch>)
                     if r - sig_start >= 16
                         && !next_byte(bytes, r).is_some_and(|b| is_base64url_byte(b) || b == b'.')
                     {
-                        let token = &input[i..r];
+                        let Some(token) = input.get(i..r) else {
+                            i = r;
+                            continue;
+                        };
                         let replacement = match mode {
                             RedactionMode::Preview => mask_token_preview(token, 10, 4),
                             RedactionMode::Full => full_marker(RedactionRule::Jwt),
@@ -852,11 +878,13 @@ fn collect_auth_scheme_secrets(input: &str, mode: RedactionMode, out: &mut Vec<C
     const SCHEMES: &[&str] = &["bearer", "basic"];
     let bytes = input.as_bytes();
     let lower = input.to_ascii_lowercase();
+    let lower_bytes = lower.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
         let mut matched_len = None;
         for scheme in SCHEMES {
-            if lower[i..].starts_with(scheme) {
+            // 按字节匹配认证方案前缀，避免 `i` 处于非字符边界时触发 panic。
+            if lower_bytes[i..].starts_with(scheme.as_bytes()) {
                 let before_ok = !prev_byte(bytes, i).is_some_and(is_ascii_word_byte);
                 let after = i + scheme.len();
                 if before_ok
@@ -889,7 +917,10 @@ fn collect_auth_scheme_secrets(input: &str, mode: RedactionMode, out: &mut Vec<C
             }
             val_end += 1;
         }
-        let value = &input[val_start..val_end];
+        let Some(value) = input.get(val_start..val_end) else {
+            i = val_end.max(i + scheme_len);
+            continue;
+        };
         if value.len() >= 16 && !is_placeholder_secret(value) {
             let replacement = match mode {
                 RedactionMode::Preview => mask_token_preview(value, 4, 4),
@@ -936,11 +967,13 @@ fn collect_named_key_secrets(input: &str, mode: RedactionMode, out: &mut Vec<Can
 
     let bytes = input.as_bytes();
     let lower = input.to_ascii_lowercase();
+    let lower_bytes = lower.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
         let mut matched_key: Option<(usize, usize)> = None;
         for &(key, min_val_len) in KEYS {
-            if lower[i..].starts_with(key)
+            // 按字节匹配键名，避免 `i` 处于多字节 UTF-8 字符内部时触发切片 panic。
+            if lower_bytes[i..].starts_with(key.as_bytes())
                 && !prev_byte(bytes, i).is_some_and(is_ascii_word_byte)
                 && !next_byte(bytes, i + key.len()).is_some_and(is_ascii_word_byte)
             {
@@ -1000,7 +1033,10 @@ fn collect_named_key_secrets(input: &str, mode: RedactionMode, out: &mut Vec<Can
         }
 
         let val_end = p;
-        let value = &input[val_start..val_end];
+        let Some(value) = input.get(val_start..val_end) else {
+            i = val_end.max(i + key_len);
+            continue;
+        };
         if value.len() >= min_val_len
             && !value.contains("://")
             && !is_placeholder_secret(value)
@@ -1618,5 +1654,71 @@ mod tests {
             .collect()
             .await;
         assert!(out[0].data["body"].as_str().unwrap().contains(&openai));
+    }
+
+    #[test]
+    fn redacts_secrets_surrounded_by_multibyte_utf8_without_panicking() {
+        let openai = ["sk-proj-", "abc1234567890XYZ9876543210"].concat();
+        let sk_key = ["sk-", "mixed1234567890abcdef9999"].concat();
+        let aws = ["AKIA", "IOSFODNN7EXAMPLE"].concat();
+        let jwt = [
+            "eyJhbGciOiJIUzI1NiJ9",
+            "eyJzdWIiOiIxMjM0NTY3ODkwIn0",
+            "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        ]
+        .join(".");
+        let bearer_token = ["utf8_bearer_", "token_987654321"].concat();
+        let client_secret = ["utf8_client_", "secret_556677"].concat();
+        let utf8_password = ["中文密码", "很长的密码", "1234"].concat();
+        let uri_pw = ["密码Secret", "Pw99"].concat();
+        let uri = format!("postgres://alice:{uri_pw}@db.local/app");
+        let pem_header_probe = format!("-----BEGIN {}’ trailing", "A".repeat(63));
+
+        let sample = format!(
+            "ő ≤ ’{openai}’ ≥ 🔐中文 {sk_key} 中文前缀 {aws} ő {jwt} \
+             Bearer {bearer_token} client_secret={client_secret} \
+             password={utf8_password} 中文://host {uri} {pem_header_probe}"
+        );
+
+        let (preview, preview_stats) = redact_text(&sample, RedactionMode::Preview);
+        assert!(preview.contains("’sk-proj-****3210’"));
+        assert!(preview.contains("sk-mi****9999"));
+        assert!(preview.contains("AKIA****MPLE"));
+        assert!(preview.contains("eyJhbGciOi****sw5c"));
+        assert!(preview.contains("Bearer utf8****4321"));
+        assert!(preview.contains("client_secret=utf****677"));
+        assert!(preview.contains("password=中文密****234"));
+        assert!(preview.contains("postgres://alice:****@db.local/app"));
+        assert!(preview.contains("ő ≤ "));
+        assert!(preview.contains("中文://host"));
+        assert!(preview.contains(&pem_header_probe));
+        assert!(!preview.contains(&openai));
+        assert!(!preview.contains(&sk_key));
+        assert!(!preview.contains(&aws));
+        assert!(!preview.contains(&jwt));
+        assert!(!preview.contains(&bearer_token));
+        assert!(!preview.contains(&client_secret));
+        assert!(!preview.contains(&utf8_password));
+        assert!(!preview.contains(&uri_pw));
+        assert_eq!(preview_stats.count(RedactionRule::ProviderApiKey), 2);
+        assert_eq!(preview_stats.count(RedactionRule::AwsAccessKey), 1);
+        assert_eq!(preview_stats.count(RedactionRule::Jwt), 1);
+        assert_eq!(preview_stats.count(RedactionRule::KeyValueSecret), 3);
+        assert_eq!(preview_stats.count(RedactionRule::CredentialUri), 1);
+        assert_eq!(preview_stats.total(), 8);
+
+        let (full, full_stats) = redact_text(&sample, RedactionMode::Full);
+        assert_eq!(full_stats, preview_stats);
+        assert!(full.contains("’[REDACTED:provider_api_key]’"));
+        assert!(full.contains("password=[REDACTED:key_value_secret]"));
+        assert!(full.contains("postgres://alice:[REDACTED:credential_uri]@db.local/app"));
+    }
+
+    #[test]
+    fn preserves_plain_multibyte_utf8_transcript_text_without_panicking() {
+        let benign = "用户提问：为什么 x ≤ y 且 y ≥ z？It’s working — ő, 🔐, 中文://example, sk-not-a-secret-token";
+        let (out, stats) = redact_text(benign, RedactionMode::Preview);
+        assert_eq!(out, benign);
+        assert_eq!(stats.total(), 0);
     }
 }
