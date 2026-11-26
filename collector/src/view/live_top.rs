@@ -1219,6 +1219,7 @@ mod tests {
             Snapshot {
                 audit_events: vec![
                     crate::model::AuditEventRow {
+                        sandbox_id: None,
                         id: "exec-child".to_string(),
                         timestamp_ms: 2,
                         audit_type: "process".to_string(),
@@ -1234,6 +1235,7 @@ mod tests {
                         confidence: Some(0.75),
                     },
                     crate::model::AuditEventRow {
+                        sandbox_id: None,
                         id: "exit-child".to_string(),
                         timestamp_ms: 3,
                         audit_type: "process".to_string(),
@@ -1291,6 +1293,7 @@ mod tests {
             Snapshot {
                 audit_events: vec![
                     crate::model::AuditEventRow {
+                        sandbox_id: None,
                         id: "present-root".to_string(),
                         timestamp_ms: 1,
                         audit_type: "process".to_string(),
@@ -1306,6 +1309,7 @@ mod tests {
                         confidence: Some(0.75),
                     },
                     crate::model::AuditEventRow {
+                        sandbox_id: None,
                         id: "exit-root".to_string(),
                         timestamp_ms: 2,
                         audit_type: "process".to_string(),
@@ -1321,6 +1325,7 @@ mod tests {
                         confidence: Some(0.75),
                     },
                     crate::model::AuditEventRow {
+                        sandbox_id: None,
                         id: "exec-child".to_string(),
                         timestamp_ms: 3,
                         audit_type: "process".to_string(),
@@ -1399,6 +1404,7 @@ mod tests {
         let capture = LiveCaptureSnapshot::with_backend(
             Snapshot {
                 audit_events: vec![crate::model::AuditEventRow {
+                    sandbox_id: None,
                     id: "exit-child".to_string(),
                     timestamp_ms: 3,
                     audit_type: "process".to_string(),
