@@ -13,6 +13,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import type { CloudNode, LocalConnection } from '@/lib/connection';
+import type { LoginProvider } from '@/lib/controllerClient';
 import { directCloudSyncEnabled, type NodeTransport } from '@/lib/nodeClient';
 import { shouldConfigureDirect } from '@/lib/nodeOpening.mjs';
 import { useTranslation } from '@/i18n';
@@ -41,6 +42,9 @@ interface NodeManagerProps {
   onForgetCloudDirect: (nodeId: string) => void;
   onDemo: () => void;
   onSignOut: () => void;
+  configuredLoginProviders: LoginProvider[];
+  linkedLoginProviders: LoginProvider[];
+  onLinkProvider: (provider: LoginProvider) => void;
 }
 
 function formatSeen(value: number, locale: string): string {
@@ -78,6 +82,9 @@ export function NodeManager({
   onForgetCloudDirect,
   onDemo,
   onSignOut,
+  configuredLoginProviders,
+  linkedLoginProviders,
+  onLinkProvider,
 }: NodeManagerProps) {
   const { locale, t } = useTranslation();
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
@@ -335,8 +342,16 @@ export function NodeManager({
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 border-t border-slate-200 pt-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            {configuredLoginProviders.filter((provider) => !linkedLoginProviders.includes(provider)).map((provider) => (
+              <button key={provider} type="button" onClick={() => onLinkProvider(provider)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                {provider === 'google' ? t('account.linkGoogle') : t('account.linkGitHub')}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-end gap-4">
             <button type="button" onClick={onDemo} className="text-sm font-medium text-slate-600 hover:text-slate-950">
               {t('nodes.demo')}
             </button>
