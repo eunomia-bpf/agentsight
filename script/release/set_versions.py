@@ -38,6 +38,7 @@ DEPENDENCIES = {
     "ext/pprof/Cargo.toml": {"agent-session": "session"},
     "collector/Cargo.toml": {
         "agentsight-capture": "release",
+        "agentsight-capture-core": "release",
         "agentsight-protocol": "release",
         "agent-session": "session",
         "agentvis": "release",
