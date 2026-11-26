@@ -150,40 +150,36 @@ to `/api/v1/snapshot` without an access token should return HTTP `401`.
 
 ## Windows
 
-### Install the native artifact
+### Install a release binary
 
-Until a Windows asset is attached to GitHub Releases, the repository's
-successful **Windows native** workflow uploads `agentsight-windows-x86_64`.
-Download the latest successful artifact with an authenticated GitHub CLI:
+GitHub Releases publish a Windows x86-64 executable (`agentsight-windows-x86_64.exe`)
+along with a SHA-256 checksum file (`agentsight-windows-x86_64.exe.sha256`).
+Download and verify the latest release:
 
 ```powershell
-$repo = 'eunomia-bpf/agentsight'
-$runs = gh run list --repo $repo --workflow windows.yml --limit 50 `
-  --json databaseId,conclusion,headSha,url | ConvertFrom-Json
-$run = $runs | Where-Object conclusion -eq 'success' | Where-Object {
-  $prs = gh api -H 'Accept: application/vnd.github+json' `
-    "repos/$repo/commits/$($_.headSha)/pulls" | ConvertFrom-Json
-  $prs | Where-Object { $_.merged_at -and $_.base.ref -eq 'master' }
-} | Select-Object -First 1
-if (-not $run) { throw 'No successful merged Windows workflow was found.' }
-$run | Select-Object databaseId,headSha,url
-
-$download = Join-Path $env:TEMP 'agentsight-windows'
-New-Item -ItemType Directory -Force -Path $download | Out-Null
-gh run download $run.databaseId --repo $repo `
-  --name agentsight-windows-x86_64 --dir $download
-
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Copy-Item (Join-Path $download 'agentsight.exe') $installDir -Force
-& (Join-Path $installDir 'agentsight.exe') --version
+$exe = Join-Path $installDir 'agentsight.exe'
+$checksum = Join-Path $env:TEMP 'agentsight-windows-x86_64.exe.sha256'
+
+$base = 'https://github.com/eunomia-bpf/agentsight/releases/latest/download'
+Invoke-WebRequest "$base/agentsight-windows-x86_64.exe" -OutFile $exe
+Invoke-WebRequest "$base/agentsight-windows-x86_64.exe.sha256" -OutFile $checksum
+
+$expected = ((Get-Content -Raw $checksum).Trim() -split '\s+')[0].ToLowerInvariant()
+$actual = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $expected) {
+  Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+  throw "SHA-256 mismatch: expected $expected, got $actual"
+}
+& $exe --version
 ```
 
-Actions artifacts are retained for a limited time. If none is available, build
+For unreleased commits or custom builds, build
 `collector/target/release/agentsight.exe` as described in
-[Build From Source](build.md). The merged-PR check above excludes successful
-artifacts from unmerged pull-request heads, including in repositories that use
-squash merges.
+[Build From Source](build.md), or download the short-lived
+`agentsight-windows-x86_64` CI artifact from a merged **Windows native**
+workflow run via `gh run download`.
 
 Optionally add the install directory to the user `PATH`:
 
