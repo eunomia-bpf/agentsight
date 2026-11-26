@@ -95,7 +95,19 @@ pub struct SnapshotOptions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SandboxRow {
+    #[serde(flatten)]
+    pub identity: agentsight_capture_core::sandbox::SandboxIdentity,
+    pub first_seen_ms: u64,
+    pub last_seen_ms: u64,
+    pub end_timestamp_ms: Option<u64>,
+    pub exit_code: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
+    #[serde(default)]
+    pub sandboxes: Vec<SandboxRow>,
     pub schema_version: u16,
     pub generated_at: String,
     pub summary: SnapshotSummary,
@@ -111,6 +123,7 @@ pub struct Snapshot {
 impl Snapshot {
     pub fn empty(source: impl Into<String>) -> Self {
         Self {
+            sandboxes: Vec::new(),
             schema_version: 1,
             generated_at: String::new(),
             summary: SnapshotSummary::empty(source),
@@ -169,6 +182,8 @@ impl SnapshotSummary {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkTargetRow {
+    #[serde(default)]
+    pub sandbox_id: Option<String>,
     pub pid: Option<u32>,
     pub comm: Option<String>,
     pub host: String,
@@ -190,6 +205,8 @@ pub struct ResourceSampleRow {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditEventRow {
+    #[serde(default)]
+    pub sandbox_id: Option<String>,
     pub id: String,
     pub timestamp_ms: u64,
     pub audit_type: String,
@@ -258,6 +275,8 @@ impl AuditCounters {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessNodeRow {
+    #[serde(default)]
+    pub sandbox_id: Option<String>,
     pub id: String,
     pub pid: u32,
     pub ppid: Option<u32>,
@@ -328,6 +347,10 @@ pub trait ViewSink: Send {
     }
 
     fn tool_call(&mut self, _row: &ToolCallRow) -> ViewResult<()> {
+        Ok(())
+    }
+
+    fn sandbox(&mut self, _row: &SandboxRow) -> ViewResult<()> {
         Ok(())
     }
 

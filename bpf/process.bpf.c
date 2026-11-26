@@ -136,6 +136,8 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 		return 0;
 
 	/* fill out the sample with data */
+	e->cgroup_id = bpf_get_current_cgroup_id();
+	current_pid_namespace(&e->pidns, &e->pidns_pid);
 	e->type = EVENT_TYPE_PROCESS;
 	e->exit_event = false;
 	e->pid = pid;
@@ -237,6 +239,8 @@ int handle_exit(struct trace_event_raw_sched_process_template* ctx)
 	/* fill out the sample with data */
 	task = (struct task_struct *)bpf_get_current_task();
 
+	e->cgroup_id = bpf_get_current_cgroup_id();
+	current_pid_namespace(&e->pidns, &e->pidns_pid);
 	e->type = EVENT_TYPE_PROCESS;
 	e->exit_event = true;
 	e->duration_ns = duration_ns;

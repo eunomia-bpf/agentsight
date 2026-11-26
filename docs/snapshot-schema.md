@@ -24,6 +24,7 @@ when AgentSight does not have a value; arrays are emitted as empty arrays.
 | `token_summary` | array | Metadata | Token totals grouped by model. |
 | `network_targets` | array | Yes | Observed network destinations and request paths. |
 | `process_nodes` | array | Yes | Observed process metadata and command lines. |
+| `sandboxes` | array | Metadata | Observed cgroups and PID namespaces, with runtime metadata when available. |
 | `audit_events` | array | Yes | Bounded event history; see `summary.audit_limit`. |
 | `resource_samples` | array | Metadata | Process CPU and memory samples. |
 | `sessions` | array | Yes | Agent-session summaries and source attributes. |
@@ -62,10 +63,49 @@ Their totals are available through `summary` and `token_summary`.
 | `calls` | integer | No | No. |
 | `sessions` | integer | No | No. |
 
+## `sandboxes[]`
+
+Sandbox identity is observed from the host kernel for any cgroup/PID namespace;
+it does not require a sandbox SDK. Runtime metadata is resolved once per cgroup
+ID using Docker/CRI inspection when available. A nested PID namespace in the
+same cgroup has a separate sandbox ID. Fields are additive in schema version 1;
+older recordings have an empty catalogue and null `sandbox_id` values.
+
+| Field | Type | Nullable | Meaning |
+| --- | --- | --- | --- |
+| `id` | string | No | Capture-local identity (`cgroup:<id>:pidns:<inode>`). |
+| `cgroup_id` | integer | No | Kernel cgroup ID. |
+| `cgroup_path` | string | Yes | Cgroup v2 path, including plain cgroups or systemd scopes. |
+| `pidns` | integer | No | Active PID namespace inode. |
+| `container_id` | string | Yes | Full container ID when recognized. |
+| `name` | string | Yes | Runtime container name, falling back to the cgroup path. |
+| `image` | string | Yes | Runtime image name/reference when inspection succeeds. |
+| `runtime` | string | Yes | Recognized runtime, such as Docker, containerd or CRI-O. |
+| `first_seen_ms` | integer | No | First observation (Unix milliseconds), not a proven creation time. |
+| `last_seen_ms` | integer | No | Last observation (Unix milliseconds). |
+| `end_timestamp_ms` | integer | Yes | Observed namespace-init exit time. |
+| `exit_code` | integer | Yes | Namespace-init exit code; child-command exits do not end a sandbox. |
+
+If runtime inspection is unavailable, cgroup/PID namespace identity still works.
+A removed cgroup that cannot be resolved retains its kernel ID with a null path.
+Missing exit evidence means “exit not observed”, including captures stopped
+before a sandbox ends. Cgroup paths require visibility of the host cgroup v2
+mount and `/proc`; cgroup IDs and namespace inodes are local to the capture host.
+Raw exec/exit and network summary JSON also carries `cgroup_id` and `pidns`;
+exec/exit includes `pidns_pid` to identify namespace-init exits.
+
+The Analysis timeline groups lifecycle, commands, connections and HTTP requests
+by sandbox. Per-request HTTP audit rows are used when present; older snapshots
+fall back to explicitly counted destination aggregates. “Previous model call”
+links use the latest completed call in the session, are labeled as inferred,
+and do not claim proven causality. Aggregate request windows have no causal link.
+Demo fixture sandbox metadata is mocked.
+
 ## `network_targets[]`
 
 | Field | Type | Nullable | May contain captured content? |
 | --- | --- | --- | --- |
+| `sandbox_id` | string | Yes | Reference to `sandboxes[].id`; null when identity was not captured. |
 | `pid` | integer | Yes | No. |
 | `comm` | string | Yes | Process metadata. |
 | `host` | string | No | Yes; observed destination host. |
@@ -79,6 +119,7 @@ Their totals are available through `summary` and `token_summary`.
 
 | Field | Type | Nullable | May contain captured content? |
 | --- | --- | --- | --- |
+| `sandbox_id` | string | Yes | Reference to `sandboxes[].id`; null when identity was not captured. |
 | `id` | string | No | Identifier metadata. |
 | `pid` | integer | No | No. |
 | `ppid` | integer | Yes | No. |
@@ -98,6 +139,7 @@ Their totals are available through `summary` and `token_summary`.
 
 | Field | Type | Nullable | May contain captured content? |
 | --- | --- | --- | --- |
+| `sandbox_id` | string | Yes | Reference to `sandboxes[].id`; null when identity was not captured. |
 | `id` | string | No | Identifier metadata. |
 | `timestamp_ms` | integer | No | No. |
 | `audit_type` | string | No | No. |

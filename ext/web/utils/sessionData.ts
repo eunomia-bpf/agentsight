@@ -473,6 +473,10 @@ export function sessionSnapshot(
     },
     token_summary: [],
     sessions: [session],
+    sandboxes: (snapshot.sandboxes ?? []).filter((sandbox) =>
+      processTree.some((process) => process.sandbox_id === sandbox.id)
+      || (snapshot.audit_events ?? []).some((row) => row.sandbox_id === sandbox.id && keepPidAt(row.pid, row.timestamp_ms))
+      || (snapshot.network_targets ?? []).some((row) => row.sandbox_id === sandbox.id && keepPidRange(row.pid, row.first_timestamp_ms, row.last_timestamp_ms))),
     process_nodes: processTree,
     audit_events: [
       ...(snapshot.audit_events ?? []).filter((event) => (

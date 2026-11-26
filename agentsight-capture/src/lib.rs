@@ -14,6 +14,7 @@ pub mod binary_extractor;
 pub mod binary_resolver;
 pub mod event;
 pub mod runners;
+pub mod sandbox;
 pub mod sources;
 pub mod time;
 

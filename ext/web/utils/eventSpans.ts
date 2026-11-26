@@ -9,10 +9,10 @@ import type {
   SnapshotToolCall,
 } from '@/types/event';
 
-export type EventSpanKind = 'exec' | 'llm' | 'network' | 'tool';
+export type EventSpanKind = 'sandbox' | 'exec' | 'llm' | 'network' | 'http' | 'tool';
 export type EventSpanStatus = 'success' | 'failed' | 'running' | 'unknown';
 
-export const EVENT_SPAN_KINDS: EventSpanKind[] = ['exec', 'llm', 'network', 'tool'];
+export const EVENT_SPAN_KINDS: EventSpanKind[] = ['sandbox', 'exec', 'network', 'http', 'llm', 'tool'];
 
 export interface EventSpan {
   id: string;
@@ -25,6 +25,10 @@ export interface EventSpan {
   open: boolean;
   status: EventSpanStatus;
   pid: number | null;
+  sandboxId?: string;
+  /** Temporal inference within the session, never a proven causal edge. */
+  modelCallId?: string;
+  aggregated?: boolean;
 }
 
 export interface EventSpanOptions {
@@ -43,14 +47,55 @@ export interface EventSpanOptions {
 export function eventSpans(snapshot: AgentSightSnapshot, options: EventSpanOptions = {}): EventSpan[] {
   const captureEnd = Math.max(latestTimestamp(snapshot), options.captureEnd ?? 0);
   const audit = snapshot.audit_events ?? [];
-  return [
+  const spans: EventSpan[] = [
+    ...(snapshot.sandboxes ?? []).map((sandbox): EventSpan => ({
+      id: `sandbox:${sandbox.id}`, kind: 'sandbox', label: sandbox.name || sandbox.cgroup_path || sandbox.id,
+      detail: [sandbox.image, sandbox.runtime, `pidns ${sandbox.pidns}`].filter(Boolean).join(' · '),
+      start: sandbox.first_seen_ms,
+      end: sandbox.end_timestamp_ms ?? sandbox.last_seen_ms,
+      open: sandbox.end_timestamp_ms == null,
+      status: sandbox.exit_code == null ? 'unknown' : sandbox.exit_code === 0 ? 'success' : 'failed',
+      pid: null, sandboxId: sandbox.id,
+    })),
     ...(snapshot.process_nodes ?? []).flatMap((process) => processSpan(process, captureEnd)),
     ...llmSpans(audit),
-    ...(snapshot.network_targets ?? []).flatMap(networkSpan),
-    ...audit.filter((event) => event.audit_type === 'network').map(connectSpan),
+    ...(snapshot.network_targets ?? []).filter((target) => !audit.some((row) =>
+      row.audit_type === 'network' && row.action?.startsWith('http_') && row.pid === target.pid
+      && row.sandbox_id === target.sandbox_id && row.target?.includes(target.host + (target.path ?? '')),
+    )).flatMap(networkSpan),
+    ...httpSpans(audit),
+    ...audit.filter((event) => event.audit_type === 'network' && !event.action?.startsWith('http_')).map(connectSpan),
     ...(snapshot.tool_calls ?? []).map((tool) => toolSpan(tool, captureEnd)),
     ...audit.filter(isTranscriptTool).map(transcriptToolSpan),
   ].sort((left, right) => left.start - right.start || left.end - right.end || left.id.localeCompare(right.id));
+  const processes = snapshot.process_nodes ?? [];
+  const processAt = (pid: number | null, at: number) => processes.filter((p) => p.pid === pid
+    && (p.start_timestamp_ms ?? 0) <= at && (p.end_timestamp_ms ?? Infinity) >= at)
+    .sort((a, b) => (b.start_timestamp_ms ?? 0) - (a.start_timestamp_ms ?? 0))[0];
+  const family = (span: EventSpan) => {
+    let process = processAt(span.pid, span.start);
+    const seen = new Set<number>();
+    while (process?.ppid && !seen.has(process.pid)) {
+      seen.add(process.pid);
+      const parent = processAt(process.ppid, span.start);
+      if (!parent) break;
+      process = parent;
+    }
+    return process?.root_pid ?? process?.pid ?? span.pid;
+  };
+  for (const span of spans) {
+    const sandbox = span.sandboxId ?? processAt(span.pid, span.start)?.sandbox_id;
+    if (sandbox) span.sandboxId = sandbox;
+  }
+  const calls = spans.filter((span) => span.kind === 'llm');
+  for (const span of spans) {
+    if (!['exec', 'http', 'network'].includes(span.kind) || span.aggregated) continue;
+    const call = calls.filter((call) => !call.open && call.end <= span.start
+      && (snapshot.sessions?.length === 1 || (family(call) != null && family(call) === family(span))))
+      .sort((a, b) => b.end - a.end || b.start - a.start)[0];
+    if (call) span.modelCallId = call.id;
+  }
+  return spans;
 }
 
 /** Greedily pack intervals into rows so that no two intervals in a row overlap. */
@@ -106,7 +151,7 @@ function processSpan(process: SnapshotProcessNode, captureEnd: number): EventSpa
   return [{
     id: `exec:${process.id}`,
     kind: 'exec',
-    label: process.command || process.argv?.join(' ') || process.comm || `pid ${process.pid}`,
+    label: (process.argv && process.argv.length > 1 ? process.argv.join(' ') : process.command) || process.argv?.join(' ') || process.comm || `pid ${process.pid}`,
     detail: [
       process.comm,
       `pid ${process.pid}`,
@@ -117,6 +162,7 @@ function processSpan(process: SnapshotProcessNode, captureEnd: number): EventSpa
     open,
     status,
     pid: process.pid,
+    ...(process.sandbox_id ? { sandboxId: process.sandbox_id } : {}),
   }];
 }
 
@@ -195,9 +241,10 @@ function llmSpan(first: SnapshotAuditEvent, response: SnapshotAuditEvent | null)
     detail: [model, first.comm, first.pid != null ? `pid ${first.pid}` : null].filter(Boolean).join(' · '),
     start: first.timestamp_ms,
     end: Math.max(first.timestamp_ms, end),
-    open: false,
+    open: !response && first.action === 'request' && duration == null,
     status,
     pid: first.pid ?? null,
+    ...(first.sandbox_id ? { sandboxId: first.sandbox_id } : {}),
   };
 }
 
@@ -208,7 +255,9 @@ function networkSpan(target: SnapshotNetworkTarget, index: number): EventSpan[] 
   const requests = target.count ?? 0;
   return [{
     id: `network:${target.pid ?? ''}:${target.host}:${target.path ?? ''}:${index}`,
-    kind: 'network',
+    kind: 'http',
+    aggregated: true,
+    ...(target.sandbox_id ? { sandboxId: target.sandbox_id } : {}),
     label: `${target.host}${target.path ?? ''}`,
     detail: [
       `${requests} ${requests === 1 ? 'request' : 'requests'}`,
@@ -225,6 +274,36 @@ function networkSpan(target: SnapshotNetworkTarget, index: number): EventSpan[] 
   }];
 }
 
+function httpSpans(events: SnapshotAuditEvent[]): EventSpan[] {
+  const pending = new Map<string, SnapshotAuditEvent[]>();
+  const spans: EventSpan[] = [];
+  for (const event of events.filter((row) => row.audit_type === 'network' && row.action?.startsWith('http_'))
+    .sort((a, b) => a.timestamp_ms - b.timestamp_ms)) {
+    const details = isRecord(event.details) ? event.details : {};
+    const endpoint = event.target?.replace(/^\S+\s+/, '');
+    const identity = details.http_exchange_id ?? `${event.pid}:${details.tid ?? ''}:${endpoint}`;
+    const key = `${event.sandbox_id ?? ''}:${identity}`;
+    if (event.action === 'http_request') {
+      pending.set(key, [...(pending.get(key) ?? []), event]);
+    } else {
+      const request = pending.get(key)?.shift();
+      const span = connectSpan(request ?? event);
+      span.kind = 'http';
+      span.label = (request ?? event).target || span.label;
+      span.end = event.timestamp_ms;
+      span.status = textStatus(event.status) ?? 'unknown';
+      spans.push(span);
+    }
+  }
+  for (const requests of pending.values()) for (const request of requests) {
+    const span = connectSpan(request);
+    span.kind = 'http';
+    span.label = request.target || span.label;
+    spans.push(span);
+  }
+  return spans;
+}
+
 function connectSpan(event: SnapshotAuditEvent): EventSpan {
   return {
     id: `network:${event.id}`,
@@ -236,6 +315,7 @@ function connectSpan(event: SnapshotAuditEvent): EventSpan {
     open: false,
     status: textStatus(event.status) ?? 'unknown',
     pid: event.pid ?? null,
+    ...(event.sandbox_id ? { sandboxId: event.sandbox_id } : {}),
   };
 }
 
@@ -279,6 +359,7 @@ function transcriptToolSpan(event: SnapshotAuditEvent): EventSpan {
     open: false,
     status: textStatus(event.status) ?? 'unknown',
     pid: event.pid ?? null,
+    ...(event.sandbox_id ? { sandboxId: event.sandbox_id } : {}),
   };
 }
 
