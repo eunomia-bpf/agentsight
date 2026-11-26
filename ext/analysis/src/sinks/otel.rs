@@ -17,7 +17,7 @@
 //! token extraction happen before this sink sees the row; this sink only maps
 //! stable view data to OTLP.
 //!
-use crate::analyzers::AnalyzerError;
+use crate::analyzers::{AnalyzerError, RedactionMode, redact_json_value};
 use crate::model::{LlmCallRow, ViewResult, ViewSink};
 use crate::view::llm::provider_from_host;
 use http_body_util::{BodyExt, Full};
@@ -64,6 +64,8 @@ pub struct OtelExporter {
     service_name: String,
     /// Whether to attach prompt/completion content (`gen_ai.{input,output}.messages`).
     capture_content: bool,
+    /// Redaction applied when `capture_content` is enabled.
+    redaction_mode: RedactionMode,
     /// Trace IDs assigned to conversation/session identifiers in this recording.
     trace_ids: HashMap<String, String>,
     /// Recording-scoped trace used when a call has no correlation identifier.
@@ -93,10 +95,17 @@ impl OtelExporter {
             traces_url,
             service_name,
             capture_content,
+            redaction_mode: RedactionMode::Preview,
             trace_ids: HashMap::new(),
             fallback_trace_id: new_trace_id(),
             client: Arc::new(Client::builder(TokioExecutor::new()).build_http()),
         }
+    }
+
+    /// Override the content redaction strategy used when `capture_content` is enabled.
+    pub fn with_redaction(mut self, mode: RedactionMode) -> Self {
+        self.redaction_mode = mode;
+        self
     }
 
     fn trace_id_for(&mut self, conversation_id: Option<&str>, session_id: Option<&str>) -> String {
@@ -177,6 +186,16 @@ fn attr_str_array(key: &str, items: &[String]) -> Value {
     json!({ "key": key, "value": { "arrayValue": { "values": values } } })
 }
 
+/// Serialize a captured JSON value for OTLP export, applying content redaction unless disabled.
+fn redact_for_export(value: &Value, mode: RedactionMode) -> String {
+    if mode == RedactionMode::Disabled {
+        return value.to_string();
+    }
+    let mut cloned = value.clone();
+    let _ = redact_json_value(&mut cloned, mode);
+    cloned.to_string()
+}
+
 /// Construct the OTLP/HTTP JSON `ExportTraceServiceRequest` body for a single
 /// span built from a request/response pair.
 fn build_otlp_payload(
@@ -188,6 +207,7 @@ fn build_otlp_payload(
     status_code: Option<u16>,
     response_body: Option<&Value>,
     capture_content: bool,
+    redaction_mode: RedactionMode,
 ) -> Value {
     let model_name = req.model.as_deref().unwrap_or("unknown");
 
@@ -281,7 +301,10 @@ fn build_otlp_payload(
             attributes.push(attr_str_array("gen_ai.response.finish_reasons", &reasons));
         }
         if capture_content {
-            attributes.push(attr_str("gen_ai.output.messages", &body.to_string()));
+            attributes.push(attr_str(
+                "gen_ai.output.messages",
+                &redact_for_export(body, redaction_mode),
+            ));
         }
     }
 
@@ -328,7 +351,11 @@ fn new_span_id() -> String {
 }
 
 impl SpanInput {
-    fn from_call(call: &LlmCallRow, capture_content: bool) -> Self {
+    fn from_call(
+        call: &LlmCallRow,
+        capture_content: bool,
+        redaction_mode: RedactionMode,
+    ) -> Self {
         let request = &call.request;
         let host = call.host.as_deref().unwrap_or_default();
         Self {
@@ -371,7 +398,7 @@ impl SpanInput {
                     request
                         .get("messages")
                         .or_else(|| request.get("input"))
-                        .map(Value::to_string)
+                        .map(|raw| redact_for_export(raw, redaction_mode))
                 })
                 .flatten(),
         }
@@ -383,7 +410,7 @@ impl ViewSink for OtelExporter {
         let Some(end_ms) = call.end_timestamp_ms else {
             return Ok(());
         };
-        let span_input = SpanInput::from_call(call, self.capture_content);
+        let span_input = SpanInput::from_call(call, self.capture_content, self.redaction_mode);
         let trace_id = self.trace_id_for(
             span_input.conversation_id.as_deref(),
             call.session_id.as_deref(),
@@ -398,6 +425,7 @@ impl ViewSink for OtelExporter {
             call.status_code,
             Some(&call.response),
             self.capture_content,
+            self.redaction_mode,
         );
         let client = self.client.clone();
         let url = self.traces_url.clone();
@@ -571,6 +599,7 @@ mod tests {
             Some(200),
             Some(&response),
             false,
+            RedactionMode::Preview,
         );
 
         let span = &payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0];
@@ -636,7 +665,17 @@ mod tests {
             input_messages: None,
             ..Default::default()
         };
-        let payload = build_otlp_payload("agentsight", "t", "s", &req, 2, Some(429), None, false);
+        let payload = build_otlp_payload(
+            "agentsight",
+            "t",
+            "s",
+            &req,
+            2,
+            Some(429),
+            None,
+            false,
+            RedactionMode::Preview,
+        );
         let span = &payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0];
         assert_eq!(span["status"]["code"], 2);
     }
@@ -666,8 +705,8 @@ mod tests {
         let first = completed_call("first", Some("session-a"), Some("chatcmpl-a"), json!({}));
         let second = completed_call("second", Some("session-a"), Some("chatcmpl-b"), json!({}));
 
-        let first_input = SpanInput::from_call(&first, false);
-        let second_input = SpanInput::from_call(&second, false);
+        let first_input = SpanInput::from_call(&first, false, RedactionMode::Preview);
+        let second_input = SpanInput::from_call(&second, false, RedactionMode::Preview);
         assert!(first_input.conversation_id.is_none());
         assert_eq!(
             exporter.trace_id_for(
@@ -693,8 +732,8 @@ mod tests {
         let mut second = completed_call("second", Some("session-b"), None, json!({}));
         second.response = json!({ "thread": { "id": "conversation-a" } });
 
-        let first_input = SpanInput::from_call(&first, false);
-        let second_input = SpanInput::from_call(&second, false);
+        let first_input = SpanInput::from_call(&first, false, RedactionMode::Preview);
+        let second_input = SpanInput::from_call(&second, false, RedactionMode::Preview);
         assert_eq!(
             first_input.conversation_id.as_deref(),
             Some("conversation-a")
@@ -720,5 +759,109 @@ mod tests {
             exporter.trace_id_for(None, None)
         );
         assert_ne!(new_span_id(), new_span_id());
+    }
+
+    #[test]
+    fn content_capture_redacts_secrets_according_to_redaction_mode() {
+        let aws = ["AKIA", "IOSFODNN7EXAMPLE"].concat();
+        let openai = ["sk-proj-", "abc1234567890XYZ9876543210"].concat();
+        let uri_pw = ["SuperSecret", "Pw99"].concat();
+        let uri = format!("postgres://alice:{uri_pw}@db.internal:5432/prod");
+
+        let mut call = completed_call(
+            "secret-call",
+            Some("session-s"),
+            None,
+            json!({
+                "model": "gpt-4o",
+                "messages": [{
+                    "role": "user",
+                    "content": format!("Use {aws} and {openai}")
+                }]
+            }),
+        );
+        call.response = json!({
+            "id": "resp_1",
+            "choices": [{ "message": { "content": format!("Connected to {uri}") } }]
+        });
+
+        let preview_input = SpanInput::from_call(&call, true, RedactionMode::Preview);
+        let preview_payload = build_otlp_payload(
+            "agentsight",
+            "t",
+            "s",
+            &preview_input,
+            2_000_000,
+            Some(200),
+            Some(&call.response),
+            true,
+            RedactionMode::Preview,
+        );
+        let preview_attrs = preview_payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0]
+            ["attributes"]
+            .as_array()
+            .unwrap();
+        let find_attr = |attrs: &[Value], k: &str| {
+            attrs
+                .iter()
+                .find(|a| a["key"] == k)
+                .and_then(|a| a["value"]["stringValue"].as_str())
+                .map(str::to_string)
+        };
+        let in_preview = find_attr(preview_attrs, "gen_ai.input.messages").unwrap();
+        let out_preview = find_attr(preview_attrs, "gen_ai.output.messages").unwrap();
+        assert!(in_preview.contains("AKIA****MPLE"));
+        assert!(in_preview.contains("sk-proj-****3210"));
+        assert!(!in_preview.contains(&aws));
+        assert!(out_preview.contains("postgres://alice:****@db.internal:5432/prod"));
+        assert!(!out_preview.contains(&uri_pw));
+
+        let full_input = SpanInput::from_call(&call, true, RedactionMode::Full);
+        let full_payload = build_otlp_payload(
+            "agentsight",
+            "t",
+            "s",
+            &full_input,
+            2_000_000,
+            Some(200),
+            Some(&call.response),
+            true,
+            RedactionMode::Full,
+        );
+        let full_attrs = full_payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0]["attributes"]
+            .as_array()
+            .unwrap();
+        let in_full = find_attr(full_attrs, "gen_ai.input.messages").unwrap();
+        let out_full = find_attr(full_attrs, "gen_ai.output.messages").unwrap();
+        assert!(in_full.contains("[REDACTED:aws_access_key]"));
+        assert!(in_full.contains("[REDACTED:provider_api_key]"));
+        assert!(out_full.contains("[REDACTED:credential_uri]"));
+
+        let disabled_input = SpanInput::from_call(&call, true, RedactionMode::Disabled);
+        let disabled_payload = build_otlp_payload(
+            "agentsight",
+            "t",
+            "s",
+            &disabled_input,
+            2_000_000,
+            Some(200),
+            Some(&call.response),
+            true,
+            RedactionMode::Disabled,
+        );
+        let disabled_attrs = disabled_payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0]
+            ["attributes"]
+            .as_array()
+            .unwrap();
+        assert!(
+            find_attr(disabled_attrs, "gen_ai.input.messages")
+                .unwrap()
+                .contains(&aws)
+        );
+
+        let exporter_default = OtelExporter::new(Some("http://localhost:4318".to_string()), true);
+        assert_eq!(exporter_default.redaction_mode, RedactionMode::Preview);
+        let exporter_full = exporter_default.with_redaction(RedactionMode::Full);
+        assert_eq!(exporter_full.redaction_mode, RedactionMode::Full);
     }
 }

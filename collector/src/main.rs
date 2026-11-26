@@ -44,7 +44,9 @@ use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
 use cmd_perf_live::{run_live_top_query, start_live_ebpf_capture};
 use cmd_perf_tui::run_live_top_tui;
-use cmd_trace::{TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled};
+use cmd_trace::{
+    ContentRedactionArg, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
+};
 use output::TopOptions;
 use output::{print_record_session_db_error, print_report_local_sessions_warning};
 use server::container_bridge::run_stdio_bridge;
@@ -286,6 +288,9 @@ enum Commands {
         /// Server port for the web UI
         #[arg(long, default_value_t = 7395)]
         server_port: u16,
+        /// Redact high-confidence secrets and PII in captured payloads
+        #[arg(long, value_enum, default_value_t = ContentRedactionArg::Preview)]
+        content_redaction: ContentRedactionArg,
         /// Optional command to launch and trace. Use -c/--comm or -p/--pid instead to attach.
         #[arg(last = true)]
         command: Vec<String>,
@@ -585,6 +590,7 @@ async fn run_with_extractor(
             db,
             no_server,
             server_port,
+            content_redaction,
             command,
         } => {
             if !command.is_empty() {
@@ -602,6 +608,7 @@ async fn run_with_extractor(
                     &cli.listen,
                     *server_port,
                     true,
+                    (*content_redaction).into(),
                 )
                 .await
                 .map_err(convert_runner_error)?;
@@ -629,6 +636,7 @@ async fn run_with_extractor(
                     server: !*no_server,
                     server_listen: Some(cli.listen.clone()),
                     server_port: *server_port,
+                    content_redaction: (*content_redaction).into(),
                     ..TraceConfig::for_record()
                 },
             )
@@ -711,5 +719,48 @@ mod tests {
             }
             _ => panic!("expected bind command"),
         }
+    }
+
+    #[test]
+    fn content_redaction_flag_parses_defaults_and_overrides() {
+        use crate::cmd_trace::ContentRedactionArg;
+
+        let default_rec =
+            <Cli as clap::Parser>::try_parse_from(["agentsight", "record", "-c", "claude"])
+                .unwrap();
+        match default_rec.command {
+            Commands::Record {
+                content_redaction, ..
+            } => assert_eq!(content_redaction, ContentRedactionArg::Preview),
+            _ => panic!("expected record command"),
+        }
+
+        let off_rec = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "record",
+            "--content-redaction",
+            "off",
+            "--",
+            "claude",
+        ])
+        .unwrap();
+        match off_rec.command {
+            Commands::Record {
+                content_redaction, ..
+            } => assert_eq!(content_redaction, ContentRedactionArg::Off),
+            _ => panic!("expected record command"),
+        }
+
+        let full_trace = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "debug",
+            "trace",
+            "--otel",
+            "--otel-capture-content",
+            "--content-redaction",
+            "full",
+        ])
+        .unwrap();
+        assert!(matches!(full_trace.command, Commands::Debug(_)));
     }
 }

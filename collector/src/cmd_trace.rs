@@ -5,8 +5,8 @@ use futures::stream::StreamExt;
 use tokio::sync::oneshot;
 
 use crate::analyzers::{
-    AuthHeaderRemover, HTTPDecompressor, HTTPFilter, HTTPParser, MaterializingAnalyzer,
-    SSEProcessor, SSLFilter, TimestampNormalizer,
+    AuthHeaderRemover, ContentRedactor, HTTPDecompressor, HTTPFilter, HTTPParser,
+    MaterializingAnalyzer, RedactionMode, SSEProcessor, SSLFilter, TimestampNormalizer,
 };
 use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::{resolve_binary_path_for_ssl, resolve_container_binary_arg};
@@ -39,6 +39,25 @@ impl Drop for StartedWebServer {
     }
 }
 
+/// CLI value for `--content-redaction`.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub(crate) enum ContentRedactionArg {
+    #[default]
+    Preview,
+    Full,
+    Off,
+}
+
+impl From<ContentRedactionArg> for RedactionMode {
+    fn from(value: ContentRedactionArg) -> Self {
+        match value {
+            ContentRedactionArg::Preview => RedactionMode::Preview,
+            ContentRedactionArg::Full => RedactionMode::Full,
+            ContentRedactionArg::Off => RedactionMode::Disabled,
+        }
+    }
+}
+
 /// Configuration for exporting GenAI spans to an OpenTelemetry Collector.
 #[derive(Clone)]
 pub(crate) struct OtelConfig {
@@ -46,6 +65,8 @@ pub(crate) struct OtelConfig {
     pub(crate) endpoint: Option<String>,
     /// Opt-in: include prompt/completion content in spans.
     pub(crate) capture_content: bool,
+    /// Redaction strategy applied when `capture_content` is enabled.
+    pub(crate) redaction_mode: RedactionMode,
 }
 
 #[derive(Default)]
@@ -73,6 +94,7 @@ pub(crate) struct TraceConfig {
     pub(crate) system_interval: u64,
     pub(crate) http_filter: Vec<String>,
     pub(crate) disable_auth_removal: bool,
+    pub(crate) content_redaction: RedactionMode,
     pub(crate) otel: Option<OtelConfig>,
     /// SSL binary path; may be a container ref that `run_trace` resolves in place.
     pub(crate) binary_path: Option<String>,
@@ -243,6 +265,12 @@ pub(crate) fn build_trace_agent_with_view(
         );
     }
 
+    if cfg.content_redaction != RedactionMode::Disabled {
+        agent = agent.add_global_analyzer(Box::new(ContentRedactor::with_mode(
+            cfg.content_redaction,
+        )));
+    }
+
     let mut materializer = MaterializingAnalyzer::with_view(view);
     if let Some(path) = cfg.db_path.as_deref() {
         materializer =
@@ -251,10 +279,10 @@ pub(crate) fn build_trace_agent_with_view(
             })?));
     }
     if let Some(otel_config) = &cfg.otel {
-        materializer = materializer.add_view_sink(Box::new(OtelExporter::new(
-            otel_config.endpoint.clone(),
-            otel_config.capture_content,
-        )));
+        materializer = materializer.add_view_sink(Box::new(
+            OtelExporter::new(otel_config.endpoint.clone(), otel_config.capture_content)
+                .with_redaction(otel_config.redaction_mode),
+        ));
     }
     agent = agent.add_global_analyzer(Box::new(materializer));
 
@@ -736,5 +764,95 @@ mod tests {
             vec!["--binary-path".to_string(), "/opt/codex".to_string()]
         );
         assert!(!args.iter().any(|arg| arg == "--session" || arg == "-c"));
+    }
+
+    #[tokio::test]
+    async fn global_redactor_scrubs_events_before_materializing_and_sqlite_storage() {
+        use crate::analyzers::Analyzer;
+        use crate::event::Event;
+
+        let temp = tempfile::tempdir().unwrap();
+        let db_path = temp.path().join("redacted.db");
+        let view = MaterializedView::shared_bounded();
+        let store = SqliteStore::open(&db_path).unwrap();
+
+        let aws = ["AKIA", "IOSFODNN7EXAMPLE"].concat();
+        let openai = ["sk-proj-", "abc1234567890XYZ9876543210"].concat();
+        let req_body = serde_json::json!({
+            "model": "gpt-4o",
+            "messages": [{ "role": "user", "content": aws }]
+        })
+        .to_string();
+        let resp_body = serde_json::json!({
+            "id": "resp_1",
+            "model": "gpt-4o",
+            "choices": [{ "message": { "content": openai } }]
+        })
+        .to_string();
+
+        let req_event = Event::new_with_timestamp(
+            1_000,
+            "http_parser".to_string(),
+            42,
+            "claude".to_string(),
+            serde_json::json!({
+                "tid": 1,
+                "message_type": "request",
+                "direction": "request",
+                "http_exchange_id": "conn-1-h1-1",
+                "connection_id": "conn-1",
+                "host": "api.openai.com",
+                "path": "/v1/chat/completions",
+                "body": req_body
+            }),
+        );
+        let resp_event = Event::new_with_timestamp(
+            1_050,
+            "http_parser".to_string(),
+            42,
+            "claude".to_string(),
+            serde_json::json!({
+                "tid": 1,
+                "message_type": "response",
+                "direction": "response",
+                "http_exchange_id": "conn-1-h1-1",
+                "connection_id": "conn-1",
+                "host": "api.openai.com",
+                "path": "/v1/chat/completions",
+                "status_code": 200,
+                "body": resp_body
+            }),
+        );
+
+        let mut redactor = ContentRedactor::with_mode(RedactionMode::Preview);
+        let mut materializer =
+            MaterializingAnalyzer::with_view(view.clone()).add_view_sink(Box::new(store));
+        let stream = redactor
+            .process(Box::pin(futures::stream::iter(vec![req_event, resp_event])))
+            .await
+            .unwrap();
+        let events: Vec<_> = materializer.process(stream).await.unwrap().collect().await;
+        assert_eq!(events.len(), 2);
+        assert!(
+            events[0].data["body"]
+                .as_str()
+                .unwrap()
+                .contains("AKIA****MPLE")
+        );
+        assert!(
+            events[1].data["body"]
+                .as_str()
+                .unwrap()
+                .contains("sk-proj-****3210")
+        );
+
+        let reopened = crate::sources::sqlite::load_view(&db_path).unwrap();
+        let calls = reopened.llm_call_rows(10);
+        assert_eq!(calls.len(), 1);
+        let serialized = serde_json::to_string(&calls[0]).unwrap();
+        assert!(serialized.contains("AKIA****MPLE"));
+        assert!(serialized.contains("sk-proj-****3210"));
+        assert!(!serialized.contains(&aws));
+        assert!(!serialized.contains(&openai));
     }
 }
