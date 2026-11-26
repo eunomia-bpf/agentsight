@@ -50,37 +50,6 @@ def has_hidden_host_pids():
 
 class TracerSession:
     def __init__(self, *args, wait_attach=1.5):
-        # TEMPORARY probe (#257): list other processes' open perf events
-        # before this session opens its own. A leftover event from an
-        # earlier session in the same job would show as a foreign pid
-        # holding anon_inode:[perf_event] fds.
-        try:
-            import glob
-
-            holders = {}
-            for fdlink in glob.glob("/proc/[0-9]*/fd/*"):
-                try:
-                    target = os.readlink(fdlink)
-                except OSError:
-                    continue
-                if target.startswith("anon_inode:[perf_event"):
-                    pid = int(fdlink.split("/")[2])
-                    holders.setdefault(pid, 0)
-                    holders[pid] += 1
-            foreign = {p: c for p, c in holders.items() if p != os.getpid()}
-            if foreign:
-                names = {}
-                for p in foreign:
-                    try:
-                        with open(f"/proc/{p}/cmdline", "rb") as cf:
-                            names[p] = cf.read().replace(b"\0", b" ").decode(
-                                "utf-8", "replace"
-                            )[:120]
-                    except OSError:
-                        names[p] = "?"
-                print(f"PROBE_PERF_HOLDERS {sorted(foreign.items())} {names}", flush=True)
-        except Exception:
-            pass
         self.stdout = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".jsonl", delete=False)
         self.stderr = tempfile.NamedTemporaryFile(prefix="process-runtime-", suffix=".stderr", delete=False)
         self.proc = subprocess.Popen(
@@ -312,29 +281,6 @@ def test_trace_fs_summary_events():
     tempdir = tempfile.TemporaryDirectory(prefix="agentsight-runtime-fs-")
     old_cwd = os.getcwd()
     try:
-        # TEMPORARY probe (#257): issue the mutations through the raw
-        # syscalls as well, so python's/glibc's choice of plain vs *at
-        # wrappers is out of the equation, and record the environment.
-        import ctypes
-
-        libc = ctypes.CDLL(None, use_errno=True)
-        syscall = libc.syscall
-        direct_dir = os.path.join(tempdir.name, "direct")
-        rc_mkdir = syscall(83, direct_dir.encode(), 0o755)  # SYS_mkdir
-        err_mkdir = ctypes.get_errno()
-        rc_mkdirat = syscall(258, -100, (direct_dir + "at").encode(), 0o755)  # SYS_mkdirat
-        err_mkdirat = ctypes.get_errno()
-        try:
-            glibc = libc.gnu_get_libc_version().decode()
-        except AttributeError:
-            glibc = "?"
-        print(
-            f"PROBE_ENV kernel={os.uname().release} glibc={glibc} "
-            f"mkdir=({rc_mkdir}, {err_mkdir}) mkdirat=({rc_mkdirat}, {err_mkdirat})",
-        )
-    except OSError:
-        pass
-    try:
         subdir = os.path.join(tempdir.name, "dir")
         os.mkdir(subdir)
         path = os.path.join(subdir, 'file "quote" \\ slash.txt')
@@ -351,17 +297,10 @@ def test_trace_fs_summary_events():
         events = sess.events()
         types = summary_types(events)
         required = {"DIR_CREATE", "WRITE", "FILE_RENAME", "FILE_DELETE"}
-        probes = [
-            json.dumps(e, sort_keys=True)
-            for e in events
-            if e.get("event") in ("AGG_MAP_COUNTS", "FS_LINKS", "FS_LINK_INFO", "PROBE_RAW")
-        ]
         assert_true(
             required.issubset(types),
             f"missing fs SUMMARY types: {sorted(required - types)}; "
             f"observed SUMMARY types: {sorted(types)}; "
-            f"probes: {probes}; "
-            f"event names: {sorted({e.get('event') for e in events})}; "
             f"stderr: {sess.stderr_text()[-2000:]}"
         )
     finally:
