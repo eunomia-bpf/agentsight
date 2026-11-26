@@ -288,7 +288,7 @@ fn full_marker(rule: RedactionRule) -> String {
     format!("[REDACTED:{}]", rule.as_str())
 }
 
-/// 将字节偏移向下对齐到合法的 UTF-8 字符边界，避免切片落在多字节字符内部触发 panic。
+/// Align a byte offset downward to a valid UTF-8 char boundary so slicing never panics mid-character.
 fn floor_char_boundary(s: &str, mut idx: usize) -> usize {
     idx = idx.min(s.len());
     while idx > 0 && !s.is_char_boundary(idx) {
@@ -298,7 +298,7 @@ fn floor_char_boundary(s: &str, mut idx: usize) -> usize {
 }
 
 fn mask_token_preview(token: &str, keep_prefix: usize, keep_suffix: usize) -> String {
-    // 按 Unicode 标量字符数截取，避免含多字节 UTF-8 字符的敏感值预览触发边界 panic。
+    // Slice by Unicode scalar count so previews of multi-byte UTF-8 secrets never panic on a char boundary.
     let char_count = token.chars().count();
     let (head_len, tail_len) = if char_count <= keep_prefix + keep_suffix {
         if char_count <= 4 {
@@ -414,7 +414,7 @@ fn collect_credential_uris(input: &str, mode: RedactionMode, out: &mut Vec<Candi
         let sep = i + rel_sep;
         let mut matched_scheme_start = None;
         for scheme in SCHEMES {
-            // 使用字节切片比较 scheme，避免 `sep - scheme.len()` 落在前置多字节 UTF-8 字符内部。
+            // Compare the scheme on raw bytes so `sep - scheme.len()` cannot panic inside a preceding multi-byte UTF-8 char.
             if sep >= scheme.len()
                 && &lower_bytes[sep - scheme.len()..sep] == scheme.as_bytes()
             {
@@ -719,7 +719,7 @@ fn collect_provider_api_keys(input: &str, mode: RedactionMode, out: &mut Vec<Can
     while i < bytes.len() {
         let mut matched = None;
         for spec in SPECS {
-            // 按字节前缀匹配，避免按字节步进的 `i` 落在多字节 UTF-8 字符内部时切片 panic。
+            // Match the prefix on raw bytes so byte-stepped `i` cannot panic inside a multi-byte UTF-8 char.
             if bytes[i..].starts_with(spec.prefix.as_bytes()) {
                 let mut end = i + spec.prefix.len();
                 while end < bytes.len() {
@@ -883,7 +883,7 @@ fn collect_auth_scheme_secrets(input: &str, mode: RedactionMode, out: &mut Vec<C
     while i < bytes.len() {
         let mut matched_len = None;
         for scheme in SCHEMES {
-            // 按字节匹配认证方案前缀，避免 `i` 处于非字符边界时触发 panic。
+            // Match the auth-scheme prefix on raw bytes so byte-stepped `i` cannot panic off a char boundary.
             if lower_bytes[i..].starts_with(scheme.as_bytes()) {
                 let before_ok = !prev_byte(bytes, i).is_some_and(is_ascii_word_byte);
                 let after = i + scheme.len();
@@ -972,7 +972,7 @@ fn collect_named_key_secrets(input: &str, mode: RedactionMode, out: &mut Vec<Can
     while i < bytes.len() {
         let mut matched_key: Option<(usize, usize)> = None;
         for &(key, min_val_len) in KEYS {
-            // 按字节匹配键名，避免 `i` 处于多字节 UTF-8 字符内部时触发切片 panic。
+            // Match the key name on raw bytes so byte-stepped `i` cannot panic off a char boundary.
             if lower_bytes[i..].starts_with(key.as_bytes())
                 && !prev_byte(bytes, i).is_some_and(is_ascii_word_byte)
                 && !next_byte(bytes, i + key.len()).is_some_and(is_ascii_word_byte)
