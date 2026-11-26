@@ -68,6 +68,7 @@ pub(crate) struct AgentTopRow {
     pub(crate) tokens: Option<i64>,
     pub(crate) tools: usize,
     pub(crate) execs: usize,
+    pub(crate) exits: usize,
     pub(crate) failures: usize,
     pub(crate) files: usize,
     pub(crate) network: usize,
@@ -93,6 +94,7 @@ pub(crate) struct TopEvidence {
     pub(crate) sticky: bool,
     pub(crate) cwd_recent: bool,
     pub(crate) ebpf: bool,
+    pub(crate) etw: bool,
     pub(crate) ebpf_file: bool,
     pub(crate) db: bool,
 }
@@ -121,6 +123,9 @@ impl TopEvidence {
                 "ebpf_file" => {
                     evidence.ebpf = true;
                     evidence.ebpf_file = true;
+                }
+                "etw" => {
+                    evidence.etw = true;
                 }
                 "db" => evidence.db = true,
                 _ => {}
@@ -159,7 +164,7 @@ impl AgentTopRow {
             "live"
         } else if self.failures > 0 {
             "failed"
-        } else if evidence.has_history() {
+        } else if evidence.has_history() || evidence.etw {
             "history"
         } else if evidence.db {
             "saved"
@@ -209,6 +214,9 @@ impl AgentTopRow {
         if self.execs > 0 {
             parts.push(format!("{} exec", self.execs));
         }
+        if self.exits > 0 {
+            parts.push(format!("{} exit", self.exits));
+        }
         if self.failures > 0 {
             parts.push(format!("{} fail", self.failures));
         }
@@ -251,7 +259,9 @@ impl AgentTopRow {
         if evidence.cwd_recent {
             parts.push("cwd");
         }
-        if evidence.ebpf_file {
+        if evidence.etw {
+            parts.push("ETW");
+        } else if evidence.ebpf_file {
             parts.push("eBPF:file");
         } else if evidence.ebpf {
             parts.push("eBPF");

@@ -95,10 +95,11 @@ Rust 应用可以依赖
 随后 `agentsight report` 和 `agentsight report list` 也默认查看当前目录里的记录。
 如果要查看 Claude/Codex/Gemini 的原生日志总览，显式运行 `agentsight report --local`。
 
-GitHub Release 为 Linux 提供 `agentsight-x86_64` 和 `agentsight-aarch64`；
-无后缀的 `agentsight` 继续作为 x86_64 兼容文件保留。
-Windows 原生构建由 Windows CI 验证；正式发布 Windows Release 资产前，可以下载
-该工作流的 `agentsight-windows-x86_64` artifact，或从源码构建 collector crate。
+GitHub Release 为 Linux 提供 `agentsight-x86_64` 和 `agentsight-aarch64`（无后缀的
+`agentsight` 继续作为 x86_64 兼容文件保留），并为 Windows x86_64 提供
+`agentsight-windows-x86_64.exe` 及 `.sha256` 校验文件。Windows CI 也会为 pull
+request 和尚未发布的提交上传短期保留的 `agentsight-windows-x86_64` artifact，也可从源码构建
+collector crate。
 
 Linux 与 Windows 的安装、后台监控、Node 绑定、自动启动、升级和卸载步骤，参见
 [安装与开机启动](docs/installation.zh-CN.md)。

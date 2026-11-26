@@ -11,6 +11,7 @@ import type {
 } from '@/types/event';
 import {
   displaySessionId,
+  isLiveProcess,
   isRunningSession,
   isCurrentSubscriptionWindow,
   isRecordedCaptureSession,
@@ -83,8 +84,10 @@ export function NodeOverview({
   const { t } = useTranslation();
   const liveAvailable = overview !== null;
   const sessions = useMemo(() => orderedSessions(snapshot, overview), [overview, snapshot]);
-  const liveRows = overview?.rows.filter(isRunningSession) ?? [];
-  const running = liveRows.length;
+  // A live process row is not a running session: the agent host keeps helper
+  // processes alive alongside idle conversations.
+  const liveRows = overview?.rows.filter(isLiveProcess) ?? [];
+  const running = liveRows.filter((row) => isRunningSession(row)).length;
   const stopped = sessions.filter((session) => (
     !isRecordedCaptureSession(session)
       && sessionActivityState(session, liveRowForSession(overview, session)) === 'stopped'
@@ -102,7 +105,7 @@ export function NodeOverview({
   const subscriptions = useMemo(() => latestSubscriptions(sessions), [sessions]);
   const matchedRawIds = new Set(sessions.map((session) => liveRowForSession(overview, session)?.session_id));
   const unmatched = (overview?.rows ?? []).filter((row) => (
-    isRunningSession(row) && (!row.session_id || !matchedRawIds.has(row.session_id))
+    isLiveProcess(row) && (!row.session_id || !matchedRawIds.has(row.session_id))
   ));
 
   return (
@@ -212,7 +215,7 @@ export function NodeOverview({
                 })}
                 {unmatched.map((row) => (
                   <tr key={`${row.pid}-${row.session}`} className="grid grid-cols-2 bg-slate-50/50 md:table-row">
-                    <td className="px-5 py-3"><State state="running" /></td>
+                    <td className="px-5 py-3"><ProcessBadge /></td>
                     <td className="px-3 py-3 font-semibold capitalize text-slate-900">{row.agent}</td>
                     <td className="col-span-2 min-w-0 px-3 pb-3 md:max-w-[420px] md:py-3">
                       <div className="truncate font-medium text-slate-700">{row.command}</div>
@@ -320,6 +323,20 @@ export function Stat({ label, value, hint, tone = 'slate' }: {
       <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">{value}</div>
       <div className="mt-0.5 truncate text-[11px] text-slate-400">{hint}</div>
     </div>
+  );
+}
+
+/**
+ * A live process with no session behind it. It must not borrow the running
+ * badge: the agent host keeps helpers alive while every conversation is idle.
+ */
+export function ProcessBadge() {
+  const { t } = useTranslation();
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-500">
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+      {t('overview.process')}
+    </span>
   );
 }
 

@@ -107,6 +107,7 @@ export const en = {
   'overview.nodeShare': '{percent}% of Node',
   'overview.notAttributed': 'not attributed',
   'overview.lastSeen': 'Last seen',
+  'overview.process': 'process',
   'overview.unmatched': 'live process',
   'overview.empty': 'No supported agent process or native session found.',
   'overview.plan': 'Agent Plan',

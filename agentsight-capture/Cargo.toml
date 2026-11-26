@@ -1,6 +1,6 @@
 [package]
 name = "agentsight-capture-core"
-version = "1.0.35"
+version = "1.0.36"
 edition = "2024"
 rust-version = "1.87"
 description = "Native cross-platform capture substrate for AgentSight."
@@ -15,6 +15,7 @@ include = [
     "Cargo.toml",
     "README.md",
     "build.rs",
+    "examples/**",
     "src/**",
     "tests/**",
     "vendor/bpf/process",
@@ -26,7 +27,7 @@ include = [
 test-support = []
 
 [dependencies]
-agent-session = { version = "0.5.18", path = "../ext/session" }
+agent-session = { version = "0.5.19", path = "../ext/session" }
 async-stream = "0.3"
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
@@ -42,3 +43,12 @@ dirs = "6"
 libc = "0.2"
 sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
 num_cpus = "1.16"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_Diagnostics_Etw",
+  "Win32_System_Threading",
+  "Win32_System_Time",
+] }

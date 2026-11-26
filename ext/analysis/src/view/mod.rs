@@ -43,7 +43,7 @@ pub struct MaterializedView {
     sinks: Vec<Box<dyn ViewSink>>,
     pending: HashMap<(u32, u64), VecDeque<PendingRequest>>,
     pending_by_exchange: HashMap<String, PendingRequest>,
-    active_processes: HashMap<u32, String>,
+    active_processes: HashMap<(u32, Option<u64>), String>,
     counts: ViewCounts,
     start_timestamp_ms: Option<u64>,
     end_timestamp_ms: Option<u64>,

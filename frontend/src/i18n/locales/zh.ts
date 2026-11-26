@@ -111,6 +111,7 @@ export const zh: Record<TranslationKey, string> = {
   'overview.nodeShare': '占本机 {percent}%',
   'overview.notAttributed': '暂未归因',
   'overview.lastSeen': '最近活动',
+  'overview.process': '进程',
   'overview.unmatched': '实时进程',
   'overview.empty': '没有发现支持的 Agent 进程或原生会话。',
   'overview.plan': 'Agent Plan',
