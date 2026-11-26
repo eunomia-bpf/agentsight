@@ -163,6 +163,17 @@ if ($parts -notcontains $installDir) {
 
 新终端会读取更新后的 `PATH`；当前终端请继续使用绝对路径。
 
+### 实时进程捕获
+
+实验性的 Windows 进程后端使用 ETW 捕获显式指定 PID 的进程生命周期，包括可能在两次进程快照之间启动并退出的短生命周期后代：
+
+```powershell
+# 整个捕获会话只需从这个管理员终端启动一次。
+agentsight top --pid <pid>
+```
+
+普通终端中的 `agentsight top` 会继续使用现有的进程快照和 agent-native session 路径。AgentSight 不会主动提权或弹出 UAC。
+
 ### 用户登录后自动启动
 
 内置 `monitor install-service` 当前只支持 Linux systemd。Windows 使用两个用户级计划任务：

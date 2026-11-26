@@ -197,6 +197,21 @@ if ($parts -notcontains $installDir) {
 New terminals see the updated `PATH`. Use the absolute executable path in the
 current terminal.
 
+### Live process capture
+
+The experimental Windows process backend uses ETW for an explicitly selected
+PID. It records process creation and exit, including short-lived descendants
+that may not appear in a snapshot:
+
+```powershell
+# Run this terminal as Administrator once for the capture session.
+agentsight top --pid <pid>
+```
+
+Running `agentsight top` from a normal terminal stays on the existing snapshot
+and agent-native session path. AgentSight does not request elevation or open a
+UAC prompt on its own.
+
 ### Start after sign-in
 
 The built-in `monitor install-service` command currently targets Linux systemd.
