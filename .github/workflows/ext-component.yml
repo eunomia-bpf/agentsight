@@ -19,6 +19,9 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          cache-workspaces: |
+            ext/session -> target
+            ext/runtime -> target
           target: wasm32-wasip2
 
       - name: Build session extension as a Component

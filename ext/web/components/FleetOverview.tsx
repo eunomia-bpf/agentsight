@@ -8,7 +8,7 @@ import { ArrowPathIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from '@/i18n';
 import type { CloudOrganization } from '@/lib/controllerClient';
 import {
-  filterFleetNodes, fleetSubscriptions, fleetTotals, isRunningSession,
+  filterFleetNodes, fleetSubscriptions, fleetTotals, isLiveProcess, isRunningSession,
   type FleetNodeSample,
 } from '@/lib/fleetData';
 import { count, Stat, Subscription } from '@/components/NodeOverview';
@@ -41,9 +41,9 @@ export function FleetOverview({
   const visible = useMemo(() => filterFleetNodes(samples, filter), [filter, samples]);
   const filters: Array<[Filter, string, number]> = [
     ['all', t('fleet.all'), totals.machines],
-    ['running', t('fleet.running'), samples.filter((item) => item.overview?.rows.some(isRunningSession)).length],
+    ['running', t('fleet.running'), samples.filter((item) => item.overview?.rows.some((row) => isRunningSession(row))).length],
     ['idle', t('fleet.idle'), samples.filter((item) => item.state === 'online'
-      && !item.overview?.rows.some(isRunningSession)).length],
+      && !item.overview?.rows.some((row) => isRunningSession(row))).length],
     ['unreachable', t('fleet.unreachable'), totals.unreachable],
   ];
 
@@ -132,10 +132,11 @@ function Machine({ sample, onOpenNode }: {
 }) {
   const { t } = useTranslation();
   const rows = sample.overview?.rows ?? [];
-  const running = rows.filter(isRunningSession);
+  const running = rows.filter((row) => isRunningSession(row));
   const stopped = rows.filter((row) => !isRunningSession(row) && !!row.session_id).length;
-  const cpu = running.reduce((total, row) => total + row.cpu_percent, 0);
-  const rss = running.reduce((total, row) => total + row.rss_mb, 0);
+  const busy = rows.filter(isLiveProcess);
+  const cpu = busy.reduce((total, row) => total + row.cpu_percent, 0);
+  const rss = busy.reduce((total, row) => total + row.rss_mb, 0);
   const plans = rows.flatMap((row) => (row.plan ?? []).filter((step) => step.status !== 'completed'));
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-white">

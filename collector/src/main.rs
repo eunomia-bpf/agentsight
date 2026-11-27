@@ -3,7 +3,8 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{Shell, generate};
 use std::collections::VecDeque;
 use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
@@ -42,9 +43,11 @@ use cli_db::{
 use cmd_bind::run_bind;
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
-use cmd_perf_live::{run_live_top_query, start_live_ebpf_capture};
+use cmd_perf_live::{run_live_top_query, start_live_capture};
 use cmd_perf_tui::run_live_top_tui;
-use cmd_trace::{TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled};
+use cmd_trace::{
+    ContentRedactionArg, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
+};
 use output::TopOptions;
 use output::{print_record_session_db_error, print_report_local_sessions_warning};
 use server::container_bridge::run_stdio_bridge;
@@ -188,6 +191,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Generate a completion script for a supported shell.
+    Completions {
+        /// Shell to generate completions for.
+        #[arg(value_enum)]
+        shell: Shell,
+    },
     /// Render repository file evolution from local agent sessions.
     Vis {
         /// Git worktree to visualize.
@@ -286,6 +295,9 @@ enum Commands {
         /// Server port for the web UI
         #[arg(long, default_value_t = 7395)]
         server_port: u16,
+        /// Redact high-confidence secrets and PII in captured payloads
+        #[arg(long, value_enum, default_value_t = ContentRedactionArg::Preview)]
+        content_redaction: ContentRedactionArg,
         /// Optional command to launch and trace. Use -c/--comm or -p/--pid instead to attach.
         #[arg(last = true)]
         command: Vec<String>,
@@ -387,6 +399,22 @@ enum MonitorCommands {
     InstallService,
 }
 
+fn generate_completions(shell: Shell, output: &mut dyn Write) -> std::io::Result<()> {
+    let mut command = Cli::command();
+    if shell == Shell::Fish {
+        let mut generated = Vec::new();
+        generate(shell, &mut command, "agentsight", &mut generated);
+        let generated = String::from_utf8(generated).expect("Fish completions should be UTF-8");
+
+        // Fish 3.1 requires a hidden short-name placeholder for long-only optspecs.
+        let generated = generated.replace("string join \\n listen=", "string join \\n l-listen=");
+        output.write_all(generated.as_bytes())
+    } else {
+        generate(shell, &mut command, "agentsight", output);
+        Ok(())
+    }
+}
+
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {
@@ -399,11 +427,18 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
     let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
-    if !matches!(&cli.command, Commands::Vis { .. }) {
+    if !matches!(
+        &cli.command,
+        Commands::Completions { .. } | Commands::Vis { .. }
+    ) {
         setup_signal_handler(suppress_terminal_output).await;
     }
 
     match &cli.command {
+        Commands::Completions { shell } => {
+            let mut stdout = std::io::stdout().lock();
+            generate_completions(*shell, &mut stdout)?;
+        }
         Commands::Vis {
             path,
             outputs,
@@ -454,14 +489,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            let capture = start_live_ebpf_capture(&options).await;
+            let capture = start_live_capture(&options).await;
             let count = if *once { Some(1) } else { *count };
             let result = if top_uses_tui(*plain, interactive_terminal_available()) {
                 run_live_top_tui(Some(&capture), *interval, *limit, count, &options)
             } else {
                 run_live_top_query(Some(&capture), *interval, *limit, count, &options)
             };
-            capture.stop();
+            capture.stop().await;
             result?;
         }
         _ => {
@@ -585,6 +620,7 @@ async fn run_with_extractor(
             db,
             no_server,
             server_port,
+            content_redaction,
             command,
         } => {
             if !command.is_empty() {
@@ -602,6 +638,7 @@ async fn run_with_extractor(
                     &cli.listen,
                     *server_port,
                     true,
+                    (*content_redaction).into(),
                 )
                 .await
                 .map_err(convert_runner_error)?;
@@ -629,6 +666,7 @@ async fn run_with_extractor(
                     server: !*no_server,
                     server_listen: Some(cli.listen.clone()),
                     server_port: *server_port,
+                    content_redaction: (*content_redaction).into(),
                     ..TraceConfig::for_record()
                 },
             )
@@ -648,7 +686,8 @@ async fn run_with_extractor(
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, Commands, top_uses_tui};
+    use super::{Cli, Commands, generate_completions, top_uses_tui};
+    use clap_complete::Shell;
 
     #[test]
     fn default_interactive_top_uses_tui() {
@@ -666,6 +705,35 @@ mod tests {
         assert!(
             <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--db", "run.db"]).is_err()
         );
+    }
+
+    #[test]
+    fn supported_shells_parse_and_generate_completions() {
+        for (name, shell) in [
+            ("bash", Shell::Bash),
+            ("elvish", Shell::Elvish),
+            ("fish", Shell::Fish),
+            ("powershell", Shell::PowerShell),
+            ("zsh", Shell::Zsh),
+        ] {
+            let cli =
+                <Cli as clap::Parser>::try_parse_from(["agentsight", "completions", name]).unwrap();
+            assert!(matches!(
+                cli.command,
+                Commands::Completions { shell: parsed } if parsed == shell
+            ));
+
+            let mut output = Vec::new();
+            generate_completions(shell, &mut output).unwrap();
+            let output = String::from_utf8(output).unwrap();
+            assert!(output.contains("agentsight"));
+            assert!(output.contains("report"));
+            assert!(output.contains("debug"));
+            if shell == Shell::Fish {
+                assert!(output.contains("string join \\n l-listen="));
+                assert!(!output.contains("string join \\n listen="));
+            }
+        }
     }
 
     #[test]
@@ -711,5 +779,48 @@ mod tests {
             }
             _ => panic!("expected bind command"),
         }
+    }
+
+    #[test]
+    fn content_redaction_flag_parses_defaults_and_overrides() {
+        use crate::cmd_trace::ContentRedactionArg;
+
+        let default_rec =
+            <Cli as clap::Parser>::try_parse_from(["agentsight", "record", "-c", "claude"])
+                .unwrap();
+        match default_rec.command {
+            Commands::Record {
+                content_redaction, ..
+            } => assert_eq!(content_redaction, ContentRedactionArg::Preview),
+            _ => panic!("expected record command"),
+        }
+
+        let off_rec = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "record",
+            "--content-redaction",
+            "off",
+            "--",
+            "claude",
+        ])
+        .unwrap();
+        match off_rec.command {
+            Commands::Record {
+                content_redaction, ..
+            } => assert_eq!(content_redaction, ContentRedactionArg::Off),
+            _ => panic!("expected record command"),
+        }
+
+        let full_trace = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "debug",
+            "trace",
+            "--otel",
+            "--otel-capture-content",
+            "--content-redaction",
+            "full",
+        ])
+        .unwrap();
+        assert!(matches!(full_trace.command, Commands::Debug(_)));
     }
 }

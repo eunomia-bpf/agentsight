@@ -2,8 +2,8 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import type { SessionDetail } from '@/lib/nodeClient';
-import { isRunningSession } from '../lib/sessionState.mjs';
-export { isRunningSession } from '../lib/sessionState.mjs';
+import { RUNNING_WINDOW_MS, isLiveProcess, isRunningSession } from '../lib/sessionState.mjs';
+export { RUNNING_WINDOW_MS, isLiveProcess, isRunningSession } from '../lib/sessionState.mjs';
 import type {
   AgentSightSnapshot,
   CodingPlanStep,
@@ -210,11 +210,14 @@ export function sessionActivityState(
   session: SnapshotSession,
   live: LiveSession | null,
 ): SessionActivityState {
-  if (isRunningSession(live)) return 'running';
-  const last = sessionLastMessage(session)
-    ? Date.parse(sessionLastMessage(session)!)
-    : (session.end_timestamp_ms ?? session.start_timestamp_ms);
-  return Number.isFinite(last) && Date.now() - last < 3 * 60_000 ? 'recent' : 'stopped';
+  const now = Date.now();
+  if (isRunningSession(live, now)) return 'running';
+  const timed = [sessionLastMessage(session), live?.last_message_at]
+    .filter((value): value is string => typeof value === 'string' && value !== '')
+    .map((value) => Date.parse(value))
+    .filter((value) => Number.isFinite(value));
+  const last = timed.length ? Math.max(...timed) : (session.end_timestamp_ms ?? session.start_timestamp_ms);
+  return Number.isFinite(last) && now - last < RUNNING_WINDOW_MS ? 'recent' : 'stopped';
 }
 
 export function orderedSessions(
@@ -222,8 +225,9 @@ export function orderedSessions(
   overview: LiveOverview | null,
 ): SnapshotSession[] {
   return [...snapshotSessions(snapshot, true)].sort((left, right) => {
-    const live = Number(isRunningSession(liveRowForSession(overview, right)))
-      - Number(isRunningSession(liveRowForSession(overview, left)));
+    const now = Date.now();
+    const live = Number(isRunningSession(liveRowForSession(overview, right), now))
+      - Number(isRunningSession(liveRowForSession(overview, left), now));
     if (live) return live;
     return (right.end_timestamp_ms ?? right.start_timestamp_ms)
       - (left.end_timestamp_ms ?? left.start_timestamp_ms);

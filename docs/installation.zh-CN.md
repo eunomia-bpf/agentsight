@@ -35,6 +35,26 @@ chmod 0755 "$HOME/.local/bin/agentsight"
 在敏感环境运行前，请把下载文件的 SHA-256 与 GitHub Release 页面展示的对应资产摘要比较。
 确保 `~/.local/bin` 在 `PATH` 中，否则继续使用绝对路径。
 
+### 安装 Shell 补全
+
+AgentSight 可以为 Bash、Elvish、Fish、PowerShell 和 Zsh 生成补全脚本。Fish 用户可以把
+生成的脚本安装到当前用户目录：
+
+```bash
+mkdir -p "$HOME/.config/fish/completions"
+agentsight completions fish > "$HOME/.config/fish/completions/agentsight.fish"
+```
+
+Bash 或 Zsh 用户可以在当前 Shell 中直接加载生成的脚本：
+
+```bash
+source <(agentsight completions bash)
+source <(agentsight completions zsh)
+```
+
+运行 `agentsight completions --help` 可以查看所有支持的 Shell。升级 AgentSight 后请重新
+生成已经安装的补全脚本，确保它与当前 CLI 一致。
+
 ### 随系统启动 monitor
 
 AgentSight 可以自动创建并启动 systemd user unit：
@@ -120,37 +140,33 @@ curl -fsS http://127.0.0.1:7395/api/v1/info
 
 ## Windows
 
-### 安装原生 artifact
+### 安装 Release 二进制
 
-在 GitHub Release 正式附带 Windows 资产之前，仓库成功的 **Windows native** workflow 会上传
-`agentsight-windows-x86_64`。使用已登录的 GitHub CLI 下载最新成功 artifact：
+GitHub Release 提供 Windows x86-64 可执行文件（`agentsight-windows-x86_64.exe`）及其
+SHA-256 校验文件（`agentsight-windows-x86_64.exe.sha256`）。下载并校验最新版本：
 
 ```powershell
-$repo = 'eunomia-bpf/agentsight'
-$runs = gh run list --repo $repo --workflow windows.yml --limit 50 `
-  --json databaseId,conclusion,headSha,url | ConvertFrom-Json
-$run = $runs | Where-Object conclusion -eq 'success' | Where-Object {
-  $prs = gh api -H 'Accept: application/vnd.github+json' `
-    "repos/$repo/commits/$($_.headSha)/pulls" | ConvertFrom-Json
-  $prs | Where-Object { $_.merged_at -and $_.base.ref -eq 'master' }
-} | Select-Object -First 1
-if (-not $run) { throw 'No successful merged Windows workflow was found.' }
-$run | Select-Object databaseId,headSha,url
-
-$download = Join-Path $env:TEMP 'agentsight-windows'
-New-Item -ItemType Directory -Force -Path $download | Out-Null
-gh run download $run.databaseId --repo $repo `
-  --name agentsight-windows-x86_64 --dir $download
-
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Copy-Item (Join-Path $download 'agentsight.exe') $installDir -Force
-& (Join-Path $installDir 'agentsight.exe') --version
+$exe = Join-Path $installDir 'agentsight.exe'
+$checksum = Join-Path $env:TEMP 'agentsight-windows-x86_64.exe.sha256'
+
+$base = 'https://github.com/eunomia-bpf/agentsight/releases/latest/download'
+Invoke-WebRequest "$base/agentsight-windows-x86_64.exe" -OutFile $exe
+Invoke-WebRequest "$base/agentsight-windows-x86_64.exe.sha256" -OutFile $checksum
+
+$expected = ((Get-Content -Raw $checksum).Trim() -split '\s+')[0].ToLowerInvariant()
+$actual = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $expected) {
+  Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+  throw "SHA-256 mismatch: expected $expected, got $actual"
+}
+& $exe --version
 ```
 
-Actions artifact 只保留有限时间。如果当前没有可下载的 artifact，请按照
-[从源码构建](build.md)生成 `collector/target/release/agentsight.exe`。上面的 PR 合并状态检查会排除
-尚未合并的 pull request head 所生成的成功 artifact，并兼容 squash merge。
+如需使用尚未发布的提交或自定义构建，请按[从源码构建](build.md)生成
+`collector/target/release/agentsight.exe`，或通过 `gh run download` 从已合入 `master` 的
+**Windows native** workflow 下载短期保留的 `agentsight-windows-x86_64` CI artifact。
 
 可以把安装目录加入当前用户的 `PATH`：
 
@@ -166,6 +182,17 @@ if ($parts -notcontains $installDir) {
 ```
 
 新终端会读取更新后的 `PATH`；当前终端请继续使用绝对路径。
+
+### 实时进程捕获
+
+实验性的 Windows 进程后端使用 ETW 捕获显式指定 PID 的进程生命周期，包括可能在两次进程快照之间启动并退出的短生命周期后代：
+
+```powershell
+# 整个捕获会话只需从这个管理员终端启动一次。
+agentsight top --pid <pid>
+```
+
+普通终端中的 `agentsight top` 会继续使用现有的进程快照和 agent-native session 路径。AgentSight 不会主动提权或弹出 UAC。
 
 ### 用户登录后自动启动
 

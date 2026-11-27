@@ -7,6 +7,7 @@ pub mod auth_header_remover;
 mod capture_metadata;
 pub mod common;
 mod connection_registry;
+pub mod content_redactor;
 mod filter_base;
 mod filter_metrics;
 pub mod http_decompressor;
@@ -22,6 +23,9 @@ pub mod timestamp_normalizer;
 mod sse_processor_tests;
 
 pub use auth_header_remover::AuthHeaderRemover;
+pub use content_redactor::{
+    ContentRedactor, RedactionMode, RedactionRule, RedactionStats, redact_json_value, redact_text,
+};
 pub use http_decompressor::HTTPDecompressor;
 pub use http_filter::{HTTPFilter, print_global_http_filter_metrics};
 pub use http_parser::HTTPParser;

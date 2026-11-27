@@ -180,8 +180,23 @@ pub fn normalize_event(event: &Event, raw_event_id: String) -> CanonicalEvent {
             _ => kind = EventKind::Unknown,
         }
     } else if source == "sse_processor" {
-        kind = EventKind::LlmResponse;
-        model = model.or_else(|| extract_sse_model(data));
+        // A stream of nothing but comments and heartbeats parses to no
+        // records and holds no content. It is an HTTP response, not an LLM
+        // one: an LLM row from it has no model and no output, and lands as an
+        // orphan call whenever its request was never seen.
+        let has_records = data
+            .get("sse_events")
+            .and_then(Value::as_array)
+            .is_some_and(|events| !events.is_empty());
+        let has_content = ["text_content", "json_content"]
+            .iter()
+            .any(|field| data.get(field).and_then(Value::as_str).is_some_and(|text| !text.is_empty()));
+        if has_records || has_content {
+            kind = EventKind::LlmResponse;
+            model = model.or_else(|| extract_sse_model(data));
+        } else {
+            kind = EventKind::HttpResponse;
+        }
     } else if source == "process" {
         let event_name = data.get("event").and_then(|v| v.as_str()).unwrap_or("");
         kind = match event_name {

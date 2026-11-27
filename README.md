@@ -114,11 +114,12 @@ For local use, install with `cargo install agentsight` or download the latest
 release binary, then start with `agentsight top`. Use the examples below when
 you want to record a specific command or inspect saved sessions.
 
-GitHub releases provide `agentsight-x86_64` and `agentsight-aarch64` for Linux.
-The unsuffixed `agentsight` asset remains an x86_64 compatibility alias.
-Native Windows builds are exercised by the Windows CI workflow; until a Windows
-release asset is published, download its `agentsight-windows-x86_64` artifact or
-build the collector crate from source.
+GitHub releases provide `agentsight-x86_64` and `agentsight-aarch64` for Linux
+(with the unsuffixed `agentsight` asset kept as an x86_64 compatibility alias),
+and `agentsight-windows-x86_64.exe` with its `.sha256` checksum for Windows
+x86_64. The Windows CI workflow also uploads a short-lived
+`agentsight-windows-x86_64` artifact for pull requests and unreleased commits,
+or you can build the collector crate from source.
 
 For Linux and Windows installation, background monitoring, Node binding,
 automatic startup, upgrades, and removal, see

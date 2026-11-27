@@ -320,6 +320,11 @@ impl MaterializedView {
             .or_else(|| req.correlation_status.clone());
         call_row.correlation_version = resp.correlation_version.or(req.correlation_version);
         call_row.completion_reason = resp.completion_reason.clone();
+        if resp.attributes.get("incomplete").and_then(Value::as_bool) == Some(true) {
+            call_row.status = "partial".to_string();
+        } else if resp.completion_reason.as_deref() == Some("error") {
+            call_row.status = "error".to_string();
+        }
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
             &llm_call_id,
@@ -440,6 +445,11 @@ impl MaterializedView {
         call_row.correlation_status = Some("unlinked".to_string());
         call_row.correlation_version = resp.correlation_version;
         call_row.completion_reason = resp.completion_reason.clone();
+        if resp.attributes.get("incomplete").and_then(Value::as_bool) == Some(true) {
+            call_row.status = "partial".to_string();
+        } else if resp.completion_reason.as_deref() == Some("error") {
+            call_row.status = "error".to_string();
+        }
         if let Some(usage) = self.ingest_response_usage_and_tools(
             resp,
             &llm_call_id,
@@ -746,19 +756,28 @@ impl MaterializedView {
 
     fn process_node_id(&mut self, event: &CanonicalEvent, action: &str) -> Option<String> {
         let pid = event.pid?;
+        let instance = event
+            .attributes
+            .get("process_instance_id")
+            .and_then(Value::as_u64);
+        let key = (pid, instance);
         match action {
             "exec" => {
                 let id = self
                     .active_processes
-                    .entry(pid)
-                    .or_insert_with(|| format!("process-{pid}-{}", event.timestamp_ms));
+                    .entry(key)
+                    .or_insert_with(|| match instance {
+                        Some(instance_id) => {
+                            format!("process-{pid}-{instance_id}-{}", event.timestamp_ms)
+                        }
+                        None => format!("process-{pid}-{}", event.timestamp_ms),
+                    });
                 Some(id.clone())
             }
-            "exit" => Some(
-                self.active_processes
-                    .remove(&pid)
-                    .unwrap_or_else(|| format!("process-{pid}-{}", event.timestamp_ms)),
-            ),
+            "exit" => {
+                let id = self.active_processes.remove(&key);
+                Some(id.unwrap_or_else(|| format!("process-{pid}-{}", event.timestamp_ms)))
+            }
             _ => None,
         }
     }
@@ -1203,10 +1222,18 @@ mod tests {
         timestamp: u64,
         event: &str,
         exit_code: Option<i32>,
+        process_instance_id: Option<u64>,
     ) -> String {
-        let mut data = json!({"event": event, "filename": format!("cmd-{timestamp}")});
+        let label = process_instance_id
+            .map(|instance_id| instance_id.to_string())
+            .unwrap_or_else(|| "keyless".to_string());
+        let command = format!("cmd-{label}-{timestamp}");
+        let mut data = json!({"event": event, "filename": command});
         if let Some(code) = exit_code {
             data["exit_code"] = json!(code);
+        }
+        if let Some(instance_id) = process_instance_id {
+            data["process_instance_id"] = json!(instance_id);
         }
         let event = Event::new_with_timestamp(
             timestamp,
@@ -1220,8 +1247,7 @@ mod tests {
             .process_nodes
             .into_iter()
             .find(|row| {
-                row.command.as_deref() == Some(&format!("cmd-{timestamp}"))
-                    || row.end_timestamp_ms == Some(timestamp)
+                row.command.as_deref() == Some(&command) || row.end_timestamp_ms == Some(timestamp)
             })
             .map(|row| row.id)
             .expect("process node update")
@@ -1230,16 +1256,78 @@ mod tests {
     #[test]
     fn process_node_id_survives_pid_reuse() {
         let mut view = MaterializedView::new();
-        let first_exec = process_node_id(&mut view, 1_000, "EXEC", None);
-        let second_execve = process_node_id(&mut view, 1_500, "EXEC", None);
-        let first_exit = process_node_id(&mut view, 2_000, "EXIT", Some(0));
-        let second_exec = process_node_id(&mut view, 3_000, "EXEC", None);
-        let second_exit = process_node_id(&mut view, 4_000, "EXIT", Some(1));
+        let first_exec = process_node_id(&mut view, 1_000, "EXEC", None, None);
+        let second_execve = process_node_id(&mut view, 1_500, "EXEC", None, None);
+        let first_exit = process_node_id(&mut view, 2_000, "EXIT", Some(0), None);
+        let second_exec = process_node_id(&mut view, 3_000, "EXEC", None, None);
+        let second_exit = process_node_id(&mut view, 4_000, "EXIT", Some(1), None);
 
         assert_eq!(first_exec, second_execve);
         assert_eq!(first_exec, first_exit);
         assert_eq!(second_exec, second_exit);
         assert_ne!(first_exec, second_exec);
+    }
+
+    #[test]
+    fn process_node_id_keeps_overlapping_instances_of_one_pid_separate() {
+        let mut view = MaterializedView::new();
+        let first = process_node_id(&mut view, 1_000, "EXEC", None, Some(10));
+        let second = process_node_id(&mut view, 1_500, "EXEC", None, Some(20));
+        let first_exit = process_node_id(&mut view, 2_000, "EXIT", Some(0), Some(10));
+        let second_exit = process_node_id(&mut view, 3_000, "EXIT", Some(1), Some(20));
+
+        assert_ne!(first, second);
+        assert_eq!(first, first_exit);
+        assert_eq!(second, second_exit);
+    }
+
+    #[test]
+    fn process_node_id_keeps_same_millisecond_instances_separate() {
+        let mut view = MaterializedView::new();
+        let first = process_node_id(&mut view, 1_000, "EXEC", None, Some(10));
+        let second = process_node_id(&mut view, 1_000, "EXEC", None, Some(20));
+
+        assert_ne!(first, second);
+        assert_eq!(
+            process_node_id(&mut view, 2_000, "EXIT", Some(0), Some(10)),
+            first
+        );
+        assert_eq!(
+            process_node_id(&mut view, 3_000, "EXIT", Some(0), Some(20)),
+            second
+        );
+    }
+
+    #[test]
+    fn keyless_exit_does_not_close_a_keyed_instance() {
+        let mut view = MaterializedView::new();
+        let keyed_exec = process_node_id(&mut view, 1_000, "EXEC", None, Some(10));
+        let keyless_exit = process_node_id(&mut view, 2_000, "EXIT", Some(0), None);
+
+        assert_ne!(keyed_exec, keyless_exit);
+        assert_eq!(
+            process_node_id(&mut view, 3_000, "EXIT", Some(0), Some(10)),
+            keyed_exec
+        );
+    }
+
+    #[test]
+    fn keyless_exit_is_ambiguous_when_a_pid_has_multiple_keyed_instances() {
+        let mut view = MaterializedView::new();
+        let first = process_node_id(&mut view, 1_000, "EXEC", None, Some(10));
+        let second = process_node_id(&mut view, 1_100, "EXEC", None, Some(20));
+        let keyless_exit = process_node_id(&mut view, 2_000, "EXIT", Some(0), None);
+
+        assert_ne!(keyless_exit, first);
+        assert_ne!(keyless_exit, second);
+        assert_eq!(
+            process_node_id(&mut view, 3_000, "EXIT", Some(0), Some(10)),
+            first
+        );
+        assert_eq!(
+            process_node_id(&mut view, 4_000, "EXIT", Some(0), Some(20)),
+            second
+        );
     }
 
     #[test]
