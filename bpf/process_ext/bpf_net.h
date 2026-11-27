@@ -8,7 +8,7 @@
  * Uses format_ipv4_port() and format_fd_detail() from bpf_common.h.
  */
 
-static __always_inline void format_ipv6_port(char *detail, int detail_len,
+static __noinline void format_ipv6_port(char *detail, int detail_len,
 					     const struct in6_addr *addr, u16 port)
 {
 	const char hex[] = "0123456789abcdef";
@@ -76,7 +76,7 @@ static __always_inline void format_family(char *buf, int buf_len, u16 family)
 }
 
 /* Full IPv6 form fits in DETAIL_LEN without depending on bpf_snprintf. */
-static __always_inline void format_ipv6(char *buf, const u8 *ip)
+static __noinline void format_ipv6(char *buf, const u8 *ip)
 {
 #pragma unroll
 	for (int i = 0; i < 16; i++) {

@@ -1200,7 +1200,13 @@ mod tests {
 
     #[test]
     fn live_capture_attributes_exited_descendants_to_the_explicit_root() {
-        let root_pid = 42;
+        // Above Linux's `pid_max` ceiling (4194304) and outside any Windows pid
+        // space, so the live `/proc` re-read in `root_identity_matches` cannot
+        // find a real process and the sample's own identity decides the answer.
+        // A low pid such as 42 is not safe here: on a runner an early kernel
+        // thread owns it, and when its starttime happens to equal the identity
+        // this test asserts is stale, the live read overrides the sample.
+        let root_pid = u32::MAX - 1;
         let child_pid = 100;
         let sample = LiveSample {
             procs: BTreeMap::from([(
