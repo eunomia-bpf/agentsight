@@ -9,7 +9,8 @@ use super::{EventStream, Runner, RunnerError};
 use crate::analyzers::Analyzer;
 use crate::event::Event;
 use async_trait::async_trait;
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::net::IpAddr;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,7 +18,7 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-use network::{EtwNetworkProvider, NetworkEtwRecord, parse_network_event};
+use network::{EtwNetworkOp, EtwNetworkProvider, NetworkEtwRecord, parse_network_event};
 use payload::{
     EtwProcessPhase, ProcessEtwRecord, event_pointer_size, filetime_to_unix_millis,
     parse_process_end, parse_process_start, parse_process_terminate,
@@ -43,6 +44,8 @@ pub const DEFAULT_ETW_QUEUE_CAPACITY: usize = 8_192;
 pub const DEFAULT_ETW_NETWORK_QUEUE_CAPACITY: usize = 8_192;
 const MAX_PENDING_ETW_EVENTS: usize = 4_096;
 const MAX_PENDING_NETWORK_EVENTS: usize = 2_048;
+const UDP_SEND_COALESCE_WINDOW_MS: u64 = 1_000;
+const MAX_UDP_THROTTLE_KEYS: usize = 2_048;
 const MAX_PROVISIONAL_TERMINATES: usize = 4_096;
 const MISSING_CONSUMER_STATUS: WIN32_ERROR = u32::MAX;
 const STOP_SIGNAL_POLL_INTERVAL: Duration = Duration::from_millis(50);
@@ -200,12 +203,59 @@ fn validate_target_pid(pid: u32) -> Result<(), RunnerError> {
     Ok(())
 }
 
+#[derive(Debug)]
+struct UdpSendThrottle {
+    window_ms: u64,
+    capacity: usize,
+    last_emitted_ms: HashMap<(u64, IpAddr, u16), u64>,
+    order: VecDeque<(u64, IpAddr, u16)>,
+    suppressed_count: u64,
+    evicted_keys: u64,
+}
+
+impl UdpSendThrottle {
+    fn new(window_ms: u64, capacity: usize) -> Self {
+        Self {
+            window_ms,
+            capacity: capacity.max(1),
+            last_emitted_ms: HashMap::new(),
+            order: VecDeque::new(),
+            suppressed_count: 0,
+            evicted_keys: 0,
+        }
+    }
+
+    fn should_emit(&mut self, key: (u64, IpAddr, u16), timestamp_ms: u64) -> bool {
+        if let Some(prev_ms) = self.last_emitted_ms.get_mut(&key) {
+            if timestamp_ms.abs_diff(*prev_ms) < self.window_ms {
+                self.suppressed_count = self.suppressed_count.saturating_add(1);
+                return false;
+            }
+            *prev_ms = (*prev_ms).max(timestamp_ms);
+            return true;
+        }
+
+        while self.last_emitted_ms.len() >= self.capacity {
+            let Some(oldest) = self.order.pop_front() else {
+                break;
+            };
+            if self.last_emitted_ms.remove(&oldest).is_some() {
+                self.evicted_keys = self.evicted_keys.saturating_add(1);
+            }
+        }
+        self.last_emitted_ms.insert(key, timestamp_ms);
+        self.order.push_back(key);
+        true
+    }
+}
+
 struct EtwEventProcessor {
     ready_events: VecDeque<Event>,
     pending_events: VecDeque<RawEtwEvent>,
     pending_network_events: VecDeque<RawEtwEvent>,
     max_pending_events: usize,
     max_pending_network_events: usize,
+    udp_send_throttle: UdpSendThrottle,
     provisional_terminates: ProvisionalTerminates,
     tracker: ProcessTracker,
     include_command_line: bool,
@@ -326,6 +376,10 @@ impl EtwEventProcessor {
             pending_network_events: VecDeque::new(),
             max_pending_events: max_pending_events.max(1),
             max_pending_network_events: max_pending_network_events.max(1),
+            udp_send_throttle: UdpSendThrottle::new(
+                UDP_SEND_COALESCE_WINDOW_MS,
+                MAX_UDP_THROTTLE_KEYS,
+            ),
             provisional_terminates: ProvisionalTerminates::new(MAX_PROVISIONAL_TERMINATES),
             tracker: ProcessTracker::new(root_pid),
             include_command_line,
@@ -480,10 +534,19 @@ impl EtwEventProcessor {
         };
 
         match self.tracker.attribute_pid(record.pid, Some(raw.timestamp)) {
-            PidAttribution::Member { instance_id, comm } => ConvertOutcome::Event {
-                event: self.network_event(&raw, &record, timestamp, instance_id, comm, loss),
-                topology_changed: false,
-            },
+            PidAttribution::Member { instance_id, comm } => {
+                if record.operation == EtwNetworkOp::UdpSend
+                    && !self
+                        .udp_send_throttle
+                        .should_emit((instance_id, record.daddr, record.dport), timestamp)
+                {
+                    return ConvertOutcome::Ignored;
+                }
+                ConvertOutcome::Event {
+                    event: self.network_event(&raw, &record, timestamp, instance_id, comm, loss),
+                    topology_changed: false,
+                }
+            }
             PidAttribution::Filtered => {
                 if !replay {
                     self.network_filtered_events += 1;
@@ -520,6 +583,8 @@ impl EtwEventProcessor {
             "network_filtered_events": self.network_filtered_events,
             "network_pending_evicted": self.network_pending_evicted,
             "network_ambiguous_pid_dropped": self.network_ambiguous_pid_dropped,
+            "network_udp_throttled": self.udp_send_throttle.suppressed_count,
+            "network_udp_throttle_evicted_keys": self.udp_send_throttle.evicted_keys,
             "provisional_terminates_held": self.provisional_terminates.len(),
             "provisional_terminates_capacity_dropped":
                 self.provisional_terminates.capacity_dropped,
@@ -769,6 +834,8 @@ impl EtwEventProcessor {
                 "network_filtered_events": self.network_filtered_events,
                 "network_pending_evicted": self.network_pending_evicted,
                 "network_ambiguous_pid_dropped": self.network_ambiguous_pid_dropped,
+                "network_udp_throttled": self.udp_send_throttle.suppressed_count,
+                "network_udp_throttle_evicted_keys": self.udp_send_throttle.evicted_keys,
                 "provisional_terminates_held": self.provisional_terminates.len(),
                 "provisional_terminates_capacity_dropped":
                     self.provisional_terminates.capacity_dropped,
@@ -1359,5 +1426,149 @@ mod tests {
         assert_eq!(diag.data["event"], "ETW_DECODE_ERROR");
         assert_eq!(diag.data["reason"], "decode_network_payload_failed");
         assert_eq!(diag.data["provider"], "TcpIp");
+    }
+
+    #[test]
+    fn udp_send_coalesces_per_instance_and_destination_within_window_without_throttling_tcp() {
+        let mut processor = EtwEventProcessor::new(100, false);
+        let loss = EtwLossSnapshot::default();
+        processor.convert_process(raw_process_start(1, 900, 200, 100, 20, "worker.exe"), loss);
+        processor.ready_events.clear();
+
+        let daddr = IpAddr::V4(Ipv4Addr::new(38, 34, 29, 138));
+        let saddr = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10));
+
+        // Repeated UDP sends to the same destination within <1s coalesce even across ephemeral sports.
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::UdpIp,
+                2,
+                1_000,
+                udpip_opcode::SEND_IPV4,
+                2,
+                build_udpip_v2_payload(100, 40, daddr, saddr, 38698, 50001, 1, 10),
+            ),
+            loss,
+        );
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::UdpIp,
+                3,
+                1_500,
+                udpip_opcode::SEND_IPV4,
+                2,
+                build_udpip_v2_payload(100, 40, daddr, saddr, 38698, 50002, 2, 11),
+            ),
+            loss,
+        );
+        // Same destination once the 1,000ms window elapses is emitted again.
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::UdpIp,
+                4,
+                2_000,
+                udpip_opcode::SEND_IPV4,
+                2,
+                build_udpip_v2_payload(100, 40, daddr, saddr, 38698, 50003, 3, 12),
+            ),
+            loss,
+        );
+        // Different destination port and different process_instance_id bypass the first key's window.
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::UdpIp,
+                5,
+                1_100,
+                udpip_opcode::SEND_IPV4,
+                2,
+                build_udpip_v2_payload(100, 40, daddr, saddr, 443, 50004, 4, 13),
+            ),
+            loss,
+        );
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::UdpIp,
+                6,
+                1_200,
+                udpip_opcode::SEND_IPV4,
+                2,
+                build_udpip_v2_payload(200, 40, daddr, saddr, 38698, 50005, 5, 14),
+            ),
+            loss,
+        );
+
+        // Repeated TCP lifecycle events to the exact same destination are never throttled.
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::TcpIp,
+                7,
+                1_000,
+                tcpip_opcode::CONNECT_IPV4,
+                2,
+                build_tcpip_v2_payload(100, 0, daddr, saddr, 38698, 51000, 16, 1, 20),
+            ),
+            loss,
+        );
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::TcpIp,
+                8,
+                1_050,
+                tcpip_opcode::DISCONNECT_IPV4,
+                2,
+                build_tcpip_v2_payload(100, 0, daddr, saddr, 38698, 51000, 0, 2, 20),
+            ),
+            loss,
+        );
+        processor.convert_network(
+            raw_network_event(
+                EtwProviderKind::TcpIp,
+                9,
+                1_100,
+                tcpip_opcode::CONNECT_IPV4,
+                2,
+                build_tcpip_v2_payload(100, 0, daddr, saddr, 38698, 51001, 16, 3, 21),
+            ),
+            loss,
+        );
+
+        assert_eq!(processor.udp_send_throttle.suppressed_count, 1);
+        assert_eq!(processor.ready_events.len(), 7);
+        let emitted: Vec<&str> = processor
+            .ready_events
+            .iter()
+            .map(|ev| ev.data["event"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            emitted,
+            vec![
+                "NET_UDP_SEND",
+                "NET_UDP_SEND",
+                "NET_UDP_SEND",
+                "NET_UDP_SEND",
+                "NET_CONNECT",
+                "NET_DISCONNECT",
+                "NET_CONNECT",
+            ]
+        );
+        assert_eq!(processor.ready_events.back().unwrap().data["capture"]["network_udp_throttled"], 1);
+    }
+
+    #[test]
+    fn udp_send_throttle_evicts_oldest_keys_when_capacity_is_reached() {
+        let mut throttle = UdpSendThrottle::new(1_000, 2);
+        let ip = IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8));
+
+        assert!(throttle.should_emit((0, ip, 53), 100));
+        assert!(throttle.should_emit((0, ip, 443), 200));
+        assert_eq!(throttle.evicted_keys, 0);
+
+        assert!(throttle.should_emit((0, ip, 8080), 300));
+        assert_eq!(throttle.evicted_keys, 1);
+        assert_eq!(throttle.last_emitted_ms.len(), 2);
+        assert_eq!(throttle.order.len(), 2);
+        assert!(!throttle.last_emitted_ms.contains_key(&(0, ip, 53)));
+        assert!(throttle.should_emit((0, ip, 53), 350));
+        assert_eq!(throttle.evicted_keys, 2);
     }
 }
