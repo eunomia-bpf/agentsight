@@ -3,12 +3,13 @@
 
 use clap::{Args, Subcommand};
 
-use crate::analyzers::{SSEProcessor, TimestampNormalizer};
+use crate::analyzers::{ContentRedactor, RedactionMode, SSEProcessor, TimestampNormalizer};
 use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::resolve_container_binary_arg;
 use crate::cli_db::configured_db_path;
 use crate::cmd_trace::{
-    OtelConfig, TraceConfig, build_stdio_args, configure_ssl_runner, run_debug_runner, run_trace,
+    ContentRedactionArg, OtelConfig, TraceConfig, build_stdio_args, configure_ssl_runner,
+    run_debug_runner, run_trace,
 };
 use crate::output::separator_line;
 use crate::runners::{BinaryRunner, ProcessRunner, Runner, RunnerError, SystemRunner};
@@ -38,6 +39,9 @@ enum DebugCommand {
         /// Disable authorization header removal from HTTP traffic
         #[arg(long)]
         disable_auth_removal: bool,
+        /// Redact high-confidence secrets and PII in captured payloads
+        #[arg(long, value_enum, default_value_t = ContentRedactionArg::Preview)]
+        content_redaction: ContentRedactionArg,
         /// SSL filter patterns to exclude events (can be used multiple times)
         #[arg(long)]
         ssl_filter: Vec<String>,
@@ -164,6 +168,9 @@ enum DebugCommand {
         /// Disable authorization header removal from HTTP traffic
         #[arg(long)]
         disable_auth_removal: bool,
+        /// Redact high-confidence secrets and PII in captured payloads
+        #[arg(long, value_enum, default_value_t = ContentRedactionArg::Preview)]
+        content_redaction: ContentRedactionArg,
         /// Export GenAI spans to an OpenTelemetry Collector via OTLP/HTTP
         #[arg(long)]
         otel: bool,
@@ -233,6 +240,7 @@ pub(crate) async fn run(
             http_raw_data,
             http_filter,
             disable_auth_removal,
+            content_redaction,
             ssl_filter,
             quiet,
             server,
@@ -247,6 +255,7 @@ pub(crate) async fn run(
                 *http_raw_data,
                 http_filter,
                 *disable_auth_removal,
+                (*content_redaction).into(),
                 ssl_filter,
                 *quiet,
                 *server,
@@ -319,6 +328,7 @@ pub(crate) async fn run(
             system_interval,
             http_filter,
             disable_auth_removal,
+            content_redaction,
             otel,
             otel_endpoint,
             otel_capture_content,
@@ -328,6 +338,7 @@ pub(crate) async fn run(
             server,
             server_port,
         } => {
+            let redaction_mode: RedactionMode = (*content_redaction).into();
             run_trace(
                 binary_extractor,
                 TraceConfig {
@@ -352,9 +363,11 @@ pub(crate) async fn run(
                     system_interval: *system_interval,
                     http_filter: http_filter.clone(),
                     disable_auth_removal: *disable_auth_removal,
+                    content_redaction: redaction_mode,
                     otel: otel.then(|| OtelConfig {
                         endpoint: otel_endpoint.clone(),
                         capture_content: *otel_capture_content,
+                        redaction_mode,
                     }),
                     binary_path: binary_path.clone(),
                     db_path: configured_db_path(db),
@@ -402,6 +415,7 @@ async fn run_raw_ssl(
     include_raw_data: bool,
     http_filter_patterns: &[String],
     disable_auth_removal: bool,
+    content_redaction: RedactionMode,
     ssl_filter_patterns: &[String],
     quiet: bool,
     enable_server: bool,
@@ -442,6 +456,11 @@ async fn run_raw_ssl(
         println!("Starting SSL event stream with SSE processing (press Ctrl+C to stop):");
     } else {
         println!("Starting SSL event stream with raw JSON output (press Ctrl+C to stop):");
+    }
+    if content_redaction != RedactionMode::Disabled {
+        ssl_runner = ssl_runner.add_analyzer(Box::new(ContentRedactor::with_mode(
+            content_redaction,
+        )));
     }
     run_debug_runner(ssl_runner, quiet, enable_server, server_listen, server_port).await
 }

@@ -21,6 +21,9 @@ Current extensions:
 - `web`: built-in product presentation components; the trusted frontend shell
   remains in `frontend/`.
 - `runtime`: bounded Wasmtime host for Component extensions.
+- `memcode`: an [external correlation sample](memcode/README.md) for content-free
+  save/recall metadata, using `session` discovery/matching and sample SQLite/OTEL
+  projections. It adds no native capture hook or runtime extension routing.
 
 The native `agentsight-capture-core` owns generic process identity and topology
 and does not depend on agent/session semantics. Only `session` currently exports

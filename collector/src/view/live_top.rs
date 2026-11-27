@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::model::{AuditCounters, SessionRow, Snapshot};
+use crate::model::{AuditCounters, AuditEventRow, SessionRow, Snapshot};
 use crate::output::{AgentProcessRow, AgentTopOutput, AgentTopRow, TopOptions};
 use crate::sources::agent_native as agent_native_sessions;
 use crate::sources::proc::{self as procfs, ProcSnapshot as LiveSample};
@@ -19,6 +19,12 @@ use std::time::Duration;
 pub(crate) struct LiveCaptureSnapshot {
     snapshot: Snapshot,
     parse_errors: u64,
+    backend_label: &'static str,
+    trace_token: &'static str,
+    root_pid: Option<u32>,
+    root_start_identity: Option<u64>,
+    root_comm: Option<String>,
+    root_exited: bool,
 }
 
 impl Default for LiveCaptureSnapshot {
@@ -26,6 +32,12 @@ impl Default for LiveCaptureSnapshot {
         Self {
             snapshot: Snapshot::empty("live_capture"),
             parse_errors: 0,
+            backend_label: default_capture_backend_label(),
+            trace_token: default_capture_trace_token(),
+            root_pid: None,
+            root_start_identity: None,
+            root_comm: None,
+            root_exited: false,
         }
     }
 }
@@ -35,8 +47,106 @@ impl LiveCaptureSnapshot {
         Self {
             snapshot,
             parse_errors,
+            backend_label: default_capture_backend_label(),
+            trace_token: default_capture_trace_token(),
+            root_pid: None,
+            root_start_identity: None,
+            root_comm: None,
+            root_exited: false,
         }
     }
+
+    pub(crate) fn with_backend(
+        snapshot: Snapshot,
+        parse_errors: u64,
+        backend_label: &'static str,
+        trace_token: &'static str,
+    ) -> Self {
+        Self {
+            snapshot,
+            parse_errors,
+            backend_label,
+            trace_token,
+            root_pid: None,
+            root_start_identity: None,
+            root_comm: None,
+            root_exited: false,
+        }
+    }
+
+    pub(crate) fn with_root_identity(
+        mut self,
+        root_pid: Option<u32>,
+        root_start_identity: Option<u64>,
+    ) -> Self {
+        self.root_pid = root_pid;
+        self.root_start_identity = root_start_identity;
+        self
+    }
+
+    pub(crate) fn with_root_evidence(
+        mut self,
+        root_comm: Option<String>,
+        root_exited: bool,
+    ) -> Self {
+        self.root_comm = root_comm;
+        self.root_exited = root_exited;
+        self
+    }
+
+    fn root_identity_matches(&self, sample: &LiveSample, root_pid: u32) -> bool {
+        if self.root_pid.is_some_and(|captured| captured != root_pid) {
+            return false;
+        }
+        let Some(start_identity) = self.root_start_identity else {
+            return true;
+        };
+        match sample.procs.get(&root_pid) {
+            Some(process) => {
+                process.starttime_ticks == start_identity
+                    || procfs::process_start_identity(root_pid) == Some(start_identity)
+            }
+            // An absent root may have exited while its descendants are still
+            // producing attributable lifecycle evidence.
+            None => true,
+        }
+    }
+
+    fn stale_root_pid(&self, sample: &LiveSample) -> Option<u32> {
+        let root_pid = self.root_pid?;
+        let has_root_evidence = self.root_comm.is_some()
+            || self.snapshot.audit_events.iter().any(|event| {
+                event
+                    .details
+                    .get("capture_root_pid")
+                    .and_then(serde_json::Value::as_u64)
+                    == Some(u64::from(root_pid))
+            });
+        if self.root_identity_matches(sample, root_pid) || !has_root_evidence {
+            return None;
+        }
+        Some(root_pid)
+    }
+}
+
+#[cfg(target_os = "windows")]
+const fn default_capture_backend_label() -> &'static str {
+    "Windows ETW"
+}
+
+#[cfg(not(target_os = "windows"))]
+const fn default_capture_backend_label() -> &'static str {
+    "eBPF"
+}
+
+#[cfg(target_os = "windows")]
+const fn default_capture_trace_token() -> &'static str {
+    "etw"
+}
+
+#[cfg(not(target_os = "windows"))]
+const fn default_capture_trace_token() -> &'static str {
+    "ebpf"
 }
 
 pub(crate) struct LiveView {
@@ -304,6 +414,7 @@ impl LiveView {
                 tokens: (session.total_tokens > 0).then_some(session.total_tokens),
                 tools,
                 execs: 0,
+                exits: 0,
                 failures: 0,
                 files: session
                     .attributes
@@ -354,7 +465,9 @@ impl LiveView {
         };
         let has_agent_native = rows.iter().any(|row| row.evidence().agent_native);
         let has_proc = rows.iter().any(|row| row.evidence().proc);
-        let has_ebpf = rows.iter().any(|row| row.evidence().ebpf);
+        let has_live_capture = rows
+            .iter()
+            .any(|row| row.evidence().ebpf || row.evidence().etw);
         let has_session_file_link = rows
             .iter()
             .any(|row| row.evidence().has_session_path_link());
@@ -376,18 +489,44 @@ impl LiveView {
         if has_session_file_link {
             notes.push("agent-native sessions bind to live pids after the process touches the matching session path; binding stays until pid exits or a new session path is observed".to_string());
         }
-        if has_ebpf {
-            notes.push(
-                "ebpf evidence is live process capture; SSL payload details still require record"
-                    .to_string(),
-            );
+        if has_live_capture {
+            notes.push(format!(
+                "{} evidence is live process capture; SSL payload details still require record",
+                capture
+                    .map(|capture| capture.backend_label)
+                    .unwrap_or("live capture")
+            ));
         }
         if let Some(capture) = capture
             && capture.parse_errors > 0
         {
             notes.push(format!(
-                "ebpf process capture had {} parse errors",
-                capture.parse_errors
+                "{} process capture had {} parse errors",
+                capture.backend_label, capture.parse_errors
+            ));
+        }
+        if let Some(root_pid) = capture.and_then(|capture| capture.stale_root_pid(sample)) {
+            notes.push(format!(
+                "{} evidence for PID {root_pid} was withheld because the root PID now belongs to a different process instance",
+                capture
+                    .map(|capture| capture.backend_label)
+                    .unwrap_or("live capture")
+            ));
+        } else if let Some(capture) = capture
+            && let Some(root_pid) = capture.root_pid
+            && !sample.procs.contains_key(&root_pid)
+            && (capture.root_comm.is_some()
+                || capture.snapshot.audit_events.iter().any(|event| {
+                    event
+                        .details
+                        .get("capture_root_pid")
+                        .and_then(serde_json::Value::as_u64)
+                        == Some(u64::from(root_pid))
+                }))
+        {
+            notes.push(format!(
+                "{} capture root PID {root_pid} exited; capture-only descendant lifecycle evidence remains attributed",
+                capture.backend_label
             ));
         }
         if rows.is_empty() {
@@ -479,14 +618,38 @@ fn session_attr<'a>(session: &'a SessionRow, key: &str) -> Option<&'a str> {
 }
 
 fn apply_live_capture(
-    rows: &mut [AgentTopRow],
+    rows: &mut Vec<AgentTopRow>,
     sample: &LiveSample,
     capture: &LiveCaptureSnapshot,
     children: &HashMap<u32, Vec<u32>>,
 ) {
-    let by_pid = AuditCounters::by_pid(&capture.snapshot.audit_events);
-    if by_pid.is_empty() {
+    let mut explicit_by_root: HashMap<u32, AuditCounters> = HashMap::new();
+    let mut by_pid = std::collections::BTreeMap::new();
+    for event in &capture.snapshot.audit_events {
+        if let Some(root_pid) = event
+            .details
+            .get("capture_root_pid")
+            .and_then(serde_json::Value::as_u64)
+            .and_then(|pid| u32::try_from(pid).ok())
+        {
+            observe_audit_counters(explicit_by_root.entry(root_pid).or_default(), event);
+        } else if let Some(pid) = event.pid {
+            observe_audit_counters(by_pid.entry(pid).or_default(), event);
+        }
+    }
+    let has_root_evidence = capture.root_pid.is_some_and(|root_pid| {
+        explicit_by_root.contains_key(&root_pid) || capture.root_comm.is_some()
+    });
+    if explicit_by_root.is_empty() && by_pid.is_empty() && !has_root_evidence {
         return;
+    }
+
+    if let Some(root_pid) = capture.root_pid
+        && !rows.iter().any(|row| row.pid == Some(root_pid))
+        && capture.root_identity_matches(sample, root_pid)
+        && (explicit_by_root.contains_key(&root_pid) || capture.root_comm.is_some())
+    {
+        rows.push(capture_only_root_row(capture, root_pid));
     }
 
     let mut attributed = HashSet::new();
@@ -494,8 +657,12 @@ fn apply_live_capture(
         let Some(root_pid) = row.pid else {
             continue;
         };
+        let mut counters = if capture.root_identity_matches(sample, root_pid) {
+            explicit_by_root.get(&root_pid).cloned().unwrap_or_default()
+        } else {
+            AuditCounters::default()
+        };
         let family = procfs::process_family(root_pid, children, &sample.procs);
-        let mut counters = AuditCounters::default();
         for pid in family {
             if let Some(pid_counters) = by_pid.get(&pid) {
                 counters.process_execs += pid_counters.process_execs;
@@ -506,6 +673,7 @@ fn apply_live_capture(
             }
         }
         if counters.process_execs == 0
+            && counters.process_exits == 0
             && counters.process_exit_failure == 0
             && counters.file_events == 0
             && counters.network_events == 0
@@ -513,10 +681,11 @@ fn apply_live_capture(
             continue;
         }
         row.execs += counters.process_execs;
+        row.exits += counters.process_exits;
         row.failures += counters.process_exit_failure;
         row.files += counters.file_events;
         row.network += counters.network_events;
-        row.add_trace("ebpf");
+        row.add_trace(capture.trace_token);
     }
 
     let unattributed = by_pid
@@ -524,6 +693,7 @@ fn apply_live_capture(
         .filter(|(pid, counters)| {
             !attributed.contains(pid)
                 && (counters.process_execs > 0
+                    || counters.process_exits > 0
                     || counters.process_exit_failure > 0
                     || counters.file_events > 0
                     || counters.network_events > 0)
@@ -532,8 +702,114 @@ fn apply_live_capture(
     if unattributed == 0 {
         return;
     }
-    if let Some(row) = rows.iter_mut().find(|row| row.evidence().ebpf) {
+    if let Some(row) = rows
+        .iter_mut()
+        .find(|row| row.evidence().ebpf || row.evidence().etw)
+    {
         row.unattributed += unattributed;
+    }
+}
+
+fn capture_only_root_row(capture: &LiveCaptureSnapshot, root_pid: u32) -> AgentTopRow {
+    let root_events = capture
+        .snapshot
+        .audit_events
+        .iter()
+        .filter(|event| {
+            event.pid == Some(root_pid)
+                && event
+                    .details
+                    .get("capture_root_pid")
+                    .and_then(serde_json::Value::as_u64)
+                    == Some(u64::from(root_pid))
+        })
+        .collect::<Vec<_>>();
+    let root_event = root_events
+        .iter()
+        .rev()
+        .find(|event| event.action.as_deref() == Some("exec"))
+        .or_else(|| root_events.last())
+        .copied();
+    let root_comm = capture
+        .root_comm
+        .as_deref()
+        .or_else(|| root_event.and_then(|event| event.comm.as_deref()))
+        .unwrap_or("process");
+    let root_exited = capture.root_exited
+        || root_events
+            .iter()
+            .any(|event| event.action.as_deref() == Some("exit"));
+    let process_count = capture
+        .snapshot
+        .audit_events
+        .iter()
+        .filter(|event| {
+            event.audit_type == "process"
+                && event
+                    .details
+                    .get("capture_root_pid")
+                    .and_then(serde_json::Value::as_u64)
+                    == Some(u64::from(root_pid))
+        })
+        .filter_map(|event| event.pid)
+        .collect::<HashSet<_>>()
+        .len()
+        .max(1);
+    let command = if root_exited {
+        format!("{root_comm} (captured root exited)")
+    } else {
+        root_comm.to_string()
+    };
+
+    AgentTopRow {
+        session_id: None,
+        session: format!("proc:{root_pid}"),
+        agent: process_select::agent_label_from_command(root_comm, &command),
+        pid: Some(root_pid),
+        model: None,
+        age_s: None,
+        cpu_percent: 0.0,
+        rss_mb: 0,
+        processes: process_count,
+        tokens: None,
+        tools: 0,
+        execs: 0,
+        exits: 0,
+        failures: 0,
+        files: 0,
+        network: 0,
+        unattributed: 0,
+        trace: "etw".to_string(),
+        command,
+        workspace: None,
+        last_message_at: None,
+        tool_breakdown: Vec::new(),
+        file_breakdown: Vec::new(),
+        process_details: Vec::new(),
+        plan: Vec::new(),
+        subscription: None,
+    }
+}
+
+fn observe_audit_counters(counters: &mut AuditCounters, row: &AuditEventRow) {
+    match row.audit_type.as_str() {
+        "process" if row.action.as_deref() == Some("exec") => counters.process_execs += 1,
+        "process" if row.action.as_deref() == Some("exit") => {
+            counters.process_exits += 1;
+            match row.status.as_deref() {
+                Some("success") => counters.process_exit_success += 1,
+                Some("failure") => counters.process_exit_failure += 1,
+                _ => {}
+            }
+        }
+        "file" => {
+            counters.file_events += 1;
+            if let Some(target) = &row.target {
+                counters.unique_files.insert(target.clone());
+            }
+        }
+        "network" => counters.network_events += 1,
+        _ => {}
     }
 }
 
@@ -664,6 +940,7 @@ fn live_process_rows(
             tokens: None,
             tools: 0,
             execs: 0,
+            exits: 0,
             failures: 0,
             files: 0,
             network: 0,
@@ -918,6 +1195,255 @@ mod tests {
 
         let by_pid = AuditCounters::by_pid(&capture.snapshot.audit_events);
         assert_eq!(by_pid.get(&42).unwrap().file_events, 1);
+    }
+
+    #[test]
+    fn live_capture_attributes_exited_descendants_to_the_explicit_root() {
+        let root_pid = 42;
+        let child_pid = 100;
+        let sample = LiveSample {
+            procs: BTreeMap::from([(
+                root_pid,
+                ProcInfo {
+                    pid: root_pid,
+                    comm: "codex".to_string(),
+                    starttime_ticks: 10,
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+        let capture = LiveCaptureSnapshot::with_backend(
+            Snapshot {
+                audit_events: vec![
+                    crate::model::AuditEventRow {
+                        id: "exec-child".to_string(),
+                        timestamp_ms: 2,
+                        audit_type: "process".to_string(),
+                        pid: Some(child_pid),
+                        comm: Some("cmd.exe".to_string()),
+                        subject: Some("cmd.exe".to_string()),
+                        action: Some("exec".to_string()),
+                        target: Some("cmd.exe".to_string()),
+                        status: Some("observed".to_string()),
+                        summary: None,
+                        details: json!({"capture_root_pid": root_pid}),
+                        view_source: "view".to_string(),
+                        confidence: Some(0.75),
+                    },
+                    crate::model::AuditEventRow {
+                        id: "exit-child".to_string(),
+                        timestamp_ms: 3,
+                        audit_type: "process".to_string(),
+                        pid: Some(child_pid),
+                        comm: Some("cmd.exe".to_string()),
+                        subject: Some("cmd.exe".to_string()),
+                        action: Some("exit".to_string()),
+                        target: None,
+                        status: Some("failure".to_string()),
+                        summary: None,
+                        details: json!({"capture_root_pid": root_pid}),
+                        view_source: "view".to_string(),
+                        confidence: Some(0.75),
+                    },
+                ],
+                ..Snapshot::empty("capture")
+            },
+            0,
+            "Windows ETW",
+            "etw",
+        )
+        .with_root_identity(Some(root_pid), Some(10));
+        let children = sample.children_by_ppid();
+        let options = TopOptions {
+            pid: Some(root_pid),
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let mut rows = live_process_rows(&sample, None, &options, &children);
+
+        apply_live_capture(&mut rows, &sample, &capture, &children);
+
+        assert_eq!(rows[0].execs, 1);
+        assert_eq!(rows[0].exits, 1);
+        assert_eq!(rows[0].failures, 1);
+        assert!(rows[0].trace.split('+').any(|token| token == "etw"));
+        assert_eq!(capture.stale_root_pid(&sample), None);
+
+        let reused_root = capture.with_root_identity(Some(root_pid), Some(11));
+        assert_eq!(reused_root.stale_root_pid(&sample), Some(root_pid));
+        let mut reused_rows = live_process_rows(&sample, None, &options, &children);
+        apply_live_capture(&mut reused_rows, &sample, &reused_root, &children);
+        assert_eq!(reused_rows[0].execs, 0);
+        assert_eq!(reused_rows[0].exits, 0);
+        assert_eq!(reused_rows[0].failures, 0);
+        assert!(!reused_rows[0].trace.split('+').any(|token| token == "etw"));
+    }
+
+    #[test]
+    fn live_capture_keeps_a_root_row_after_the_root_exits() {
+        let root_pid = 42;
+        let child_pid = 100;
+        let capture = LiveCaptureSnapshot::with_backend(
+            Snapshot {
+                audit_events: vec![
+                    crate::model::AuditEventRow {
+                        id: "present-root".to_string(),
+                        timestamp_ms: 1,
+                        audit_type: "process".to_string(),
+                        pid: Some(root_pid),
+                        comm: Some("codex.exe".to_string()),
+                        subject: Some("codex.exe".to_string()),
+                        action: Some("exec".to_string()),
+                        target: Some("codex.exe".to_string()),
+                        status: Some("observed".to_string()),
+                        summary: None,
+                        details: json!({"capture_root_pid": root_pid}),
+                        view_source: "view".to_string(),
+                        confidence: Some(0.75),
+                    },
+                    crate::model::AuditEventRow {
+                        id: "exit-root".to_string(),
+                        timestamp_ms: 2,
+                        audit_type: "process".to_string(),
+                        pid: Some(root_pid),
+                        comm: Some("codex.exe".to_string()),
+                        subject: Some("codex.exe".to_string()),
+                        action: Some("exit".to_string()),
+                        target: None,
+                        status: Some("success".to_string()),
+                        summary: None,
+                        details: json!({"capture_root_pid": root_pid, "exit_code": 0}),
+                        view_source: "view".to_string(),
+                        confidence: Some(0.75),
+                    },
+                    crate::model::AuditEventRow {
+                        id: "exec-child".to_string(),
+                        timestamp_ms: 3,
+                        audit_type: "process".to_string(),
+                        pid: Some(child_pid),
+                        comm: Some("cmd.exe".to_string()),
+                        subject: Some("cmd.exe".to_string()),
+                        action: Some("exec".to_string()),
+                        target: Some("cmd.exe".to_string()),
+                        status: Some("observed".to_string()),
+                        summary: None,
+                        details: json!({"capture_root_pid": root_pid}),
+                        view_source: "view".to_string(),
+                        confidence: Some(0.75),
+                    },
+                ],
+                ..Snapshot::empty("capture")
+            },
+            0,
+            "Windows ETW",
+            "etw",
+        )
+        .with_root_identity(Some(root_pid), Some(10));
+        let sample = LiveSample::default();
+        let options = TopOptions {
+            pid: Some(root_pid),
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let children = sample.children_by_ppid();
+        let mut rows = live_process_rows(&sample, None, &options, &children);
+
+        apply_live_capture(&mut rows, &sample, &capture, &children);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].pid, Some(root_pid));
+        assert_eq!(rows[0].processes, 2);
+        assert_eq!(rows[0].execs, 2);
+        assert_eq!(rows[0].exits, 1);
+        assert!(rows[0].command.contains("captured root exited"));
+        assert_eq!(rows[0].state_label(), "history");
+        assert!(rows[0].trace.split('+').any(|token| token == "etw"));
+        assert_eq!(capture.stale_root_pid(&sample), None);
+    }
+
+    #[test]
+    fn live_capture_keeps_root_evidence_ignored_by_the_projection() {
+        let root_pid = 42;
+        let capture =
+            LiveCaptureSnapshot::with_backend(Snapshot::empty("capture"), 0, "Windows ETW", "etw")
+                .with_root_identity(Some(root_pid), Some(10))
+                .with_root_evidence(Some("codex.exe".to_string()), true);
+        let sample = LiveSample::default();
+        let options = TopOptions {
+            pid: Some(root_pid),
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let children = sample.children_by_ppid();
+        let mut rows = live_process_rows(&sample, None, &options, &children);
+
+        apply_live_capture(&mut rows, &sample, &capture, &children);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].pid, Some(root_pid));
+        assert_eq!(rows[0].execs, 0);
+        assert_eq!(rows[0].state_label(), "history");
+        assert!(rows[0].command.contains("codex.exe (captured root exited)"));
+    }
+
+    #[test]
+    fn successful_child_exit_is_visible_etw_evidence() {
+        let root_pid = 42;
+        let child_pid = 100;
+        let capture = LiveCaptureSnapshot::with_backend(
+            Snapshot {
+                audit_events: vec![crate::model::AuditEventRow {
+                    id: "exit-child".to_string(),
+                    timestamp_ms: 3,
+                    audit_type: "process".to_string(),
+                    pid: Some(child_pid),
+                    comm: Some("cmd.exe".to_string()),
+                    subject: Some("cmd.exe".to_string()),
+                    action: Some("exit".to_string()),
+                    target: None,
+                    status: Some("success".to_string()),
+                    summary: None,
+                    details: json!({"capture_root_pid": root_pid, "exit_code": 0}),
+                    view_source: "view".to_string(),
+                    confidence: Some(0.75),
+                }],
+                ..Snapshot::empty("capture")
+            },
+            0,
+            "Windows ETW",
+            "etw",
+        )
+        .with_root_identity(Some(root_pid), Some(10));
+        let sample = LiveSample {
+            procs: BTreeMap::from([(
+                root_pid,
+                ProcInfo {
+                    pid: root_pid,
+                    comm: "codex".to_string(),
+                    starttime_ticks: 10,
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+        let options = TopOptions {
+            pid: Some(root_pid),
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let children = sample.children_by_ppid();
+        let mut rows = live_process_rows(&sample, None, &options, &children);
+
+        apply_live_capture(&mut rows, &sample, &capture, &children);
+
+        assert_eq!(rows[0].exits, 1);
+        assert_eq!(rows[0].failures, 0);
+        assert!(rows[0].trace.split('+').any(|token| token == "etw"));
     }
 
     #[test]
