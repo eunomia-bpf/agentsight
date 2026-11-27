@@ -68,6 +68,46 @@ export function browserRelayRoute(request: Request): BrowserRelayRoute | null {
   if ((request.method !== 'GET' && request.method !== 'POST') || !validRelaySuffix(suffix, url.search)) {
     return null;
   }
+
+  const nebula = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/nebula$/);
+  if (nebula && request.method === 'GET') {
+    const nodeId = decodeNodeId(nebula[1]);
+    return nodeId ? {
+      nodeId,
+      method: 'GET',
+      nodePath: '/api/v1/nebula',
+      statusOnly: false,
+    } : null;
+  }
+
+  const message = url.pathname.match(
+    /^\/v1\/nodes\/([^/]+)\/relay\/sessions\/([^/]+)\/messages$/,
+  );
+  if (message && request.method === 'POST') {
+    const nodeId = decodeNodeId(message[1]);
+    const sessionId = decodeSessionId(message[2]);
+    if (!nodeId || !sessionId) return null;
+    return {
+      nodeId,
+      method: 'POST',
+      nodePath: `/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`,
+      statusOnly: false,
+    };
+  }
+
+  const session = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/sessions\/([^/]+)$/);
+  if (session && request.method === 'GET') {
+    const nodeId = decodeNodeId(session[1]);
+    const sessionId = decodeSessionId(session[2]);
+    if (!nodeId || !sessionId) return null;
+    return {
+      nodeId,
+      method: 'GET',
+      nodePath: `/api/v1/sessions/${encodeURIComponent(sessionId)}`,
+      statusOnly: false,
+    };
+  }
+
   return {
     nodeId,
     method: request.method,
@@ -270,6 +310,16 @@ function decodeNodeId(value: string): string | null {
   try {
     const decoded = decodeURIComponent(value);
     return NODE_ID_PATTERN.test(decoded) ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function decodeSessionId(value: string): string | null {
+  try {
+    const decoded = decodeURIComponent(value);
+    if (!decoded || decoded.length > 256 || decoded.includes('/') || decoded.includes('\\')) return null;
+    return decoded;
   } catch {
     return null;
   }

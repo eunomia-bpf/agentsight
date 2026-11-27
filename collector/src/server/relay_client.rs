@@ -388,7 +388,7 @@ fn allowed_relay_path(method: &str, value: &str) -> bool {
             })
         });
     }
-    if method == "GET" && path == "/api/v1/overview" {
+    if method == "GET" && matches!(path, "/api/v1/overview" | "/api/v1/nebula") {
         return query.is_none();
     }
     if query.is_some() {
@@ -444,6 +444,7 @@ mod tests {
             "/api/v1/snapshot?audit_limit=50000"
         ));
         assert!(allowed_relay_path("GET", "/api/v1/overview"));
+        assert!(allowed_relay_path("GET", "/api/v1/nebula"));
         assert!(allowed_relay_path("GET", "/api/v1/sessions/session-123"));
         assert!(allowed_relay_path(
             "POST",
