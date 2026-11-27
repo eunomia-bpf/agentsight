@@ -9,6 +9,7 @@ pub(crate) fn agentsight_state_dir_for_home(home: &Path) -> PathBuf {
     home.join(".agentsight")
 }
 
+#[cfg(any(test, not(target_os = "windows")))]
 pub(crate) fn ensure_agentsight_state_dir() -> io::Result<Option<PathBuf>> {
     let Some(home) = dirs::home_dir() else {
         return Ok(None);

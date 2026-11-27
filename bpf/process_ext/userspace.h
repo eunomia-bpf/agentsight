@@ -42,43 +42,6 @@ static inline void print_clock_sync_anchor(const char *phase)
 	fflush(stdout);
 }
 
-/* Diagnostic for #257: count what the aggregate map still holds, without
- * deleting anything. A SUMMARY type missing from stdout but present here
- * was lost on the flush/print path; one absent here as well never reached
- * the map (hook or filter path).
- */
-static inline void dump_agg_map_counts(int map_fd, const char *phase)
-{
-	if (map_fd < 0)
-		return;
-	struct agg_key key = {}, next_key;
-	struct agg_value val;
-	unsigned long by_type[32] = {};
-	unsigned long total = 0;
-
-	while (bpf_map_get_next_key(map_fd, &key, &next_key) == 0) {
-		if (next_key.event_type < 32 &&
-		    bpf_map_lookup_elem(map_fd, &next_key, &val) == 0 &&
-		    val.count > 0) {
-			by_type[next_key.event_type] += val.count;
-			total += val.count;
-		}
-		key = next_key;
-	}
-	printf("{\"event\":\"AGG_MAP_COUNTS\",\"phase\":\"%s\",\"total\":%lu,"
-	       "\"counts\":{", phase ? phase : "unknown", total);
-	int first = 1;
-	for (unsigned int t = 0; t < 32; t++) {
-		if (by_type[t]) {
-			printf("%s\"%s\":%lu", first ? "" : ",",
-			       event_type_name(t), by_type[t]);
-			first = 0;
-		}
-	}
-	printf("}}\n");
-	fflush(stdout);
-}
-
 static inline bool normalize_cgroup_path(const char *input, char *output, size_t output_len)
 {
 	if (!input || !input[0] || !output || output_len == 0)

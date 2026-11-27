@@ -47,12 +47,11 @@ impl SSEProcessorEvent {
         // Serialize struct to JSON Value to ensure exact match with struct fields
         let data = serde_json::to_value(self).unwrap_or_else(|_| serde_json::json!({}));
 
-        // Use merged end_time if events were merged, otherwise use original timestamp
-        let timestamp = if self.event_count > 1 {
-            self.end_time
-        } else {
-            original_event.timestamp
-        };
+        // The aggregate stands for the whole exchange, so it is timestamped at
+        // its completion, not at the first chunk that created it. A single
+        // record would otherwise carry the header chunk's timestamp while
+        // `end_time` said otherwise.
+        let timestamp = self.end_time;
 
         Event::new_with_timestamp(
             timestamp,

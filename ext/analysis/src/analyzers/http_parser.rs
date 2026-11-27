@@ -13,6 +13,10 @@ use futures::stream::StreamExt;
 use loona_hpack::Decoder as HpackDecoder;
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
+#[cfg(test)]
+#[path = "http_stream_tests.rs"]
+mod stream_tests;
+
 const MAX_HTTP2_STREAMS: usize = 1024;
 const MAX_HTTP2_PENDING_HEADERS: usize = 1024;
 const MAX_HTTP_BODY_BYTES: usize = 1024 * 1024;
@@ -50,6 +54,17 @@ struct HTTP1ConnectionState {
     response_skip: usize,
     pending: VecDeque<(String, bool)>,
     next_request_seq: u64,
+    // These slots follow TLS direction, not HTTP message type: a server
+    // writes responses whereas a client reads them.
+    request_sse: Option<HTTP1SseStream>,
+    response_sse: Option<HTTP1SseStream>,
+}
+
+struct HTTP1SseStream {
+    message: HTTPMessage,
+    chunked: bool,
+    remaining: Option<usize>,
+    metadata: MessageMetadata,
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -454,6 +469,7 @@ impl HTTPParser {
         let mut events = Vec::new();
         if let Some(mut state) = self.http1.remove(&connection.id) {
             if completion_reason == "closed"
+                && state.response_sse.is_none()
                 && !state.response_buffer.is_empty()
                 && let Http1Scan::Complete {
                     message, consumed, ..
@@ -825,10 +841,19 @@ impl HTTP1ConnectionState {
             response_skip,
             pending,
             next_request_seq,
+            request_sse,
+            response_sse,
         } = self;
-        let (buffer, metadata, skip) = match direction {
-            HTTP2Direction::Request => (request_buffer, request_metadata, request_skip),
-            HTTP2Direction::Response => (response_buffer, response_metadata, response_skip),
+        let (buffer, metadata, skip, sse) = match direction {
+            HTTP2Direction::Request => {
+                (request_buffer, request_metadata, request_skip, request_sse)
+            }
+            HTTP2Direction::Response => (
+                response_buffer,
+                response_metadata,
+                response_skip,
+                response_sse,
+            ),
         };
         let mut outcome = Http1Outcome::default();
 
@@ -855,7 +880,7 @@ impl HTTP1ConnectionState {
 
         // A recognizable new start resynchronizes the stream: an incomplete
         // message still pending can no longer complete.
-        if looks_like_http1_start(bytes) && !buffer.is_empty() {
+        if sse.is_none() && looks_like_http1_start(bytes) && !buffer.is_empty() {
             buffer.clear();
             metadata.fragments.clear();
         }
@@ -865,6 +890,53 @@ impl HTTP1ConnectionState {
         let flush_unframed = !connection.exact;
         loop {
             let head_request = pending.front().is_some_and(|(_, head)| *head);
+            if connection.exact && !pending.is_empty() && !head_request {
+                if sse.is_none()
+                    && let Some((mut stream, consumed)) = start_http1_sse(buffer)
+                {
+                    metadata.consume(consumed, &mut stream.metadata);
+                    buffer.drain(..consumed);
+                    // Bind the response at its headers, even if the first body
+                    // bytes arrive in a later TLS call (or never arrive).
+                    outcome.events.push(stream.event(
+                        event,
+                        tid,
+                        connection,
+                        &pending.front().unwrap().0,
+                        &[],
+                        false,
+                        include_raw_data,
+                    ));
+                    *sse = Some(stream);
+                }
+                if let Some(stream) = sse.as_mut() {
+                    match drain_http1_sse(buffer, stream) {
+                        Ok(Some((payload, consumed, ended))) => {
+                            metadata.consume(consumed, &mut stream.metadata);
+                            buffer.drain(..consumed);
+                            outcome.events.push(stream.event(
+                                event,
+                                tid,
+                                connection,
+                                &pending.front().unwrap().0,
+                                &payload,
+                                ended,
+                                include_raw_data,
+                            ));
+                            if ended {
+                                *sse = None;
+                                pending.pop_front();
+                            }
+                            continue;
+                        }
+                        Ok(None) => break,
+                        Err(()) => {
+                            outcome.unreliable = Some("protocol_error");
+                            return Some(outcome);
+                        }
+                    }
+                }
+            }
             match scan_http1_message(buffer, head_request, flush_unframed) {
                 Http1Scan::Complete { framed: false, .. } if truncated => {
                     // A close-delimited body whose record was cut short is not
@@ -945,6 +1017,23 @@ impl HTTP1ConnectionState {
         } else {
             return Some(outcome);
         };
+
+        if let Some(stream) = sse.as_mut() {
+            // The response headers have already been consumed. Do not feed
+            // its remaining body to the ordinary HTTP message scanner.
+            metadata.consume(buffer.len(), &mut stream.metadata);
+            outcome.events.push(stream.event(
+                event,
+                tid,
+                connection,
+                &pending.front().unwrap().0,
+                &[],
+                false,
+                include_raw_data,
+            ));
+            outcome.unreliable = Some("truncated");
+            return Some(outcome);
+        }
 
         // The rest of this message will never be seen. Emit what was
         // collected of it, with an explicit marker, instead of dropping it.
@@ -1066,6 +1155,135 @@ fn http1_route_message(
             (exchange_id, method)
         }
     }
+}
+
+impl HTTP1SseStream {
+    #[allow(clippy::too_many_arguments)]
+    fn event(
+        &self,
+        original: &Event,
+        tid: u64,
+        connection: &ConnectionIdentity,
+        exchange: &str,
+        payload: &[u8],
+        ended: bool,
+        include_raw_data: bool,
+    ) -> Event {
+        let mut source = original.clone();
+        source.data = serde_json::to_value(self.metadata.capture.finish()).unwrap();
+        let mut output = HTTPParser::create_http_event(
+            tid,
+            self.message.clone(),
+            &source,
+            include_raw_data,
+            connection,
+            Some(exchange.to_string()),
+            Some("h1_connection_fifo"),
+            None,
+        );
+        set_response_chunk(&mut output, payload, ended, include_raw_data);
+        output
+    }
+}
+
+fn is_uncompressed_sse(headers: &HashMap<String, String>) -> bool {
+    headers.get("content-type").is_some_and(|value| {
+        value
+            .split(';')
+            .next()
+            .is_some_and(|mime| mime.trim().eq_ignore_ascii_case("text/event-stream"))
+    }) && headers
+        .get("content-encoding")
+        .is_none_or(|value| value.eq_ignore_ascii_case("identity"))
+}
+
+fn start_http1_sse(buffer: &[u8]) -> Option<(HTTP1SseStream, usize)> {
+    let consumed = find_bytes(buffer, b"\r\n\r\n")? + 4;
+    if consumed > MAX_HTTP1_BUFFER_BYTES {
+        return None;
+    }
+    let mut message =
+        HTTPParser::parse_http_message(&String::from_utf8_lossy(&buffer[..consumed]))?;
+    if message.message_type != HTTPMessageType::Response
+        || !message
+            .status_code
+            .is_some_and(|code| code >= 200 && code != 204 && code != 304)
+        || !is_uncompressed_sse(&message.headers)
+    {
+        return None;
+    }
+    let remaining = match http1_content_length(&buffer[..consumed - 4]) {
+        Http1ContentLength::Absent => None,
+        Http1ContentLength::Valid(length) => Some(length),
+        Http1ContentLength::Invalid => return None,
+    };
+    let chunked = http1_header_is_chunked(&buffer[..consumed - 4]);
+    message.headers.remove("transfer-encoding");
+    message.headers.remove("content-length");
+    Some((
+        HTTP1SseStream {
+            message,
+            chunked,
+            remaining,
+            metadata: MessageMetadata::default(),
+        },
+        consumed,
+    ))
+}
+
+// Return at most one transfer chunk. The caller retains unconsumed framing and
+// loops so a following keep-alive response in the same TLS record is not lost.
+fn drain_http1_sse(
+    buffer: &[u8],
+    state: &mut HTTP1SseStream,
+) -> Result<Option<(Vec<u8>, usize, bool)>, ()> {
+    if state.chunked {
+        let Some(line_end) = find_crlf(buffer, 0) else {
+            return Ok(None);
+        };
+        let size = parse_chunk_size(&buffer[..line_end]).ok_or(())?;
+        if size == 0 {
+            return match chunked_message_end(buffer, 0) {
+                ChunkedEnd::Complete(end) => Ok(Some((Vec::new(), end, true))),
+                ChunkedEnd::Incomplete => Ok(None),
+                ChunkedEnd::Malformed => Err(()),
+            };
+        }
+        let start = line_end + 2;
+        let end = start.checked_add(size).ok_or(())?;
+        let consumed = end.checked_add(2).ok_or(())?;
+        if consumed > buffer.len() {
+            return Ok(None);
+        }
+        if &buffer[end..consumed] != b"\r\n" {
+            return Err(());
+        }
+        Ok(Some((buffer[start..end].to_vec(), consumed, false)))
+    } else {
+        let take = state.remaining.unwrap_or(buffer.len()).min(buffer.len());
+        let ended = if let Some(remaining) = state.remaining.as_mut() {
+            *remaining -= take;
+            *remaining == 0
+        } else {
+            false
+        };
+        Ok((take > 0 || ended).then(|| (buffer[..take].to_vec(), take, ended)))
+    }
+}
+
+fn set_response_chunk(event: &mut Event, payload: &[u8], end_stream: bool, include_raw_data: bool) {
+    use serde_json::json;
+    event.data["message_type"] = json!("response_chunk");
+    event.data["body"] = json!(String::from_utf8_lossy(payload));
+    event.data["body_hex"] = json!(hex::encode(payload));
+    event.data["has_body"] = json!(!payload.is_empty());
+    event.data["content_length"] = json!(payload.len());
+    event.data["total_size"] = json!(payload.len());
+    event.data["end_stream"] = json!(end_stream);
+    event.data["completion_reason"] = json!(end_stream.then_some("done"));
+    event.data["raw_data"] = json!(include_raw_data.then(|| String::from_utf8_lossy(payload)));
+    // The entire HTTP response's provenance so far, not an additive chunk sum.
+    event.data["capture_metadata_scope"] = json!("http_message");
 }
 
 enum Http1Scan {
@@ -1828,6 +2046,31 @@ impl HTTP2State {
                             }
                         }
                         HTTP2Direction::Response => {
+                            if connection.exact && is_uncompressed_sse(&state.response_headers) {
+                                if !state.response_emitted {
+                                    let ended = frame.flags & 0x1 != 0;
+                                    let mut output = create_http2_response_event(
+                                        connection,
+                                        tid,
+                                        frame.stream_id,
+                                        state,
+                                        original_event,
+                                        include_raw_data,
+                                    );
+                                    set_response_chunk(
+                                        &mut output,
+                                        payload,
+                                        ended,
+                                        include_raw_data,
+                                    );
+                                    events.push(output);
+                                    state.response_emitted = ended;
+                                }
+                                if state.request_emitted && state.response_emitted {
+                                    self.streams.remove(&key);
+                                }
+                                continue;
+                            }
                             if state.response_body.len().saturating_add(payload.len())
                                 > MAX_HTTP_BODY_BYTES
                             {
@@ -1875,6 +2118,23 @@ impl HTTP2State {
                         if let Some(headers) = self.decode_headers(direction, fragment) {
                             let state = self.streams.entry(key).or_default();
                             apply_headers(state, direction, headers);
+                            if frame.flags & 0x1 == 0
+                                && direction == HTTP2Direction::Response
+                                && connection.exact
+                                && is_uncompressed_sse(&state.response_headers)
+                                && !state.response_emitted
+                            {
+                                let mut output = create_http2_response_event(
+                                    connection,
+                                    tid,
+                                    frame.stream_id,
+                                    state,
+                                    original_event,
+                                    include_raw_data,
+                                );
+                                set_response_chunk(&mut output, &[], false, include_raw_data);
+                                events.push(output);
+                            }
                             if frame.flags & 0x1 != 0 {
                                 match direction {
                                     HTTP2Direction::Request if !state.request_emitted => {
@@ -1974,6 +2234,23 @@ impl HTTP2State {
                         {
                             let state = self.streams.entry(key).or_default();
                             apply_headers(state, pending.direction, headers);
+                            if !pending.end_stream
+                                && pending.direction == HTTP2Direction::Response
+                                && connection.exact
+                                && is_uncompressed_sse(&state.response_headers)
+                                && !state.response_emitted
+                            {
+                                let mut output = create_http2_response_event(
+                                    connection,
+                                    tid,
+                                    frame.stream_id,
+                                    state,
+                                    original_event,
+                                    include_raw_data,
+                                );
+                                set_response_chunk(&mut output, &[], false, include_raw_data);
+                                events.push(output);
+                            }
                             if pending.end_stream {
                                 match pending.direction {
                                     HTTP2Direction::Request if !state.request_emitted => {
@@ -2320,7 +2597,7 @@ fn create_http2_response_event(
     let body = body_string(&state.response_body);
     let body_hex = (!state.response_body.is_empty()).then(|| hex::encode(&state.response_body));
     let total_size = headers_size(&state.response_headers) + state.response_body.len();
-    HTTPEvent {
+    let mut output = HTTPEvent {
         capture_metadata: state.response_capture_metadata.capture.finish(),
         tid,
         connection_id: Some(connection.id.clone()),
@@ -2362,7 +2639,11 @@ fn create_http2_response_event(
         body_truncation_reason: None,
         body_captured_bytes: None,
     }
-    .to_event(original_event)
+    .to_event(original_event);
+    if connection.exact && is_uncompressed_sse(&state.response_headers) {
+        set_response_chunk(&mut output, &state.response_body, true, include_raw_data);
+    }
+    output
 }
 
 fn http2_terminal_event(

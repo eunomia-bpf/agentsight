@@ -366,9 +366,61 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  release_windows:
+    name: Build Release Binaries (windows-x86_64)
+    needs: release_prepare
+    if: needs.release_prepare.outputs.should_publish == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release_prepare.outputs.publish_sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache-workspaces: |
+            agentsight-protocol -> target
+            agentsight-capture -> target
+            compat/agentsight-capture -> target
+            ext/analysis -> target
+            ext/session -> target
+            ext/vis -> target
+            collector -> target
+
+      - name: Build and smoke Windows release binary
+        shell: pwsh
+        run: |
+          cargo build --release --locked --manifest-path collector/Cargo.toml
+          pwsh -NoProfile -File script/ci/windows_smoke.ps1 `
+            -BinaryPath collector/target/release/agentsight.exe `
+            -ExpectedVersion "${{ needs.release_prepare.outputs.version }}"
+
+      - name: Prepare Windows release assets
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File script/release/package_windows_assets.ps1 `
+            -BinaryPath collector/target/release/agentsight.exe `
+            -OutputDir release-assets
+          pwsh -NoProfile -File script/release/verify_windows_asset.ps1 `
+            -AssetPath release-assets/agentsight-windows-x86_64.exe `
+            -ChecksumPath release-assets/agentsight-windows-x86_64.exe.sha256 `
+            -ExpectedVersion "${{ needs.release_prepare.outputs.version }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-x86_64
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 1
+
   publish_crates:
     name: Publish Cargo Packages
-    needs: [release_prepare, release_binaries]
+    needs: [release_prepare, release_binaries, release_windows]
     if: needs.release_prepare.outputs.should_publish == 'true'
     runs-on: ubuntu-24.04
     steps:
@@ -425,13 +477,13 @@ jobs:
 
   release:
     name: Assemble GitHub Release
-    needs: [release_prepare, release_binaries, publish_crates]
+    needs: [release_prepare, release_binaries, release_windows, publish_crates]
     if: needs.release_prepare.outputs.should_publish == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: release-linux-*
+          pattern: release-*
           path: release-assets
           merge-multiple: true
 
@@ -439,6 +491,8 @@ jobs:
         run: |
           file release-assets/agentsight-x86_64 | grep -F "x86-64"
           file release-assets/agentsight-aarch64 | grep -F "ARM aarch64"
+          file release-assets/agentsight-windows-x86_64.exe | grep -F "PE32+ executable" | grep -F "x86-64"
+          (cd release-assets && sha256sum -c agentsight-windows-x86_64.exe.sha256)
           cmp release-assets/agentsight release-assets/agentsight-x86_64
           cmp release-assets/agentpprof release-assets/agentpprof-x86_64
 
@@ -472,6 +526,38 @@ jobs:
         run: |
           run_url="$(gh workflow run npm-publish.yml --repo "$GITHUB_REPOSITORY" --ref "$RELEASE_TAG")"
           gh run watch "${run_url##*/}" --repo "$GITHUB_REPOSITORY" --exit-status --compact
+
+  release_windows_smoke:
+    name: Smoke Published Windows Release Asset
+    needs: [release_prepare, release]
+    if: needs.release_prepare.outputs.should_publish == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release_prepare.outputs.publish_sha }}
+
+      - name: Verify published Windows release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.release_prepare.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.release_prepare.outputs.version }}
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "published-windows-release"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          gh release download "$env:RELEASE_TAG" `
+            --repo "${{ github.repository }}" `
+            --pattern "agentsight-windows-x86_64.exe" `
+            --pattern "agentsight-windows-x86_64.exe.sha256" `
+            --dir $dir
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download published Windows release assets for $env:RELEASE_TAG"
+          }
+          pwsh -NoProfile -File script/release/verify_windows_asset.ps1 `
+            -AssetPath (Join-Path $dir "agentsight-windows-x86_64.exe") `
+            -ChecksumPath (Join-Path $dir "agentsight-windows-x86_64.exe.sha256") `
+            -ExpectedVersion "$env:RELEASE_VERSION"
 
   docker:
     name: Build and Push Docker Image
