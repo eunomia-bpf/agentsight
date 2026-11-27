@@ -54,7 +54,7 @@ mkdir -p .locks
 
 ### Step 2: Create Multi-Agent Simulator
 
-```bash
+````bash
 cat > multi_agent_system.py << 'EOF'
 import asyncio
 import json
@@ -488,7 +488,7 @@ if __name__ == "__main__":
     coordinator = MultiAgentCoordinator()
     asyncio.run(coordinator.run_collaboration())
 EOF
-```
+````
 
 ### Step 3: Start AgentSight Monitoring
 

@@ -253,7 +253,9 @@ pub(crate) fn tui_status_line(top: &AgentTopOutput) -> String {
     if top.rows.iter().any(|row| row.evidence().proc) {
         parts.push("/proc".to_string());
     }
-    if top.rows.iter().any(|row| row.evidence().ebpf) {
+    if top.rows.iter().any(|row| row.evidence().etw) {
+        parts.push("ETW".to_string());
+    } else if top.rows.iter().any(|row| row.evidence().ebpf) {
         parts.push("eBPF".to_string());
     }
     if top
@@ -306,7 +308,7 @@ fn is_tui_status_note(note: &str) -> bool {
     note.starts_with("agent-native sessions are")
         || note.starts_with("proc evidence uses")
         || note.starts_with("agent-native sessions bind")
-        || note.starts_with("ebpf evidence is")
+        || note.contains("evidence is live process capture")
 }
 
 fn render_top_help(frame: &mut Frame<'_>) {
@@ -700,7 +702,12 @@ fn evidence_summary(top: &AgentTopOutput) -> String {
         .filter(|row| row.evidence().has_history())
         .count();
     let proc_rows = top.rows.iter().filter(|row| row.evidence().proc).count();
-    let ebpf = top.rows.iter().filter(|row| row.evidence().ebpf).count();
+    let etw = top.rows.iter().filter(|row| row.evidence().etw).count();
+    let ebpf = top
+        .rows
+        .iter()
+        .filter(|row| row.evidence().ebpf && !row.evidence().etw)
+        .count();
     let ebpf_file = top
         .rows
         .iter()
@@ -723,6 +730,9 @@ fn evidence_summary(top: &AgentTopOutput) -> String {
     }
     if ebpf_file > 0 {
         parts.push(format!("ebpf_file={ebpf_file}"));
+    }
+    if etw > 0 {
+        parts.push(format!("etw={etw}"));
     }
     if ebpf > 0 {
         parts.push(format!("ebpf={ebpf}"));

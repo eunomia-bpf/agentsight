@@ -78,6 +78,12 @@ Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
 
+By default, `record`, `debug trace`, and `debug ssl` also apply
+`--content-redaction preview` before events are materialized, persisted to
+SQLite, exported via OTLP, or printed; pass `--content-redaction full` for
+`[REDACTED:<rule>]` placeholders or `--content-redaction off` to keep raw
+captured payloads.
+
 The process probe's `FILE_OPEN` JSON records include `read`, `write`, `exec`,
 `layer`, `dev`, and `ino` on kernels that support resolved file-open tracing.
 They cover successful regular-file opens from `open`, `openat2`, io_uring, and

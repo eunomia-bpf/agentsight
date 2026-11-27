@@ -31,14 +31,14 @@ CFLAGS += $(ASAN_FLAGS)
 ALL_LDFLAGS += $(ASAN_FLAGS)
 endif
 
-APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl test_readline_probe # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
 
 # Experimental programs: built only via `make experimental` (or by name), not
 # shipped in the default build or embedded into the collector.
 EXPERIMENTAL_APPS = browsertrace
 
 # All test programs (no BPF skeleton needed)
-TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl
+TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl test_readline_probe
 
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
@@ -122,7 +122,7 @@ help:
 test: unit-test
 	@$(MAKE) runtime-test
 
-unit-test: test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output
+unit-test: test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets test_sslsniff_output test_readline_probe
 	@echo "Running process_utils tests..."
 	@./test_process_utils
 	@echo ""
@@ -140,14 +140,25 @@ unit-test: test_process_utils test_process_filter test_process_ext_map_flush tes
 	@echo ""
 	@echo "Running SSL JSON output tests..."
 	@./test_sslsniff_output
+	@echo ""
+	@echo "Running readline attach-point tests..."
+	@./test_readline_probe $(OUTPUT)/readline_fixture_undef $(OUTPUT)/libreadline_fixture_def.so
 
 runtime-test: process stdiocap sslsniff test_sslsniff_transport_identity test_sslsniff_transport_identity_boringssl
 	@echo ""
 	@echo "Running process runtime tests..."
 	@if [ "$$(id -u)" -eq 0 ]; then \
-		python3 tests/test_process_runtime.py; \
+		if command -v taskset >/dev/null 2>&1; then \
+			taskset -c 0-$$(N=$$(nproc); [ $$N -gt 1 ] && echo $$((N / 2 - 1)) || echo 0) python3 tests/test_process_runtime.py; \
+		else \
+			python3 tests/test_process_runtime.py; \
+		fi; \
 	elif sudo -n true >/dev/null 2>&1; then \
-		sudo -n env PATH="$$PATH" python3 tests/test_process_runtime.py; \
+		if command -v taskset >/dev/null 2>&1; then \
+			sudo -n env PATH="$$PATH" taskset -c 0-$$(N=$$(nproc); [ $$N -gt 1 ] && echo $$((N / 2 - 1)) || echo 0) python3 tests/test_process_runtime.py; \
+		else \
+			sudo -n env PATH="$$PATH" python3 tests/test_process_runtime.py; \
+		fi; \
 	else \
 		echo "SKIP: process runtime tests require root or cached sudo"; \
 	fi
@@ -306,6 +317,24 @@ test_sslsniff_transport_identity: $(OUTPUT)/test_sslsniff_transport_identity.o |
 test_sslsniff_transport_identity_boringssl: $(OUTPUT)/test_sslsniff_transport_identity_boringssl.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -pthread -Wl,--export-dynamic -o $@
+$(OUTPUT)/test_readline_probe.o: tests/test_readline_probe.c readline_probe.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
+
+test_readline_probe: $(OUTPUT)/test_readline_probe.o $(OUTPUT)/readline_fixture_undef $(OUTPUT)/libreadline_fixture_def.so | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -lelf -o $@
+
+# Fixtures: one object that imports readline, one shared object that defines
+# it — the /usr/bin/bash + libreadline.so shape issue #250 is about.
+$(OUTPUT)/readline_fixture_undef: tests/readline_fixture_undef.c $(OUTPUT)/libreadline_fixture_def.so | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) -o $@ $< -L$(OUTPUT) -lreadline_fixture_def -Wl,-rpath,'$$ORIGIN'
+
+$(OUTPUT)/libreadline_fixture_def.so: tests/readline_fixture_def.c | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) -shared -fPIC -o $@ $<
+
 test_sslsniff_output: $(OUTPUT)/test_sslsniff_output.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@

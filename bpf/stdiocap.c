@@ -264,6 +264,61 @@ static void print_event(const struct stdiocap_event_t *event)
 	fflush(stdout);
 }
 
+/* Read the per-hook counters the BPF side keeps, so an empty capture says
+ * which path the writes took instead of only that nothing arrived. */
+static void report_stats(int stats_fd)
+{
+	static const char *const names[] = {
+		"enter", "enter_filtered", "filter_uid", "filter_fd",
+		"filter_not_tracked", "exit_no_args", "exit_error",
+		"ringbuf_full", "event", "reject_pid", "reject_ppid",
+		"tracked_enter", "tracked_fd",
+	};
+	char line[256] = "";
+	size_t len = 0;
+
+	if (stats_fd < 0)
+		return;
+	for (__u32 i = 0; i < (__u32)(sizeof(names) / sizeof(names[0])); i++) {
+		__u64 total = 0;
+
+		if (bpf_map_lookup_elem(stats_fd, &i, &total) != 0 || !total)
+			continue;
+		len += snprintf(line + len, sizeof(line) - len - 1, "%s%s=%llu",
+				len ? " " : "", names[i],
+				(unsigned long long)total);
+	}
+	warn("stdiocap stats: %s\n", len ? line : "no hook ran");
+	/* A tracked enter that still hit the fd branch, or a tracked fd outside
+	 * 0..2, is the case where the hook saw the target and read the wrong
+	 * argument; printing it on its own line keeps the counters simple. */
+	{
+		__u32 key = STDIO_STAT_TRACKED_FD;
+		__u64 fd = 0;
+
+		if (bpf_map_lookup_elem(stats_fd, &key, &fd) == 0 && fd)
+			warn("stdiocap tracked-enter fd=%lld\n",
+			     fd == 0xffffffffULL ? -1LL : (long long)fd);
+	}
+	/* A rejected pair is only meaningful when the not-tracked count is
+	 * non-zero; report it on its own line so the counters keep one shape. */
+	{
+		__u32 pid_key = STDIO_STAT_REJECT_PID, ppid_key = STDIO_STAT_REJECT_PPID;
+		__u64 pid = 0, ppid = 0;
+
+		if (bpf_map_lookup_elem(stats_fd, &pid_key, &pid) == 0 && pid) {
+			bpf_map_lookup_elem(stats_fd, &ppid_key, &ppid);
+			warn("stdiocap last rejected pid=%llu id=%llu\n",
+			     (unsigned long long)pid, (unsigned long long)ppid);
+		}
+	}
+}
+
+/* Readiness marker for callers that start a capture and then act. Matches the
+ * SSL probe's AGENTSIGHT_SSL_READY convention: a stderr line, so it never
+ * appears in the JSON event stream on stdout. */
+#define AGENTSIGHT_STDIOCAP_READY "AGENTSIGHT_STDIOCAP_READY"
+
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	const struct stdiocap_event_t *event = data;
@@ -280,6 +335,7 @@ int main(int argc, char **argv)
 	struct stdiocap_bpf *obj = NULL;
 	struct ring_buffer *rb = NULL;
 	int tracked_pids_fd = -1;
+	int stats_fd = -1;
 	int err;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
@@ -314,10 +370,15 @@ int main(int argc, char **argv)
 	}
 
 	tracked_pids_fd = bpf_map__fd(obj->maps.tracked_pids);
+	stats_fd = bpf_map__fd(obj->maps.stats);
+	int session_pid_count = 0;
+
 	if (env.session_id != INVALID_PID) {
-		err = refresh_session_pids(tracked_pids_fd, env.session_id);
-		if (err < 0)
-			warn("warning: failed to scan initial session PIDs: %s\n", strerror(-err));
+		session_pid_count = refresh_session_pids(tracked_pids_fd,
+							 env.session_id);
+		if (session_pid_count < 0)
+			warn("warning: failed to scan initial session PIDs: %s\n",
+			     strerror(-session_pid_count));
 	}
 
 	event_buf = malloc(MAX_BUF_SIZE + 1);
@@ -333,6 +394,31 @@ int main(int argc, char **argv)
 		warn("failed to open ring buffer: %d\n", err);
 		goto cleanup;
 	}
+
+	/*
+	 * A session capture that emits nothing is otherwise indistinguishable
+	 * from one whose probes never fired, so report what the filter holds and
+	 * how the events would be built. Printed before the readiness marker: a
+	 * caller stops reading stderr at the marker, so a line printed after it
+	 * never reaches that caller.
+	 */
+	if (env.session_id != INVALID_PID) {
+		warn("session %d: tracked %d pid(s), trace_stdio_only=%d max_bytes=%u\n",
+		     (int)env.session_id, session_pid_count, (int)!env.all_fds,
+		     (unsigned)env.max_bytes);
+		fflush(stderr);
+	}
+	/*
+	 * Callers that capture this process's stdout, including the runtime
+	 * test, have no other way to know when the probes are attached and the
+	 * ring buffer is being drained. Without this marker they can only
+	 * guess, and a target that writes just after the capture starts loses
+	 * that event to the attach window. Written to stderr, like the SSL
+	 * probe's readiness marker, so it stays out of the JSON event stream
+	 * the stdout reader parses.
+	 */
+	warn("%s\n", AGENTSIGHT_STDIOCAP_READY);
+	fflush(stderr);
 
 	if (signal(SIGINT, sig_int) == SIG_ERR || signal(SIGTERM, sig_int) == SIG_ERR) {
 		err = 1;
@@ -359,6 +445,10 @@ int main(int argc, char **argv)
 	}
 
 cleanup:
+	/* A capture that ends with nothing on stdout is otherwise silent about
+	 * where its writes went. */
+	if (stats_fd >= 0 && env.session_id != INVALID_PID)
+		report_stats(stats_fd);
 	if (event_buf) {
 		free(event_buf);
 		event_buf = NULL;

@@ -3,7 +3,9 @@
 
 use futures::stream::StreamExt;
 
-use crate::analyzers::{print_global_http_filter_metrics, print_global_ssl_filter_metrics};
+use crate::analyzers::{
+    RedactionMode, print_global_http_filter_metrics, print_global_ssl_filter_metrics,
+};
 use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::{resolve_binary_path, resolve_binary_path_for_ssl};
 use crate::cli_db::load_agentsight_view;
@@ -92,6 +94,7 @@ pub(crate) async fn run_exec(
     server_listen: &str,
     server_port: u16,
     print_summary: bool,
+    content_redaction: RedactionMode,
 ) -> Result<Option<String>, RunnerError> {
     let program = command.first().ok_or_else(|| {
         RunnerError::from("record requires a command to run, e.g. `agentsight record -- claude`")
@@ -200,6 +203,7 @@ pub(crate) async fn run_exec(
         binary_path: ssl_binary_path,
         db_path,
         server_listen: Some(server_listen.to_string()),
+        content_redaction,
         ..TraceConfig::for_record()
     };
 

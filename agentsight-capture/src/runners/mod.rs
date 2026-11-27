@@ -23,9 +23,13 @@ pub mod common;
 #[cfg(any(test, feature = "test-support"))]
 pub mod fake;
 pub mod process;
+#[cfg(windows)]
+pub mod windows_etw;
 
 pub use agent::AgentRunner;
 pub use common::BinaryRunner;
 #[cfg(any(test, feature = "test-support"))]
 pub use fake::FakeRunner;
 pub use process::ProcessRunner;
+#[cfg(windows)]
+pub use windows_etw::{WindowsEtwProcessRunner, current_process_token_is_elevated};

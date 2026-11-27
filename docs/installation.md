@@ -50,6 +50,26 @@ Before running the binary in a sensitive environment, compare its SHA-256
 digest with the digest shown for that asset on the GitHub Release page. Ensure
 `~/.local/bin` is in `PATH`, or keep using the absolute path.
 
+### Install shell completions
+
+AgentSight can generate completion scripts for Bash, Elvish, Fish, PowerShell,
+and Zsh. For Fish, install the generated script for the current user:
+
+```bash
+mkdir -p "$HOME/.config/fish/completions"
+agentsight completions fish > "$HOME/.config/fish/completions/agentsight.fish"
+```
+
+For Bash or Zsh, load a generated script in the current shell:
+
+```bash
+source <(agentsight completions bash)
+source <(agentsight completions zsh)
+```
+
+Run `agentsight completions --help` to list every supported shell. Regenerate
+an installed script after upgrading AgentSight so it matches the installed CLI.
+
 ### Start the monitor at boot
 
 AgentSight creates and starts its systemd user unit:
@@ -150,40 +170,36 @@ to `/api/v1/snapshot` without an access token should return HTTP `401`.
 
 ## Windows
 
-### Install the native artifact
+### Install a release binary
 
-Until a Windows asset is attached to GitHub Releases, the repository's
-successful **Windows native** workflow uploads `agentsight-windows-x86_64`.
-Download the latest successful artifact with an authenticated GitHub CLI:
+GitHub Releases publish a Windows x86-64 executable (`agentsight-windows-x86_64.exe`)
+along with a SHA-256 checksum file (`agentsight-windows-x86_64.exe.sha256`).
+Download and verify the latest release:
 
 ```powershell
-$repo = 'eunomia-bpf/agentsight'
-$runs = gh run list --repo $repo --workflow windows.yml --limit 50 `
-  --json databaseId,conclusion,headSha,url | ConvertFrom-Json
-$run = $runs | Where-Object conclusion -eq 'success' | Where-Object {
-  $prs = gh api -H 'Accept: application/vnd.github+json' `
-    "repos/$repo/commits/$($_.headSha)/pulls" | ConvertFrom-Json
-  $prs | Where-Object { $_.merged_at -and $_.base.ref -eq 'master' }
-} | Select-Object -First 1
-if (-not $run) { throw 'No successful merged Windows workflow was found.' }
-$run | Select-Object databaseId,headSha,url
-
-$download = Join-Path $env:TEMP 'agentsight-windows'
-New-Item -ItemType Directory -Force -Path $download | Out-Null
-gh run download $run.databaseId --repo $repo `
-  --name agentsight-windows-x86_64 --dir $download
-
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Copy-Item (Join-Path $download 'agentsight.exe') $installDir -Force
-& (Join-Path $installDir 'agentsight.exe') --version
+$exe = Join-Path $installDir 'agentsight.exe'
+$checksum = Join-Path $env:TEMP 'agentsight-windows-x86_64.exe.sha256'
+
+$base = 'https://github.com/eunomia-bpf/agentsight/releases/latest/download'
+Invoke-WebRequest "$base/agentsight-windows-x86_64.exe" -OutFile $exe
+Invoke-WebRequest "$base/agentsight-windows-x86_64.exe.sha256" -OutFile $checksum
+
+$expected = ((Get-Content -Raw $checksum).Trim() -split '\s+')[0].ToLowerInvariant()
+$actual = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $expected) {
+  Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue
+  throw "SHA-256 mismatch: expected $expected, got $actual"
+}
+& $exe --version
 ```
 
-Actions artifacts are retained for a limited time. If none is available, build
+For unreleased commits or custom builds, build
 `collector/target/release/agentsight.exe` as described in
-[Build From Source](build.md). The merged-PR check above excludes successful
-artifacts from unmerged pull-request heads, including in repositories that use
-squash merges.
+[Build From Source](build.md), or download the short-lived
+`agentsight-windows-x86_64` CI artifact from a merged **Windows native**
+workflow run via `gh run download`.
 
 Optionally add the install directory to the user `PATH`:
 
@@ -200,6 +216,21 @@ if ($parts -notcontains $installDir) {
 
 New terminals see the updated `PATH`. Use the absolute executable path in the
 current terminal.
+
+### Live process capture
+
+The experimental Windows process backend uses ETW for an explicitly selected
+PID. It records process creation and exit, including short-lived descendants
+that may not appear in a snapshot:
+
+```powershell
+# Run this terminal as Administrator once for the capture session.
+agentsight top --pid <pid>
+```
+
+Running `agentsight top` from a normal terminal stays on the existing snapshot
+and agent-native session path. AgentSight does not request elevation or open a
+UAC prompt on its own.
 
 ### Start after sign-in
 

@@ -101,20 +101,55 @@ impl SessionProcessMatcher {
         self.retain_live(processes);
 
         let mut out = SessionProcessMatches::default();
-        for session in sessions {
-            let Some((process, evidence)) = processes.iter().find_map(|process| {
-                if out.used_root_pids.contains(&process.tree.root.pid)
-                    || process.agent != session.agent
+        // A long-lived host (Codex Desktop's `app-server`, for example) keeps
+        // every conversation's log open, so one process can link to several
+        // sessions. Taking the first process in iteration order picked an
+        // arbitrary one — the path-evidence map is keyed path-lexically — and
+        // then marked that pid used, so an older conversation could hold the
+        // binding while the current one looked idle. Rank the candidates and
+        // let the freshest session win its process instead.
+        let mut candidates = Vec::new();
+        for (session_index, session) in sessions.iter().enumerate() {
+            for (process_index, process) in processes.iter().enumerate() {
+                if process.agent != session.agent
                     || !session_is_fresh_enough_for_process(session, process, now_ms)
                 {
-                    return None;
+                    continue;
                 }
-                self.link_trace(&session.path, process, &path_evidence)
-                    .map(|evidence| (process, evidence))
-            }) else {
+                if let Some(evidence) = self.lookup_trace(&session.path, process, &path_evidence) {
+                    candidates.push((
+                        std::cmp::Reverse(session_end_ms(session)),
+                        confidence_for_evidence(evidence),
+                        session_index,
+                        process_index,
+                        evidence,
+                    ));
+                }
+            }
+        }
+        candidates.sort_by(|left, right| {
+            left.0
+                .cmp(&right.0)
+                .then_with(|| right.1.total_cmp(&left.1))
+                .then_with(|| left.2.cmp(&right.2))
+                .then_with(|| left.3.cmp(&right.3))
+        });
+        for (_, _, session_index, process_index, evidence) in candidates {
+            let session = &sessions[session_index];
+            let process = &processes[process_index];
+            if out.by_session_id.contains_key(&session.id)
+                || out.used_root_pids.contains(&process.tree.root.pid)
+            {
                 continue;
-            };
+            }
             record_match(&mut out, session, process, evidence);
+            self.bindings.insert(
+                process.tree.root.pid,
+                LiveSessionBinding {
+                    starttime_ticks: process.tree.root.starttime_ticks,
+                    session_path: normalize_session_log_path(&session.path),
+                },
+            );
         }
 
         let mut cwd_candidates = Vec::new();
@@ -163,8 +198,11 @@ impl SessionProcessMatcher {
         });
     }
 
-    fn link_trace(
-        &mut self,
+    /// Evidence for linking this session path to this process, without
+    /// recording a binding. `match_sessions` collects every candidate first
+    /// and binds only the winners, so a lookup must not mutate the table.
+    fn lookup_trace(
+        &self,
         session_path: &Path,
         process: &LiveProcessCandidate,
         path_evidence: &HashMap<u32, BTreeMap<PathBuf, &'static str>>,
@@ -172,18 +210,7 @@ impl SessionProcessMatcher {
         let pid = process.tree.root.pid;
         let path = normalize_session_log_path(session_path);
         if let Some(evidence) = path_evidence.get(&pid) {
-            if let Some(trace) = evidence.get(&path).copied() {
-                self.bindings.insert(
-                    pid,
-                    LiveSessionBinding {
-                        starttime_ticks: process.tree.root.starttime_ticks,
-                        session_path: path,
-                    },
-                );
-                return Some(trace);
-            }
-            self.bindings.remove(&pid);
-            return None;
+            return evidence.get(&path).copied();
         }
         self.bindings
             .get(&pid)
@@ -358,5 +385,83 @@ mod tests {
 
         assert!(recent_cwd_distance_ms(&session, &process, 12_000).is_some());
         std::fs::remove_dir_all(&raw).unwrap();
+    }
+
+    fn codex_log_path(root: &Path, name: &str) -> PathBuf {
+        let dir = root.join(".codex/sessions/2026/11/18");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(name);
+        std::fs::write(&path, "{}\n").unwrap();
+        path
+    }
+
+    fn host_process(paths: &[PathBuf]) -> (LiveProcessCandidate, HashMap<ProcessKey, BTreeSet<PathBuf>>) {
+        let root = ProcessKey {
+            pid: 4242,
+            starttime_ticks: 7,
+        };
+        let process = LiveProcessCandidate {
+            tree: ProcessTree {
+                root,
+                members: vec![root],
+            },
+            agent: "codex".to_string(),
+            age_s: Some(600.0),
+            cwd: None,
+        };
+        let mut fd_paths = HashMap::new();
+        fd_paths.insert(
+            root,
+            paths.iter().cloned().collect::<BTreeSet<_>>(),
+        );
+        (process, fd_paths)
+    }
+
+    #[test]
+    fn shared_host_binds_the_freshest_session_not_the_lexically_first() {
+        let root =
+            std::env::temp_dir().join(format!("agent-session-bind-test-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        // The older conversation's file name sorts first, so a first-match
+        // scan over the path-keyed evidence map picks it.
+        let old_path = codex_log_path(&root, "a-old.jsonl");
+        let new_path = codex_log_path(&root, "b-new.jsonl");
+        let (process, fd_paths) = host_process(&[old_path.clone(), new_path.clone()]);
+        let sessions = vec![
+            SessionProcessInput {
+                id: "old".to_string(),
+                agent: "codex".to_string(),
+                path: old_path.clone(),
+                start_timestamp_ms: Some(1_000),
+                end_timestamp_ms: Some(2_000),
+                cwd: None,
+            },
+            SessionProcessInput {
+                id: "new".to_string(),
+                agent: "codex".to_string(),
+                path: new_path.clone(),
+                start_timestamp_ms: Some(3_000),
+                end_timestamp_ms: Some(4_000),
+                cwd: None,
+            },
+        ];
+
+        let matches = SessionProcessMatcher::default().match_sessions(
+            &sessions,
+            &[process],
+            &fd_paths,
+            &HashMap::new(),
+            5_000,
+        );
+
+        assert!(
+            matches.by_session_id.contains_key("new"),
+            "the current conversation must keep the host process"
+        );
+        assert!(
+            !matches.by_session_id.contains_key("old"),
+            "a finished conversation must not hold the live binding"
+        );
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }
