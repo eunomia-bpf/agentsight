@@ -5,6 +5,7 @@
 # they load BPF programs, but they are intentionally small enough for make test.
 
 import json
+from collections import Counter
 import os
 import re
 import signal
@@ -59,7 +60,10 @@ class TracerSession:
         )
         self.stdout.close()
         self.stderr.close()
-        self.wait_ready(wait_attach)
+        # wait_attach=0 leaves the readiness wait to the caller, which uses
+        # wait_probe_ready() to key on the flushed start heartbeat.
+        if wait_attach:
+            self.wait_ready(wait_attach)
 
     def wait_ready(self, timeout):
         # The tracer prints a CLOCK_SYNC "start" anchor only after the BPF
@@ -94,6 +98,32 @@ class TracerSession:
             )
         raise RuntimeErrorWithContext(
             f"process tracer printed no attach anchor within {timeout}s: {self.stderr_text()}"
+        )
+
+    def wait_probe_ready(self, timeout=10.0):
+        """Wait for the start heartbeat emitted after all probes are attached."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeErrorWithContext(
+                    f"process tracer exited before ready ({self.proc.returncode}): "
+                    f"{self.stderr_text()}"
+                )
+            # The tracer explicitly flushes its start heartbeat, including when
+            # stdout is a regular file; do not infer readiness from a fixed sleep.
+            with open(self.stdout.name, "r", encoding="utf-8") as stream:
+                for line in stream:
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if (event.get("event") == "PROBE_LIVENESS"
+                            and event.get("kind") == "start"):
+                        return
+            time.sleep(0.05)
+        raise RuntimeErrorWithContext(
+            f"timed out waiting for process tracer ready heartbeat: "
+            f"stderr={self.stderr_text()[-4000:]!r}"
         )
 
     def stop(self):
@@ -277,10 +307,11 @@ def test_filter_mode_without_selector_does_not_fallback():
 
 
 def test_trace_fs_summary_events():
-    sess = TracerSession("-m", "0", "--trace-fs")
+    sess = TracerSession("-m", "0", "--trace-fs", "--heartbeat", "1", wait_attach=0)
     tempdir = tempfile.TemporaryDirectory(prefix="agentsight-runtime-fs-")
     old_cwd = os.getcwd()
     try:
+        sess.wait_probe_ready()
         subdir = os.path.join(tempdir.name, "dir")
         os.mkdir(subdir)
         path = os.path.join(subdir, 'file "quote" \\ slash.txt')
@@ -297,12 +328,14 @@ def test_trace_fs_summary_events():
         events = sess.events()
         types = summary_types(events)
         required = {"DIR_CREATE", "WRITE", "FILE_RENAME", "FILE_DELETE"}
-        assert_true(
-            required.issubset(types),
-            f"missing fs SUMMARY types: {sorted(required - types)}; "
-            f"observed SUMMARY types: {sorted(types)}; "
-            f"stderr: {sess.stderr_text()[-2000:]}"
-        )
+        if not required.issubset(types):
+            counts = Counter(e.get("type") for e in events if e.get("event") == "SUMMARY")
+            raise RuntimeErrorWithContext(
+                f"missing fs SUMMARY types: {sorted(required - types)}; "
+                f"observed SUMMARY counts={dict(counts)}; events={len(events)}; "
+                f"tracer_exit={sess.proc.returncode}; kernel={os.uname().release}; "
+                f"stderr={sess.stderr_text()[-4000:]!r}"
+            )
     finally:
         os.chdir(old_cwd)
         sess.cleanup()
