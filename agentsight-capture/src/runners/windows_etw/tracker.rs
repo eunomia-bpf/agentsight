@@ -10,6 +10,17 @@ const RETAINED_NONMEMBER_INSTANCE_LIMIT: usize = 4_096;
 const AMBIGUOUS_PARENT_PID_LIMIT: usize = 1_024;
 const MAX_TRACKED_INSTANCES: usize = 65_536;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum PidAttribution {
+    Member {
+        instance_id: u64,
+        comm: Option<String>,
+    },
+    Filtered,
+    Unresolved,
+    Ambiguous,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum IngestOutcome {
     Accepted {
@@ -919,6 +930,68 @@ impl ProcessTracker {
         std::mem::take(&mut self.evicted_instance_ids)
             .into_iter()
             .collect()
+    }
+
+    pub(super) fn attribute_pid(&self, pid: u32, event_timestamp: Option<i64>) -> PidAttribution {
+        if pid == 0 {
+            return PidAttribution::Filtered;
+        }
+        if self.ambiguous_parent_pids.contains_key(&pid) {
+            return PidAttribution::Ambiguous;
+        }
+        if let Some(id) = self.live_pid_instance.get(&pid).copied()
+            && let Some(process) = self.instances.get(&id)
+        {
+            if generation_cannot_own_child(process.generation_started_at, event_timestamp) {
+                return PidAttribution::Filtered;
+            }
+            if process.member {
+                return PidAttribution::Member {
+                    instance_id: id,
+                    comm: process.image_file_name.clone(),
+                };
+            }
+            if self.has_unresolved_live_ancestor(id) {
+                return PidAttribution::Unresolved;
+            }
+            return PidAttribution::Filtered;
+        }
+        if let Some(id) = self.recent_exited_members.get(&pid).copied()
+            && let Some(process) = self.instances.get(&id)
+        {
+            if process.member
+                && !generation_cannot_own_child(process.generation_started_at, event_timestamp)
+            {
+                return PidAttribution::Member {
+                    instance_id: id,
+                    comm: process.image_file_name.clone(),
+                };
+            }
+            return PidAttribution::Filtered;
+        }
+        PidAttribution::Unresolved
+    }
+
+    fn has_unresolved_live_ancestor(&self, start_id: u64) -> bool {
+        let mut cursor = Some(start_id);
+        let mut visited = 0usize;
+        while let Some(id) = cursor {
+            if visited >= 64 {
+                return false;
+            }
+            visited += 1;
+            let Some(process) = self.instances.get(&id) else {
+                return false;
+            };
+            if process.member {
+                return false;
+            }
+            if process.parent_instance.is_none() {
+                return process.first_start_observed_at.is_some();
+            }
+            cursor = process.parent_instance;
+        }
+        false
     }
 }
 
@@ -2641,5 +2714,128 @@ mod tests {
         ));
         assert_eq!(tracker.live_pid_counts.get(&300), Some(&2));
         assert!(tracker.ambiguous_parent_pids.contains_key(&300));
+    }
+
+    #[test]
+    fn attribute_pid_handles_members_rundown_nonmembers_deferrals_and_ambiguity() {
+        let mut tracker = ProcessTracker::new(100);
+        assert_eq!(tracker.attribute_pid(0, Some(100)), PidAttribution::Filtered);
+        assert_eq!(
+            tracker.attribute_pid(100, Some(100)),
+            PidAttribution::Member {
+                instance_id: tracker.root_instance,
+                comm: None,
+            }
+        );
+
+        // Pre-existing host DCStart non-member is filtered immediately without deferral.
+        assert_eq!(
+            tracker.ingest_at(
+                process_record(500, Some(1), Some(50)),
+                EtwProcessPhase::DCStart,
+                Some(90),
+            ),
+            IngestOutcome::Filtered
+        );
+        assert_eq!(tracker.attribute_pid(500, Some(95)), PidAttribution::Filtered);
+
+        // Unseen PID and newly started live unresolved child are deferred until promotion.
+        assert_eq!(
+            tracker.attribute_pid(200, Some(100)),
+            PidAttribution::Unresolved
+        );
+        assert_eq!(
+            tracker.ingest_at(
+                process_record(300, Some(200), Some(30)),
+                EtwProcessPhase::Start,
+                Some(120),
+            ),
+            IngestOutcome::Filtered
+        );
+        assert_eq!(
+            tracker.attribute_pid(300, Some(125)),
+            PidAttribution::Unresolved
+        );
+
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(200, Some(100), Some(20)),
+                EtwProcessPhase::Start,
+                Some(100),
+            ),
+            IngestOutcome::Accepted {
+                topology_changed: true,
+                ..
+            }
+        ));
+        let child_id = tracker.live_pid_instance[&300];
+        assert_eq!(
+            tracker.attribute_pid(300, Some(125)),
+            PidAttribution::Member {
+                instance_id: child_id,
+                comm: Some("process.exe".to_string()),
+            }
+        );
+
+        // Events predating current generation_started_at or lacking timestamp fail closed.
+        assert_eq!(
+            tracker.attribute_pid(300, Some(119)),
+            PidAttribution::Filtered
+        );
+        assert_eq!(tracker.attribute_pid(300, None), PidAttribution::Filtered);
+
+        // Recent exited member stays attributable until PID is reused.
+        assert!(matches!(
+            tracker.ingest_at(
+                process_exit_record(300, Some(30), 0),
+                EtwProcessPhase::End,
+                Some(140),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        assert_eq!(
+            tracker.attribute_pid(300, Some(145)),
+            PidAttribution::Member {
+                instance_id: child_id,
+                comm: Some("process.exe".to_string()),
+            }
+        );
+        assert_eq!(
+            tracker.ingest_at(
+                process_record(300, Some(1), Some(31)),
+                EtwProcessPhase::Start,
+                Some(150),
+            ),
+            IngestOutcome::Filtered
+        );
+        assert_ne!(
+            tracker.attribute_pid(300, Some(155)),
+            PidAttribution::Member {
+                instance_id: child_id,
+                comm: Some("process.exe".to_string()),
+            }
+        );
+
+        // Ambiguous overlapping PID fails closed.
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(400, Some(100), Some(40)),
+                EtwProcessPhase::Start,
+                Some(200),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        assert!(matches!(
+            tracker.ingest_at(
+                process_record(400, Some(100), Some(41)),
+                EtwProcessPhase::Start,
+                Some(210),
+            ),
+            IngestOutcome::Accepted { .. }
+        ));
+        assert_eq!(
+            tracker.attribute_pid(400, Some(220)),
+            PidAttribution::Ambiguous
+        );
     }
 }

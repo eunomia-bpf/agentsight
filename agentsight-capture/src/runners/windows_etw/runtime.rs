@@ -2,6 +2,9 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use super::RunnerError;
+use super::network::{
+    EtwNetworkProvider, TCPIP_PROVIDER_GUID, UDPIP_PROVIDER_GUID, should_capture_in_callback,
+};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -15,7 +18,8 @@ use windows_sys::Win32::Foundation::{
 };
 use windows_sys::Win32::System::Diagnostics::Etw::{
     CONTROLTRACE_HANDLE, CloseTrace, ControlTraceW, EVENT_RECORD, EVENT_TRACE_CONTROL_QUERY,
-    EVENT_TRACE_CONTROL_STOP, EVENT_TRACE_FLAG_PROCESS, EVENT_TRACE_LOGFILEW,
+    EVENT_TRACE_CONTROL_STOP, EVENT_TRACE_FLAG_NETWORK_TCPIP, EVENT_TRACE_FLAG_PROCESS,
+    EVENT_TRACE_LOGFILEW,
     EVENT_TRACE_PROPERTIES, EVENT_TRACE_REAL_TIME_MODE, EVENT_TRACE_SYSTEM_LOGGER_MODE, OpenTraceW,
     PROCESS_TRACE_MODE_EVENT_RECORD, PROCESS_TRACE_MODE_REAL_TIME, PROCESSTRACE_HANDLE,
     ProcessTrace, StartTraceW, WNODE_FLAG_TRACED_GUID,
@@ -31,8 +35,16 @@ const PROCESS_PROVIDER_GUID: windows_sys::core::GUID =
 const AGENTSIGHT_ETW_CONTROL_GUID: windows_sys::core::GUID =
     windows_sys::core::GUID::from_u128(0x58544ab7_41b7_4aa0_9143_19abf65f7e41);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum EtwProviderKind {
+    Process,
+    TcpIp,
+    UdpIp,
+}
+
 #[derive(Debug, Clone)]
 pub(super) struct RawEtwEvent {
+    pub(super) provider: EtwProviderKind,
     pub(super) sequence: u64,
     pub(super) timestamp: i64,
     pub(super) process_id: u32,
@@ -47,9 +59,11 @@ pub(super) struct RawEtwEvent {
 
 struct EtwCallbackState {
     sender: mpsc::Sender<RawEtwEvent>,
+    network_sender: Option<mpsc::Sender<RawEtwEvent>>,
     stopped: AtomicBool,
     sequence: AtomicU64,
     dropped_records: AtomicU64,
+    network_dropped_records: AtomicU64,
     callback_errors: AtomicU64,
     stop_errors: AtomicU64,
 }
@@ -57,6 +71,7 @@ struct EtwCallbackState {
 #[derive(Debug, Clone, Copy, Default)]
 pub(super) struct EtwLossSnapshot {
     pub(super) application_queue_dropped_records: u64,
+    pub(super) network_queue_dropped_records: u64,
     pub(super) callback_errors: u64,
     pub(super) stop_errors: u64,
     pub(super) native_events_lost: u64,
@@ -66,12 +81,17 @@ pub(super) struct EtwLossSnapshot {
 }
 
 impl EtwCallbackState {
-    fn new(sender: mpsc::Sender<RawEtwEvent>) -> Self {
+    fn new(
+        sender: mpsc::Sender<RawEtwEvent>,
+        network_sender: Option<mpsc::Sender<RawEtwEvent>>,
+    ) -> Self {
         Self {
             sender,
+            network_sender,
             stopped: AtomicBool::new(false),
             sequence: AtomicU64::new(0),
             dropped_records: AtomicU64::new(0),
+            network_dropped_records: AtomicU64::new(0),
             callback_errors: AtomicU64::new(0),
             stop_errors: AtomicU64::new(0),
         }
@@ -86,9 +106,22 @@ impl EtwCallbackState {
         }
     }
 
-    fn loss_snapshot(&self) -> (u64, u64, u64) {
+    fn enqueue_network(&self, event: RawEtwEvent) -> bool {
+        let Some(network_sender) = &self.network_sender else {
+            return false;
+        };
+        if network_sender.try_send(event).is_ok() {
+            true
+        } else {
+            self.network_dropped_records.fetch_add(1, Ordering::Relaxed);
+            false
+        }
+    }
+
+    fn loss_snapshot(&self) -> (u64, u64, u64, u64) {
         (
             self.dropped_records.load(Ordering::Relaxed),
+            self.network_dropped_records.load(Ordering::Relaxed),
             self.callback_errors.load(Ordering::Relaxed),
             self.stop_errors.load(Ordering::Relaxed),
         )
@@ -133,8 +166,12 @@ pub(super) struct EtwRuntime {
 unsafe impl Send for EtwRuntime {}
 
 impl EtwRuntime {
-    pub(super) fn start(sender: mpsc::Sender<RawEtwEvent>) -> Result<Self, RunnerError> {
-        let state = Arc::new(EtwCallbackState::new(sender));
+    pub(super) fn start(
+        sender: mpsc::Sender<RawEtwEvent>,
+        network_sender: Option<mpsc::Sender<RawEtwEvent>>,
+    ) -> Result<Self, RunnerError> {
+        let include_network = network_sender.is_some();
+        let state = Arc::new(EtwCallbackState::new(sender, network_sender));
         // A non-SystemTraceControlGuid with SYSTEM_LOGGER_MODE can coexist with
         // the reserved NT Kernel Logger session.
         let mut name_utf16: Vec<u16> = SESSION_NAME.encode_utf16().collect();
@@ -150,7 +187,11 @@ impl EtwRuntime {
         buffer.properties.MaximumBuffers = 64;
         buffer.properties.FlushTimer = 1;
         buffer.properties.LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE;
-        buffer.properties.EnableFlags = EVENT_TRACE_FLAG_PROCESS;
+        buffer.properties.EnableFlags = if include_network {
+            EVENT_TRACE_FLAG_PROCESS | EVENT_TRACE_FLAG_NETWORK_TCPIP
+        } else {
+            EVENT_TRACE_FLAG_PROCESS
+        };
         buffer.properties.LoggerNameOffset = size_of::<EVENT_TRACE_PROPERTIES>() as u32;
         buffer.properties.LogFileNameOffset = 0;
         buffer.logger_name[..name_utf16.len()].copy_from_slice(&name_utf16);
@@ -415,10 +456,15 @@ impl EtwRuntime {
                 self.native_query_errors += 1;
             }
         }
-        let (application_queue_dropped_records, callback_errors, stop_errors) =
-            self.state.loss_snapshot();
+        let (
+            application_queue_dropped_records,
+            network_queue_dropped_records,
+            callback_errors,
+            stop_errors,
+        ) = self.state.loss_snapshot();
         EtwLossSnapshot {
             application_queue_dropped_records,
+            network_queue_dropped_records,
             callback_errors,
             stop_errors,
             native_events_lost: self.native_events_lost,
@@ -500,11 +546,30 @@ unsafe extern "system" fn etw_event_record_callback(record: *mut EVENT_RECORD) {
             return;
         };
         let state = unsafe { &*(record.UserContext as *const EtwCallbackState) };
-        if state.stopped.load(Ordering::Relaxed)
-            || !guids_equal(&record.EventHeader.ProviderId, &PROCESS_PROVIDER_GUID)
-        {
+        if state.stopped.load(Ordering::Relaxed) {
             return;
         }
+        let provider = if guids_equal(&record.EventHeader.ProviderId, &PROCESS_PROVIDER_GUID) {
+            EtwProviderKind::Process
+        } else if state.network_sender.is_some()
+            && guids_equal(&record.EventHeader.ProviderId, &TCPIP_PROVIDER_GUID)
+            && should_capture_in_callback(
+                EtwNetworkProvider::TcpIp,
+                record.EventHeader.EventDescriptor.Opcode,
+            )
+        {
+            EtwProviderKind::TcpIp
+        } else if state.network_sender.is_some()
+            && guids_equal(&record.EventHeader.ProviderId, &UDPIP_PROVIDER_GUID)
+            && should_capture_in_callback(
+                EtwNetworkProvider::UdpIp,
+                record.EventHeader.EventDescriptor.Opcode,
+            )
+        {
+            EtwProviderKind::UdpIp
+        } else {
+            return;
+        };
 
         let user_data = if record.UserDataLength == 0 {
             Vec::new()
@@ -516,13 +581,21 @@ unsafe extern "system" fn etw_event_record_callback(record: *mut EVENT_RECORD) {
             } {
                 Some(slice) => slice.to_vec(),
                 None => {
-                    state.dropped_records.fetch_add(1, Ordering::Relaxed);
+                    match provider {
+                        EtwProviderKind::Process => {
+                            state.dropped_records.fetch_add(1, Ordering::Relaxed);
+                        }
+                        EtwProviderKind::TcpIp | EtwProviderKind::UdpIp => {
+                            state.network_dropped_records.fetch_add(1, Ordering::Relaxed);
+                        }
+                    }
                     return;
                 }
             }
         };
 
         let event = RawEtwEvent {
+            provider,
             sequence: state.sequence.fetch_add(1, Ordering::Relaxed),
             timestamp: record.EventHeader.TimeStamp,
             process_id: record.EventHeader.ProcessId,
@@ -533,7 +606,14 @@ unsafe extern "system" fn etw_event_record_callback(record: *mut EVENT_RECORD) {
             flags: record.EventHeader.Flags,
             user_data,
         };
-        state.enqueue(event);
+        match provider {
+            EtwProviderKind::Process => {
+                state.enqueue(event);
+            }
+            EtwProviderKind::TcpIp | EtwProviderKind::UdpIp => {
+                state.enqueue_network(event);
+            }
+        }
     }));
 
     if result.is_err()
@@ -568,8 +648,9 @@ mod tests {
     #[tokio::test]
     async fn bounded_queue_loss_is_explicit() {
         let (sender, mut receiver) = mpsc::channel(1);
-        let state = EtwCallbackState::new(sender);
+        let state = EtwCallbackState::new(sender, None);
         let event = RawEtwEvent {
+            provider: EtwProviderKind::Process,
             sequence: 0,
             timestamp: 0,
             process_id: 1,
@@ -583,7 +664,47 @@ mod tests {
         assert!(state.enqueue(event.clone()));
         assert!(!state.enqueue(event));
         assert_eq!(state.loss_snapshot().0, 1);
+        assert_eq!(state.loss_snapshot().1, 0);
         assert!(receiver.try_recv().is_ok());
+    }
+
+    #[tokio::test]
+    async fn network_queue_saturation_does_not_drop_process_events() {
+        let (proc_tx, mut proc_rx) = mpsc::channel(2);
+        let (net_tx, mut net_rx) = mpsc::channel(1);
+        let state = EtwCallbackState::new(proc_tx, Some(net_tx));
+        let proc_event = RawEtwEvent {
+            provider: EtwProviderKind::Process,
+            sequence: 0,
+            timestamp: 0,
+            process_id: 1,
+            thread_id: 1,
+            event_id: 1,
+            version: 4,
+            opcode: 1,
+            flags: 0,
+            user_data: Vec::new(),
+        };
+        let net_event = RawEtwEvent {
+            provider: EtwProviderKind::TcpIp,
+            sequence: 1,
+            timestamp: 0,
+            process_id: 1,
+            thread_id: 1,
+            event_id: 12,
+            version: 2,
+            opcode: 12,
+            flags: 0,
+            user_data: Vec::new(),
+        };
+        assert!(state.enqueue_network(net_event.clone()));
+        assert!(!state.enqueue_network(net_event));
+        assert!(state.enqueue(proc_event));
+        let (proc_drops, net_drops, _, _) = state.loss_snapshot();
+        assert_eq!(proc_drops, 0);
+        assert_eq!(net_drops, 1);
+        assert!(proc_rx.try_recv().is_ok());
+        assert!(net_rx.try_recv().is_ok());
     }
 
     #[test]
@@ -592,6 +713,7 @@ mod tests {
         assert!(
             record_sender
                 .try_send(RawEtwEvent {
+                    provider: EtwProviderKind::Process,
                     sequence: 0,
                     timestamp: 0,
                     process_id: 1,
@@ -607,6 +729,7 @@ mod tests {
         assert!(
             record_sender
                 .try_send(RawEtwEvent {
+                    provider: EtwProviderKind::Process,
                     sequence: 1,
                     timestamp: 0,
                     process_id: 1,
