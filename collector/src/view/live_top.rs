@@ -545,6 +545,7 @@ impl LiveView {
 
         let mut sections = top_sections(session_snapshot, rows.len().max(10), &options.view);
         if let Some(network_section) = capture
+            .filter(|capture| capture.stale_root_pid(sample).is_none())
             .map(|capture| top_sections(&capture.snapshot, rows.len().max(10), &options.view))
             .into_iter()
             .flatten()
@@ -1638,5 +1639,120 @@ mod tests {
             view_source: "view".to_string(),
             confidence: Some(0.75),
         }
+    }
+
+    #[test]
+    fn windows_etw_network_events_populate_row_and_section_and_respect_stale_root_pid() {
+        let root_pid = 42;
+        let child_pid = 100;
+        let snapshot = Snapshot {
+            audit_events: vec![
+                crate::model::AuditEventRow {
+                    id: "net-connect".to_string(),
+                    timestamp_ms: 2,
+                    audit_type: "network".to_string(),
+                    pid: Some(child_pid),
+                    comm: Some("curl.exe".to_string()),
+                    subject: Some("curl.exe".to_string()),
+                    action: Some("NET_CONNECT".to_string()),
+                    target: Some("93.184.216.34:443".to_string()),
+                    status: Some("observed".to_string()),
+                    summary: None,
+                    details: json!({
+                        "capture_root_pid": root_pid,
+                        "process_instance_id": 2
+                    }),
+                    view_source: "view".to_string(),
+                    confidence: Some(0.75),
+                },
+                crate::model::AuditEventRow {
+                    id: "net-udp".to_string(),
+                    timestamp_ms: 3,
+                    audit_type: "network".to_string(),
+                    pid: Some(child_pid),
+                    comm: Some("curl.exe".to_string()),
+                    subject: Some("curl.exe".to_string()),
+                    action: Some("NET_UDP_SEND".to_string()),
+                    target: Some("8.8.8.8:53".to_string()),
+                    status: Some("observed".to_string()),
+                    summary: None,
+                    details: json!({
+                        "capture_root_pid": root_pid,
+                        "process_instance_id": 2
+                    }),
+                    view_source: "view".to_string(),
+                    confidence: Some(0.75),
+                },
+            ],
+            ..Snapshot::empty("capture")
+        };
+        let capture =
+            LiveCaptureSnapshot::with_backend(snapshot.clone(), 0, "Windows ETW", "etw")
+                .with_root_identity(Some(root_pid), Some(10))
+                .with_root_evidence(Some("codex.exe".to_string()), false);
+        let sample = LiveSample {
+            procs: BTreeMap::from([(
+                root_pid,
+                ProcInfo {
+                    pid: root_pid,
+                    comm: "codex.exe".to_string(),
+                    starttime_ticks: 10,
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+        let options = TopOptions {
+            pid: Some(root_pid),
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "network".to_string(),
+        };
+
+        let mut live_view = LiveView::default();
+        let top = live_view.build_top(&sample, Some(&capture), &Snapshot::empty("local"), &options);
+        assert_eq!(top.rows[0].network, 2);
+        assert!(top.rows[0].trace.split('+').any(|token| token == "etw"));
+        let network_section = top
+            .sections
+            .iter()
+            .find(|(title, _, _)| *title == "Network")
+            .unwrap();
+        assert_eq!(network_section.2.len(), 2);
+
+        // Exited root still retains attributed descendant network evidence.
+        let exited_top = live_view.build_top(
+            &LiveSample::default(),
+            Some(&capture),
+            &Snapshot::empty("local"),
+            &options,
+        );
+        assert_eq!(exited_top.rows.len(), 1);
+        assert_eq!(exited_top.rows[0].network, 2);
+        assert!(exited_top
+            .sections
+            .iter()
+            .any(|(title, _, items)| *title == "Network" && items.len() == 2));
+
+        // Reused root PID must withhold both row network counts and captured Network section.
+        let stale_capture =
+            LiveCaptureSnapshot::with_backend(snapshot, 0, "Windows ETW", "etw")
+                .with_root_identity(Some(root_pid), Some(99))
+                .with_root_evidence(Some("old.exe".to_string()), false);
+        let stale_top = live_view.build_top(
+            &sample,
+            Some(&stale_capture),
+            &Snapshot::empty("local"),
+            &options,
+        );
+        assert_eq!(stale_top.rows[0].network, 0);
+        assert!(!stale_top.rows[0].trace.split('+').any(|token| token == "etw"));
+        assert!(
+            stale_top
+                .sections
+                .iter()
+                .find(|(title, _, _)| *title == "Network")
+                .is_none_or(|(_, _, items)| items.is_empty())
+        );
     }
 }

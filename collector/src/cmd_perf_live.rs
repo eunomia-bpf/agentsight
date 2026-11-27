@@ -73,6 +73,9 @@ struct LiveCaptureState {
     etw_native_realtime_buffers_lost: u64,
     etw_native_query_errors: u64,
     etw_pending_records_evicted: u64,
+    etw_network_queue_dropped_records: u64,
+    etw_network_pending_evicted: u64,
+    etw_network_ambiguous_pid_dropped: u64,
     etw_provisional_capacity_dropped: u64,
     etw_provisional_tracker_evicted: u64,
     etw_tracker_instances_evicted: u64,
@@ -105,6 +108,9 @@ impl Default for LiveCaptureState {
             etw_native_realtime_buffers_lost: 0,
             etw_native_query_errors: 0,
             etw_pending_records_evicted: 0,
+            etw_network_queue_dropped_records: 0,
+            etw_network_pending_evicted: 0,
+            etw_network_ambiguous_pid_dropped: 0,
             etw_provisional_capacity_dropped: 0,
             etw_provisional_tracker_evicted: 0,
             etw_tracker_instances_evicted: 0,
@@ -284,7 +290,9 @@ pub(crate) async fn start_live_capture(options: &TopOptions) -> LiveCapture {
     };
 
     let stop_signal = Arc::new(AtomicBool::new(false));
-    let mut runner = WindowsEtwProcessRunner::new(pid).with_stop_signal(Arc::clone(&stop_signal));
+    let mut runner = WindowsEtwProcessRunner::new(pid)
+        .with_network(true)
+        .with_stop_signal(Arc::clone(&stop_signal));
     let stream = match runner.run().await {
         Ok(stream) => stream,
         Err(err) => {
@@ -315,7 +323,7 @@ pub(crate) async fn start_live_capture(options: &TopOptions) -> LiveCapture {
         state,
         handle,
         start_note: Some(format!(
-            "Windows ETW process capture enabled for PID {pid}; command lines are omitted"
+            "Windows ETW process and network capture enabled for PID {pid}; command lines are omitted"
         )),
         stop_signal: Some(stop_signal),
     }
@@ -378,12 +386,12 @@ fn live_capture_status_note(state: &LiveCaptureState, fallback: Option<&str>) ->
     let loss_note = etw_loss_note(state);
     if state.consumer_stopped {
         Some(format!(
-            "Windows ETW process capture stopped for PID {root_pid} ({status}; {} decode errors, {} queued records drained{loss_note}); showing process snapshots and agent-native sessions only",
+            "Windows ETW process and network capture stopped for PID {root_pid} ({status}; {} decode errors, {} queued records drained{loss_note}); showing process snapshots and agent-native sessions only",
             state.etw_decode_errors, state.etw_records_drained,
         ))
     } else {
         Some(format!(
-            "Windows ETW process capture active for PID {root_pid}; command lines are omitted{loss_note}"
+            "Windows ETW process and network capture active for PID {root_pid}; command lines are omitted{loss_note}"
         ))
     }
 }
@@ -402,6 +410,18 @@ fn etw_loss_note(state: &LiveCaptureState) -> String {
         ),
         ("native query errors", state.etw_native_query_errors),
         ("pending records evicted", state.etw_pending_records_evicted),
+        (
+            "network queue drops",
+            state.etw_network_queue_dropped_records,
+        ),
+        (
+            "network pending records evicted",
+            state.etw_network_pending_evicted,
+        ),
+        (
+            "network ambiguous PID drops",
+            state.etw_network_ambiguous_pid_dropped,
+        ),
         (
             "provisional exit capacity drops",
             state.etw_provisional_capacity_dropped,
@@ -520,6 +540,17 @@ fn update_etw_loss_counters(state: &mut LiveCaptureState, data: &serde_json::Val
     }
     if let Some(value) = counter("pending_evicted") {
         state.etw_pending_records_evicted = state.etw_pending_records_evicted.max(value);
+    }
+    if let Some(value) = counter("network_queue_dropped_records") {
+        state.etw_network_queue_dropped_records =
+            state.etw_network_queue_dropped_records.max(value);
+    }
+    if let Some(value) = counter("network_pending_evicted") {
+        state.etw_network_pending_evicted = state.etw_network_pending_evicted.max(value);
+    }
+    if let Some(value) = counter("network_ambiguous_pid_dropped") {
+        state.etw_network_ambiguous_pid_dropped =
+            state.etw_network_ambiguous_pid_dropped.max(value);
     }
     if let Some(value) = counter("provisional_terminates_capacity_dropped") {
         state.etw_provisional_capacity_dropped = state.etw_provisional_capacity_dropped.max(value);
@@ -893,5 +924,63 @@ mod tests {
         let counters = counters.get(&pid).unwrap();
         assert_eq!(counters.file_events, 3);
         assert_eq!(counters.network_events, 1);
+    }
+
+    #[test]
+    fn windows_etw_network_events_ingest_without_fabricating_network_targets() {
+        let state = Arc::new(Mutex::new(LiveCaptureState {
+            root_pid: Some(4242),
+            consumer_status: Some("active".to_string()),
+            ..LiveCaptureState::default()
+        }));
+
+        for (event_name, detail, protocol, queue_drops, pending_evicted, ambiguous_drops) in [
+            ("NET_CONNECT", "93.184.216.34:443", "tcp", 2, 1, 0),
+            ("NET_ACCEPT", "192.168.1.50:51234", "tcp", 2, 3, 1),
+            ("NET_UDP_SEND", "8.8.8.8:53", "udp", 4, 3, 2),
+        ] {
+            record_live_capture_event(
+                &state,
+                &Event::new(
+                    "process".to_string(),
+                    4300,
+                    "curl.exe".to_string(),
+                    json!({
+                        "event": event_name,
+                        "pid": 4300,
+                        "comm": "curl.exe",
+                        "detail": detail,
+                        "protocol": protocol,
+                        "process_instance_id": 7,
+                        "capture_root_pid": 4242,
+                        "capture": {
+                            "network_queue_dropped_records": queue_drops,
+                            "network_pending_evicted": pending_evicted,
+                            "network_ambiguous_pid_dropped": ambiguous_drops
+                        }
+                    }),
+                ),
+            );
+        }
+
+        let guard = state.lock().unwrap();
+        assert_eq!(guard.etw_network_queue_dropped_records, 4);
+        assert_eq!(guard.etw_network_pending_evicted, 3);
+        assert_eq!(guard.etw_network_ambiguous_pid_dropped, 2);
+        let note = live_capture_status_note(&guard, None).unwrap();
+        assert!(note.contains("network queue drops: 4"));
+        assert!(note.contains("network pending records evicted: 3"));
+        assert!(note.contains("network ambiguous PID drops: 2"));
+
+        let snap = guard.view.export_snapshot(SnapshotOptions {
+            audit_limit: 10_000,
+        });
+        assert!(snap.network_targets.is_empty());
+        let counters = crate::model::AuditCounters::by_pid(&snap.audit_events);
+        assert_eq!(counters.get(&4300).unwrap().network_events, 3);
+        assert!(snap.audit_events.iter().all(|row| {
+            row.audit_type == "network"
+                && row.details.get("capture_root_pid").and_then(|v| v.as_u64()) == Some(4242)
+        }));
     }
 }
