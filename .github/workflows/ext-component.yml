@@ -24,6 +24,24 @@ jobs:
             ext/runtime -> target
           target: wasm32-wasip2
 
+      - name: Enforce extension dependency direction
+        run: |
+          # `! cmd` never fails a `set -e` step: the negation makes the status
+          # zero even when the pipeline matched. Test the match explicitly.
+          if cargo tree --manifest-path agentsight-capture/Cargo.toml | grep -q 'agent-session'; then
+            echo "agentsight-capture still depends on agent-session:" >&2
+            cargo tree --manifest-path agentsight-capture/Cargo.toml | grep 'agent-session' >&2
+            exit 1
+          fi
+          test -e ext/session/src/process_match.rs
+
+      - name: Validate release metadata updater
+        run: |
+          RELEASE_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' collector/Cargo.toml | head -1)"
+          SESSION_VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' ext/session/Cargo.toml | head -1)"
+          python3 script/release/set_versions.py "$RELEASE_VERSION" "$SESSION_VERSION"
+          git diff --exit-code
+
       - name: Build session extension as a Component
         run: cargo build --manifest-path ext/session/Cargo.toml --target wasm32-wasip2
 

@@ -17,7 +17,19 @@ use windows_sys::Win32::System::Threading::{
     GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
 };
 
-pub use agent_session::{ProcessKey, ProcessTree};
+/// Unique identity for a process across PID reuse.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProcessKey {
+    pub pid: u32,
+    pub starttime_ticks: u64,
+}
+
+/// A root process and the live members of its descendant process tree.
+#[derive(Debug, Clone, Default)]
+pub struct ProcessTree {
+    pub root: ProcessKey,
+    pub members: Vec<ProcessKey>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PidSeed {
